@@ -24,7 +24,8 @@ if [ "${HMI_SKIP_MIGRATIONS:-0}" != "1" ]; then
     flask db upgrade
     flask seed
     if [ -n "${HMI_ADMIN_USER}" ] && [ -n "${HMI_ADMIN_PASSWORD}" ]; then
-        flask create-admin --username "${HMI_ADMIN_USER}" --password "${HMI_ADMIN_PASSWORD}" --if-missing
+        # the password is read from HMI_ADMIN_PASSWORD (never on the command line)
+        flask create-admin --username "${HMI_ADMIN_USER}" --if-missing
     fi
     if [ "${HMI_DEMO:-0}" = "1" ]; then
         flask demo

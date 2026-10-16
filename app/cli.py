@@ -4,7 +4,7 @@ Available after ``create_app`` registers them::
 
     flask seed                     # create default roles & permissions
     flask create-admin             # interactive admin account creation
-    flask create-admin --username admin --password ... --if-missing   # non-interactive (Docker)
+    flask create-admin --username admin --if-missing   # password from HMI_ADMIN_PASSWORD (Docker, installer)
     flask demo                     # sample PLC + dashboard (best with PLC_SIMULATION=1)
     flask library animations       # add the built-in animated GIFs to the image library
     flask library folders          # list the image library folders
@@ -45,7 +45,8 @@ def seed_command(reset: bool) -> None:
 @click.command("create-admin")
 @click.option("--username", prompt=True, help="Login name.")
 @click.option("--email", default="", help="Optional e-mail address.")
-@click.option("--password", prompt=True, hide_input=True, confirmation_prompt=True, help="Password.")
+@click.option("--password", prompt=True, hide_input=True, confirmation_prompt=True, envvar="HMI_ADMIN_PASSWORD",
+              help="Password (default: the HMI_ADMIN_PASSWORD environment variable, else asked).")
 @click.option("--if-missing", is_flag=True,
               help="Do nothing (exit code 0) when the user already exists – for container start scripts.")
 def create_admin_command(username: str, email: str, password: str, if_missing: bool) -> None:

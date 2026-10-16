@@ -16,3 +16,5 @@ tests
 docs/screenshots
 Dockerfile
 docker-compose*.yml
+offline
+dist

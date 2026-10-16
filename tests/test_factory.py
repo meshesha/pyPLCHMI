@@ -63,6 +63,9 @@ def test_cli_seed_and_create_admin(app):
     again = runner.invoke(args=["create-admin", "--username", "boss", "--password", "otherpassword", "--if-missing"])
     assert again.exit_code == 0 and "not changed" in again.output
     assert User.query.filter_by(username="boss").one().check_password("longpassword")
+    env = runner.invoke(args=["create-admin", "--username", "chief", "--if-missing"],
+                        env={"HMI_ADMIN_PASSWORD": "from-env-pass"})
+    assert env.exit_code == 0 and User.query.filter_by(username="chief").one().check_password("from-env-pass")
 
 
 def test_cli_demo(app):

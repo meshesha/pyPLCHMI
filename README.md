@@ -85,6 +85,12 @@ The data is kept in a volume. The database is migrated on every start, and there
 health check. For BACnet broadcasts and Modbus RTU serial ports, see
 **[docs/DOCKER.md](docs/DOCKER.md)**.
 
+**Air-gapped plant network (Windows):** a separate offline package, the `pyPLCHMI_offline` folder,
+contains the app, every Python library as a ready-made `site-packages` ZIP and the Python
+installer. Copy it across and double-click `install.bat`. You get a service-style install
+with auto-start and a firewall rule, with no Internet and no Docker. Requirements and
+procedure: **[docs/OFFLINE_INSTALL.md](docs/OFFLINE_INSTALL.md)**.
+
 **Without Docker:**
 
 ```bash
@@ -105,6 +111,7 @@ own alarm scanner and historian. Put a reverse proxy with HTTPS in front and set
 
 * **[User guide](docs/USER_GUIDE.md)** – configuration, every feature, roles, Excel import/export,
   languages, migrations, tests.
+* **[Offline installation](docs/OFFLINE_INSTALL.md)** – Windows on an air-gapped network: requirements, procedure, upgrades.
 * **[Docker](docs/DOCKER.md)** – requirements checklist, volumes, OT networking, operation.
 * **[Architecture](docs/ARCHITECTURE.md)** – how the pieces fit together, for contributors.
 
