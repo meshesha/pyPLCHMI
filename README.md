@@ -40,7 +40,7 @@ operator station is just a browser window, and the engineering tools are on the 
 Requires **Python 3.10+** (Windows, Linux or macOS).
 
 ```bash
-git clone https://github.com/<your-account>/pyPLCHMI.git
+git clone https://github.com/meshesha/pyPLCHMI.git
 cd pyPLCHMI
 python -m venv venv
 source venv/bin/activate          # Windows: venv\Scripts\activate
