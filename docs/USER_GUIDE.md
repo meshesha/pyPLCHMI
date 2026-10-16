@@ -835,26 +835,13 @@ connections; with several processes each would also run its own alarm scanner an
 history logger (duplicate samples). Put a reverse proxy with HTTPS in front (IIS, nginx, Caddy) and set
 `SESSION_COOKIE_SECURE=1`.
 
-### Offline (air-gapped) installation on Windows
+### Offline (air-gapped) installation
 
-For plant networks without Internet access there is a separate **`pyPLCHMI_offline`** folder. It contains:
-
-* the application;
-* `site-packages\site-packages-py312-win_amd64.zip`, every library as a ready-made
-  `Lib\site-packages` for Python 3.12 64-bit;
-* the official Python 3.12 installer (`.exe`);
-* `install.bat` / `uninstall.bat`;
-* the guide as Markdown and HTML.
-
-On the target, `install.bat` does everything without network access:
-1. verifies the ZIP, and installs Python 3.12 if missing;
-2. creates the venv and unpacks the libraries into `venv\Lib\site-packages`;
-3. writes `.env`, and creates the database and the administrator;
-4. optionally adds auto-start and the firewall rule.
-
-The folder and its packaging
-files are distributed separately from the GitHub repository.
-[docs/OFFLINE_INSTALL.md](OFFLINE_INSTALL.md) describes the requirements and the procedure.
+pyPLCHMI runs without Internet access; every front-end library is bundled. To install it on a
+computer without Internet (Windows or Linux, without Docker), download the source code and the
+Python libraries (wheels) on a connected computer, transfer them, and install them with
+`pip install --no-index`. The step-by-step guide with the system requirements is
+[OFFLINE_INSTALLATION.md](OFFLINE_INSTALLATION.md).
 
 ### Docker
 
