@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Languages') }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">{{ _('Languages') }}</h1>
+    <div class="small text-secondary">{{ _('Each user chooses a language in the language menu (or in My account). English is the primary language: texts missing in a language file are shown in English.') }}</div>
+  </div>
+  <a class="btn btn-outline-success" href="{{ url_for('i18n.admin_language_download', code='en', template=1) }}" id="download-template">
+    <i class="bi bi-download"></i> {{ _('Translation template') }}</a>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="table-responsive">
+    <table class="table align-middle hmi-table" id="language-table">
+      <thead><tr>
+        <th>{{ _('Language') }}</th><th>{{ _('Code') }}</th><th>{{ _('Direction') }}</th><th>{{ _('Translated') }}</th>
+        <th>{{ _('Source') }}</th><th class="text-end">{{ _('Actions') }}</th>
+      </tr></thead>
+      <tbody>
+      {% for lang, done, total in rows %}
+        <tr data-lang="{{ lang.code }}">
+          <td><strong lang="{{ lang.code }}" dir="{{ lang.direction }}">{{ lang.name }}</strong>
+            {% if lang.name != lang.english_name %}<span class="text-secondary small">{{ lang.english_name }}</span>{% endif %}
+            {% if lang.code == default %}<span class="badge text-bg-primary ms-1">{{ _('default') }}</span>{% endif %}</td>
+          <td><code>{{ lang.code }}</code></td>
+          <td>{{ _('right to left') if lang.rtl else _('left to right') }}</td>
+          <td style="min-width: 10rem">
+            {% set pct = (100 * done / total)|round(0, 'floor')|int if total else 100 %}
+            <div class="progress" role="progressbar" aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100" style="height: .5rem">
+              <div class="progress-bar {{ 'bg-success' if pct >= 95 else ('bg-warning' if pct >= 50 else 'bg-danger') }}" style="width: {{ pct }}%"></div>
+            </div>
+            <div class="small text-secondary">{{ _('{0} of {1} texts ({2}%)', done, total, pct) }}</div>
+          </td>
+          <td class="small">{% if lang.source == 'uploaded' %}<span class="badge text-bg-info">{{ _('uploaded') }}</span>
+              {% if lang.overrides_builtin %}<div class="text-secondary">{{ _('replaces the built-in file') }}</div>{% endif %}
+            {% else %}<span class="badge text-bg-secondary">{{ _('built-in') }}</span>{% endif %}</td>
+          <td class="text-end text-nowrap">
+            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('i18n.admin_language_download', code=lang.code) }}"
+               title="{{ _('Download the language file') }}"><i class="bi bi-download"></i></a>
+            {% if lang.code != 'en' %}
+            <a class="btn btn-sm btn-outline-success" href="{{ url_for('i18n.admin_language_download', code=lang.code, template=1) }}"
+               title="{{ _('Download for translating: every text, missing translations empty') }}"><i class="bi bi-pencil-square"></i></a>
+            {% endif %}
+            {% if lang.source == 'uploaded' %}
+            <form method="post" action="{{ url_for('i18n.admin_language_delete', code=lang.code) }}" class="d-inline"
+                  data-confirm="{{ _('Delete the uploaded language file {0}?', lang.name) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-danger" type="submit" title="{{ _('Delete') }}"><i class="bi bi-trash"></i></button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+
+    <div class="card hmi-panel mt-3"><div class="card-body">
+      <h2 class="h5">{{ _('Default language') }}</h2>
+      <p class="small text-secondary">{{ _('Used for visitors and for users who did not choose a language.') }}</p>
+      <form method="post" action="{{ url_for('i18n.admin_language_default') }}" class="d-flex gap-2" style="max-width: 420px">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <select class="form-select" name="code" aria-label="{{ _('Default language') }}">
+          {% for lang, done, total in rows %}<option value="{{ lang.code }}" {{ 'selected' if lang.code == default }}>{{ lang.name }}</option>{% endfor %}
+        </select>
+        <button class="btn btn-primary" type="submit">{{ _('Save') }}</button>
+      </form>
+    </div></div>
+  </div>
+
+  <div class="col-xl-4">
+    <div class="card hmi-panel"><div class="card-body">
+      <h2 class="h5">{{ _('Upload a language file') }}</h2>
+      <form method="post" action="{{ url_for('i18n.admin_language_upload') }}" enctype="multipart/form-data" id="language-upload">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input class="form-control mb-2" type="file" name="file" accept=".json,application/json" multiple required>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-upload"></i> {{ _('Upload') }}</button>
+      </form>
+      <hr>
+      <h3 class="h6">{{ _('How to add or improve a language') }}</h3>
+      <ol class="small mb-2">
+        <li>{{ _('Download the translation template (or an existing language for translating).') }}</li>
+        <li>{{ _('Fill in "language": code (e.g. fr), name (e.g. Français), english_name and direction (ltr, or rtl for Hebrew/Arabic).') }}</li>
+        <li>{{ _('Translate the values of "messages"; keep the English keys unchanged and keep placeholders such as {0} or {name}. Empty values stay English.') }}</li>
+        <li>{{ _('Save the file as UTF-8 and upload it here. A file with the code of a built-in language replaces it; delete the upload to go back.') }}</li>
+      </ol>
+<pre class="small mb-0 p-2 rounded hmi-code" dir="ltr">{
+  "language": {"code": "fr", "name": "Français",
+               "english_name": "French", "direction": "ltr"},
+  "messages": {
+    "Screens": "Écrans",
+    "Tag '{0}' saved.": "Tag « {0} » enregistré."
+  }
+}</pre>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

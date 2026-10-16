@@ -1,0 +1,3 @@
+{# Right-click menu of screen values: "Show graph" (tag history) and "Details" – see hmi-tagmenu.js #}
+<script type="application/json" id="tag-menu-data">{{ tag_menu|tojson }}</script>
+<script src="{{ url_for('static', filename='js/hmi-tagmenu.js') }}"></script>

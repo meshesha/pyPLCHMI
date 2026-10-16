@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local configuration and data – never commit
+.env
+instance/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

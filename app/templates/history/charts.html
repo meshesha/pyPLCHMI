@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "history/_tag_picker.html" import tag_picker %}
+{% block title %}{{ _('Trend charts') }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">{{ _('Trend charts') }}</h1>
+    <div class="small text-secondary">{{ _('Charts of tags with history logging. Only numeric and BOOL tags can be drawn.') }}</div>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-secondary" href="{{ url_for('history.index') }}"><i class="bi bi-table"></i> {{ _('Tag history') }}</a>
+    {% if can_manage %}<a class="btn btn-primary" id="new-chart" href="{{ url_for('history.create_chart') }}"><i class="bi bi-plus-lg"></i> {{ _('New chart') }}</a>{% endif %}
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="list-group" id="chart-list">
+      {% for c in charts %}
+      {% set series = c.resolved_series() %}
+      <div class="list-group-item hmi-panel d-flex flex-wrap justify-content-between align-items-center gap-2" data-chart="{{ c.id }}">
+        <div>
+          <a class="fw-semibold" href="{{ url_for('history.view_chart', chart_id=c.id) }}"><i class="bi bi-graph-up"></i> {{ c.name }}</a>
+          {% if c.description %}<div class="small text-secondary">{{ c.description }}</div>{% endif %}
+          <div class="small mt-1 d-flex flex-wrap gap-2">
+            {% for s in series %}<span class="hmi-series-chip"><span class="hmi-swatch" style="background: {{ s.color }}"></span>{{ s.datapoint.label }}</span>{% else %}<span class="text-warning">{{ _('No tags (the tags were deleted).') }}</span>{% endfor %}
+          </div>
+        </div>
+        {% if can_manage %}
+        <div class="d-flex gap-1">
+          <a class="btn btn-sm btn-outline-primary" href="{{ url_for('history.edit_chart', chart_id=c.id) }}"><i class="bi bi-pencil"></i> {{ _('Edit') }}</a>
+          <form method="post" action="{{ url_for('history.delete_chart', chart_id=c.id) }}" data-confirm="{{ _('Delete chart {0}? The saved samples are kept.', c.name) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i></button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="list-group-item hmi-panel text-secondary">{{ _('No saved charts yet.') }}{% if can_manage %} {{ _('Click “New chart” to create one.') }}{% endif %}</div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card hmi-panel"><div class="card-body">
+      <h2 class="h5">{{ _('Quick chart') }}</h2>
+      <p class="small text-secondary">{{ _('Draw any logged tags without saving a chart (up to {0} tags).', max_series) }}</p>
+      <form method="get" action="{{ url_for('history.quick_chart') }}" id="quick-chart" class="d-flex flex-wrap gap-2 align-items-center">
+        {{ tag_picker(tags, [], _('Choose tags'), 'quick-picker') }}
+        <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-graph-up"></i> {{ _('Show') }}</button>
+      </form>
+      {% if not tags %}<p class="small text-warning mt-2 mb-0">{{ _('No tag has history logging yet. Enable “Save history” in a tag’s settings (Admin → Tag table).') }}</p>{% endif %}
+    </div></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/history.js') }}"></script>
+{% endblock %}

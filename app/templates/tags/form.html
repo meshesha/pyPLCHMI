@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% from "_macros.html" import render_field %}
+{% block title %}{{ _('Edit tag') if tag else _('Add tag') }}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">{{ _('Edit tag') if tag else (_('Copy tag') if source else _('Add tag')) }}</h1>
+<p class="text-secondary mb-4"><a href="{{ url_for('tags.index') }}"><i class="bi bi-arrow-left"></i> {{ _('Tag table') }}</a>
+  {% if tag and tag.alarms.count() %} · {{ _('used by {0} alarm(s)', tag.alarms.count()) }}{% endif %}
+  {% if source %} · {{ _('new tag with the settings of {0} ({1} {2}) – change the address and save', source.label, source.plc.name, source.address) }}{% endif %}</p>
+
+<form method="post" novalidate id="point-form">
+  {{ form.hidden_tag() }}
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="card hmi-panel"><div class="card-body">
+        <h2 class="h5">{{ _('Source') }}</h2>
+        {{ render_field(form.label) }}
+        {{ render_field(form.plc_id) }}
+        <div class="row">
+          {{ render_field(form.address, 'col-md-6') }}
+          {{ render_field(form.data_type, 'col-md-6') }}
+        </div>
+        <div class="row" id="string-length-row">{{ render_field(form.string_length, 'col-md-6') }}</div>
+        <div id="dummy-scope-row">{{ render_field(form.dummy_scope) }}</div>
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <button type="button" class="btn btn-outline-info btn-sm" id="test-read"
+                  data-url-template="{{ url_for('api.plc_read', plc_id=0) }}"><i class="bi bi-lightning"></i> {{ _('Test read') }}</button>
+          <span id="test-result" class="small"></span>
+        </div>
+{% include "_address_syntax.html" %}
+      </div></div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card hmi-panel"><div class="card-body">
+        <h2 class="h5">{{ _('Screens') }}</h2>
+        <div class="screen-checklist mb-1" id="tag-screens">
+          {% for opt in form.screens %}
+          <div class="form-check">{{ opt(class_='form-check-input') }} {{ opt.label(class_='form-check-label') }}</div>
+          {% else %}
+          <span class="small text-secondary">{{ _('No screens yet.') }}</span>
+          {% endfor %}
+        </div>
+        <p class="form-text mb-4">{{ form.screens.description }} {{ _('Changes to the tag apply on every screen that shows it.') }}</p>
+        <h2 class="h5">{{ _('Presentation') }}</h2>
+        <p class="form-text mt-n1">{{ _('Widget and tile width are used when the tag is shown on a grid screen.') }}</p>
+        <div class="row">{{ render_field(form.widget, 'col-md-8') }}{{ render_field(form.width, 'col-md-4') }}</div>
+        <div class="row">{{ render_field(form.unit, 'col-md-4') }}{{ render_field(form.decimals, 'col-md-4') }}</div>
+        <div class="row">{{ render_field(form.scale, 'col-md-6') }}{{ render_field(form.offset, 'col-md-6') }}</div>
+        <p class="form-text mt-n2">{{ _('Displayed value = raw × scale + offset.') }}</p>
+        <div class="row">{{ render_field(form.min_value, 'col-md-6') }}{{ render_field(form.max_value, 'col-md-6') }}</div>
+        <div class="row">{{ render_field(form.true_text, 'col-md-6') }}{{ render_field(form.false_text, 'col-md-6') }}</div>
+        {{ render_field(form.writable) }}
+      </div></div>
+      <div class="card hmi-panel mt-4" id="history-settings"><div class="card-body">
+        <h2 class="h5"><i class="bi bi-graph-up"></i> {{ _('History / trends') }}</h2>
+        <p class="form-text mt-n1">{{ _('Saved samples can be viewed, filtered and exported to Excel (Trends → Tag history) and drawn in trend charts.') }}</p>
+        {{ render_field(form.log_enabled) }}
+        <div class="row">{{ render_field(form.log_interval, 'col-md-6') }}</div>
+        <p class="form-text text-warning mb-0" id="log-local-note" hidden>{{ _('A local dummy tag has no value on the server, so its history cannot be saved.') }}</p>
+        {% if tag and tag.samples.count() %}<p class="small text-secondary mb-0">{{ _('{0} samples saved so far.', tag.samples.count()) }} <a href="{{ url_for('history.index', tags=tag.id) }}">{{ _('Show history') }}</a></p>{% endif %}
+      </div></div>
+    </div>
+  </div>
+  <div class="mt-4 d-flex gap-2">
+    {{ form.submit(class_='btn btn-primary') }}
+    {% if not tag %}<button type="submit" name="add_another" value="1" class="btn btn-outline-primary">{{ _('Save & add another') }}</button>{% endif %}
+    <a class="btn btn-outline-secondary" href="{{ url_for('tags.index') }}">{{ _('Cancel') }}</a>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script type="application/json" id="plc-protocols">{{ plc_protocols|tojson }}</script>
+<script src="{{ url_for('static', filename='js/point_form.js') }}"></script>
+{% endblock %}

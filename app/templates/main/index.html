@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% from "_table.html" import search_bar, filter_select, sort_th, pager, local_time %}
+{% block title %}{{ _('Screens') }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+  <h1 class="h3 mb-0">{{ _('Screens') }}</h1>
+  {% if current_user.can(Perm.MANAGE_DASHBOARDS) %}
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary" href="{{ url_for('assets.index') }}"><i class="bi bi-images"></i> {{ _('Image library') }}</a>
+    <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#svg-import-modal" id="svg-import-btn"><i class="bi bi-filetype-svg"></i> {{ _('Import SVG') }}</button>
+    <a class="btn btn-primary" href="{{ url_for('dashboards.create') }}"><i class="bi bi-plus-lg"></i> {{ _('New screen') }}</a>
+  </div>
+  {% endif %}
+</div>
+
+{% if plc_count == 0 %}
+<div class="alert alert-info">{{ _('No PLCs configured yet.') }} <a href="{{ url_for('admin.plc_create') }}">{{ _('Add your first PLC') }}</a>{{ _(', then create a screen.') }}</div>
+{% endif %}
+
+{% if total %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  {% call search_bar(state, 'Search name, description, PLC…') %}
+    {{ filter_select(state, 'kind', 'Type', [('grid', 'Grid'), ('image', 'Image')]) }}
+    {{ filter_select(state, 'access', 'Access', [('public', 'Public'), ('private', 'Login required')]) }}
+    {% if plc_options|length > 1 %}{{ filter_select(state, 'plc', 'PLC', plc_options) }}{% endif %}
+    {% if state.q or state.filters %}<a class="btn btn-sm btn-link" id="screens-clear" href="{{ url_for('main.screens', per_page=state.per_page) }}">{{ _('Clear') }}</a>{% endif %}
+  {% endcall %}
+  <div class="btn-group btn-group-sm" role="group" aria-label="{{ _('View') }}" id="screens-view">
+    <a class="btn btn-outline-secondary {{ 'active' if view == 'cards' }}" id="view-cards" href="{{ url_for('main.screens', **state.args(view='cards', page=None)) }}" title="{{ _('Cards') }}" aria-label="{{ _('Cards') }}"{% if view == 'cards' %} aria-current="true"{% endif %}><i class="bi bi-grid-3x2-gap"></i></a>
+    <a class="btn btn-outline-secondary {{ 'active' if view == 'table' }}" id="view-table" href="{{ url_for('main.screens', **state.args(view='table')) }}" title="{{ _('Table') }}" aria-label="{{ _('Table') }}"{% if view == 'table' %} aria-current="true"{% endif %}><i class="bi bi-table"></i></a>
+  </div>
+</div>
+{% endif %}
+
+{% if view == 'table' and total %}
+<div class="table-responsive">
+<table class="table table-hover table-sm align-middle hmi-table" id="screens-table">
+  <thead><tr>
+    {{ sort_th(state, 'name', 'Name') }}
+    {{ sort_th(state, 'kind', 'Type') }}
+    <th>{{ _('Description') }}</th>
+    {{ sort_th(state, 'plcs', 'PLCs') }}
+    {{ sort_th(state, 'tags', 'Tags', 'text-end') }}
+    {{ sort_th(state, 'access', 'Access') }}
+    {{ sort_th(state, 'created', 'Created') }}
+    <th class="text-end">{{ _('Actions') }}</th>
+  </tr></thead>
+  <tbody>
+  {% for d in pagination.items %}
+    <tr data-screen-id="{{ d.id }}">
+      <td><a class="fw-semibold" href="{{ url_for('dashboards.view', slug=d.slug) }}">{{ d.name }}</a>
+        {% if home and home.id == d.id %} <span class="badge text-bg-success" title="{{ _('Your home screen') }}"><i class="bi bi-house-fill"></i> {{ _('home') }}</span>{% endif %}</td>
+      <td>{% if d.is_image %}<span class="badge text-bg-primary"><i class="bi bi-image"></i> {{ _('image') }}</span>{% else %}<span class="badge hmi-badge-neutral"><i class="bi bi-grid-3x3-gap"></i> {{ _('grid') }}</span>{% endif %}</td>
+      <td class="small text-secondary screens-desc" title="{{ d.description }}">{{ d.description or '—' }}</td>
+      <td class="small">{% for p in d.plcs %}{{ p.name }}{{ ', ' if not loop.last }}{% else %}<span class="text-secondary">—</span>{% endfor %}</td>
+      <td class="text-end">{{ d.datapoints|length }}</td>
+      <td>{% if d.is_public %}<span class="badge text-bg-info">{{ _('public') }}</span>{% else %}<i class="bi bi-lock text-secondary" title="{{ _('Login required') }}"></i>{% endif %}</td>
+      <td class="small text-nowrap">{{ local_time(d.created_at) }}</td>
+      <td class="text-end text-nowrap">
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('dashboards.view', slug=d.slug) }}" title="{{ _('Open') }}" aria-label="{{ _('Open') }}"><i class="bi bi-box-arrow-up-right"></i></a>
+        {% if current_user.can(Perm.MANAGE_DASHBOARDS) %}
+        {% if d.is_image %}<a class="btn btn-sm btn-outline-info" href="{{ url_for('dashboards.designer', dashboard_id=d.id) }}" title="{{ _('Designer') }}" aria-label="{{ _('Designer') }}"><i class="bi bi-vector-pen"></i></a>{% endif %}
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('dashboards.edit', dashboard_id=d.id) }}" title="{{ _('Settings') }}" aria-label="{{ _('Settings') }}"><i class="bi bi-gear"></i></a>
+        {% endif %}
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="8" class="text-secondary">{{ _('No screens match the search.') }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ pager(state, pagination) }}
+{% else %}
+<div class="row g-3">
+  {% for d in dashboards %}
+  <div class="col-sm-6 col-lg-4">
+    <div class="card hmi-panel h-100">
+      <div class="card-body">
+        <h2 class="h5 card-title d-flex justify-content-between align-items-start">
+          <a class="stretched-link text-reset text-decoration-none" href="{{ url_for('dashboards.view', slug=d.slug) }}">{{ d.name }}</a>
+          <span>{% if home and home.id == d.id %}<span class="badge text-bg-success" title="{{ _('Your home screen') }}"><i class="bi bi-house-fill"></i> {{ _('home') }}</span>{% endif %}
+          {% if d.is_image %}<span class="badge text-bg-primary"><i class="bi bi-image"></i> {{ _('image') }}</span>{% endif %}
+          {% if d.is_public %}<span class="badge text-bg-info">{{ _('public') }}</span>{% endif %}</span>
+        </h2>
+        <p class="card-text text-secondary small">{{ d.description or _('No description') }}</p>
+      </div>
+      <div class="card-footer small text-secondary d-flex justify-content-between">
+        <span><i class="bi bi-tags"></i> {{ _('{0} tag(s)', d.datapoints|length) }}</span>
+        <span><i class="bi bi-hdd-network"></i> {{ _('{0} PLC(s)', d.plcs|length) }}</span>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12"><p class="text-secondary">{{ _('No screens match the search.') if total else _('No screens available for your role.') }}</p></div>
+  {% endfor %}
+</div>
+
+{% endif %}
+
+{% if current_user.can(Perm.MANAGE_DASHBOARDS) %}
+<div class="modal fade" id="svg-import-modal" tabindex="-1" aria-labelledby="svg-import-title" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{{ url_for('dashboards.import_svg_files') }}" enctype="multipart/form-data" id="svg-import-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-header">
+        <h5 class="modal-title" id="svg-import-title"><i class="bi bi-filetype-svg"></i> {{ _('Import screens from SVG files') }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+      </div>
+      <div class="modal-body">
+        <input class="form-control mb-3" type="file" name="file" accept=".svg,image/svg+xml" multiple required>
+        <ul class="small text-secondary mb-0">
+          <li>{{ _('Files saved with Export SVG in the designer become complete, editable screens again: tags are matched by name and PLC (missing tags are created when their PLC exists), images are added to the library.') }}</li>
+          <li>{{ _('Other drawings (Inkscape, CAD, Visio…) become a new Image screen with the drawing as background, ready for tags, symbols and buttons on top.') }}</li>
+          <li>{{ _('Each file creates a new screen; existing screens are never changed.') }}</li>
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+        <button type="submit" class="btn btn-info"><i class="bi bi-upload"></i> {{ _('Import') }}</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

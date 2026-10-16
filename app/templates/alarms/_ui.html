@@ -1,0 +1,62 @@
+{# Alarm user interface for logged-in users (included by base.html):
+   * the alarm window that pops up when an alarm is raised (and for "Details"),
+   * the Events window listing all active alarms.
+   Driven by static/js/alarms.js, which polls /api/alarms/active. #}
+
+<div id="hmi-alarms" hidden
+     data-active-url="{{ url_for('api.alarms_active') }}"
+     data-event-url="{{ url_for('api.alarm_event', event_id=0) }}"
+     data-ack-url="{{ url_for('api.alarm_ack', event_id=0) }}"
+     data-remove-url="{{ url_for('api.alarm_remove', event_id=0) }}"
+     data-poll-ms="{{ config.get('ALARM_POLL_MS', 3000) }}"
+     data-banner-event="{{ alarm_event.id if alarm_event is defined and alarm_event else '' }}"></div>
+
+{# ---- Alarm window (popup / details) ---- #}
+<div class="modal fade" id="alarm-modal" tabindex="-1" aria-labelledby="alarm-modal-title" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content alarm-window">
+      <div class="modal-header alarm-window-head">
+        <i class="bi bi-exclamation-triangle-fill fs-4 me-2"></i>
+        <div class="flex-grow-1">
+          <h5 class="modal-title mb-0" id="alarm-modal-title">{{ _('Alarm') }}</h5>
+          <div class="small"><span id="alarm-modal-severity"></span> <span id="alarm-modal-queue" class="ms-2 opacity-75"></span></div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="{{ _('Close') }}" id="alarm-modal-x"></button>
+      </div>
+      <div class="modal-body">
+        <p id="alarm-modal-desc" class="mb-3"></p>
+        <dl class="row small mb-0">
+          <dt class="col-4">{{ _('Condition') }}</dt><dd class="col-8"><code id="alarm-modal-cond"></code></dd>
+          <dt class="col-4">{{ _('Value') }}</dt><dd class="col-8 font-monospace" id="alarm-modal-value"></dd>
+          <dt class="col-4">{{ _('Occurred') }}</dt><dd class="col-8" id="alarm-modal-time"></dd>
+          <dt class="col-4">{{ _('Acknowledged') }}</dt><dd class="col-8" id="alarm-modal-ack"></dd>
+          <dt class="col-4">{{ _('State') }}</dt><dd class="col-8" id="alarm-modal-state"></dd>
+        </dl>
+      </div>
+      <div class="modal-footer">
+        <a class="btn btn-outline-light" id="alarm-modal-open" href="#"><i class="bi bi-box-arrow-up-right"></i> {{ _('Open Screen') }}</a>
+        <button type="button" class="btn btn-warning" id="alarm-modal-ack-btn"><i class="bi bi-check2-circle"></i> {{ _('Ack') }}</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" id="alarm-modal-close">{{ _('Close') }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ---- Events window (all active alarms) ---- #}
+<div class="modal fade" id="events-modal" tabindex="-1" aria-labelledby="events-modal-title" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="events-modal-title"><i class="bi bi-bell"></i> {{ _('Active events') }}</h5>
+        <a class="btn btn-sm btn-outline-info ms-3" href="{{ url_for('alarms.history') }}" id="event-history-btn"><i class="bi bi-clock-history"></i> {{ _('Event History') }}</a>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+      </div>
+      <div class="modal-body p-0">
+        <table class="table table-sm table-hover align-middle mb-0 hmi-table">
+          <thead><tr><th>{{ _('Alarm') }}</th><th>{{ _('Occurred') }}</th><th>{{ _('Ack time') }}</th><th class="text-end"></th></tr></thead>
+          <tbody id="events-body"><tr><td colspan="4" class="text-secondary">{{ _('Loading…') }}</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

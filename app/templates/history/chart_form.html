@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "_macros.html" import render_field %}
+{% block title %}{{ _('Edit chart') if chart else _('New chart') }}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">{{ _('Edit chart') if chart else _('New chart') }}</h1>
+<p class="text-secondary mb-4"><a href="{{ url_for('history.view_chart', chart_id=chart.id) if chart else url_for('history.charts') }}"><i class="bi bi-arrow-left"></i> {{ chart.name if chart else _('Trend charts') }}</a></p>
+
+<form method="post" novalidate id="chart-form">
+  {{ form.hidden_tag() }}
+  <div class="row g-4">
+    <div class="col-lg-4">
+      <div class="card hmi-panel"><div class="card-body">
+        {{ render_field(form.name) }}
+        {{ render_field(form.description) }}
+        {{ render_field(form.range_key) }}
+      </div></div>
+    </div>
+    <div class="col-lg-8">
+      <div class="card hmi-panel"><div class="card-body">
+        <h2 class="h5">{{ _('Tags and colours') }}</h2>
+        <p class="small text-secondary">{{ _('Only tags with history logging (numeric and BOOL) can be added. Give each tag its own colour; tags with very different ranges can use the right axis.') }}</p>
+        {% if form.series.errors %}<div class="alert alert-danger small" id="series-errors">{% for e in form.series.errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+        <table class="table table-sm align-middle mb-2" id="series-table">
+          <thead><tr><th>{{ _('Tag') }}</th><th style="width: 6rem">{{ _('Colour') }}</th><th style="width: 10rem">{{ _('Axis') }}</th><th style="width: 3rem"></th></tr></thead>
+          <tbody></tbody>
+        </table>
+        {% if tags %}
+        <button type="button" class="btn btn-sm btn-outline-primary" id="add-series"><i class="bi bi-plus-lg"></i> {{ _('Add tag') }}</button>
+        <span class="small text-secondary ms-2">{{ _('up to {0} tags', max_series) }}</span>
+        {% else %}
+        <div class="alert alert-warning small mb-0">{{ _('No tag has history logging yet. Enable “Save history” in a tag’s settings (Admin → Tag table).') }}</div>
+        {% endif %}
+      </div></div>
+    </div>
+  </div>
+  <div class="mt-4 d-flex gap-2">
+    {{ form.submit(class_='btn btn-primary') }}
+    <a class="btn btn-outline-secondary" href="{{ url_for('history.view_chart', chart_id=chart.id) if chart else url_for('history.charts') }}">{{ _('Cancel') }}</a>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script type="application/json" id="chart-tags">{{ tags|tojson }}</script>
+<script type="application/json" id="chart-palette">{{ palette|tojson }}</script>
+<script type="application/json" id="chart-axes">{{ axes|tojson }}</script>
+<script type="application/json" id="chart-max">{{ max_series|tojson }}</script>
+<script src="{{ url_for('static', filename='js/chart_form.js') }}"></script>
+{% endblock %}

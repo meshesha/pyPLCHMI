@@ -1,0 +1,31 @@
+{# Drop-down list of tags with check boxes (name "t"), a search box and select all / none.
+   tags: list of DataPoint; selected: set of ids; label: button text when nothing is chosen. #}
+{% macro tag_picker(tags, selected, empty_label, id='tag-picker') -%}
+<div class="dropdown hmi-tag-picker" id="{{ id }}" data-empty="{{ empty_label }}">
+  <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+          data-bs-auto-close="outside" aria-expanded="false">
+    <i class="bi bi-tags"></i> <span class="picker-label">{{ empty_label }}</span>
+  </button>
+  <div class="dropdown-menu p-2 hmi-tag-picker-menu">
+    <input type="search" class="form-control form-control-sm mb-2 picker-search" placeholder="{{ _('Filter tags…') }}" aria-label="{{ _('Filter tags…') }}">
+    <div class="d-flex gap-2 mb-2 small">
+      <button type="button" class="btn btn-link btn-sm p-0 picker-all">{{ _('Select all') }}</button>
+      <button type="button" class="btn btn-link btn-sm p-0 picker-none">{{ _('Select none') }}</button>
+    </div>
+    <div class="picker-list">
+      {% for dp in tags %}
+      <label class="form-check picker-item" data-search="{{ (dp.label ~ ' ' ~ (dp.plc.name if dp.plc else '') ~ ' ' ~ dp.address)|lower }}">
+        <input class="form-check-input" type="checkbox" name="t" value="{{ dp.id }}" {{ 'checked' if dp.id in selected }}
+               data-label="{{ dp.label }}">
+        <span class="form-check-label">{{ dp.label }}
+          <span class="small text-secondary">· {{ dp.plc.name if dp.plc else '' }}{% if dp.unit %} · {{ dp.unit }}{% endif %}
+          {% if dp.is_logged %} · {{ _('every {0} s', dp.log_interval) }}{% else %} · <em>{{ _('logging off') }}</em>{% endif %}</span>
+        </span>
+      </label>
+      {% else %}
+      <div class="small text-secondary">{{ _('No tag has history logging yet.') }}</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{%- endmacro %}

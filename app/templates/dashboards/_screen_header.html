@@ -1,0 +1,12 @@
+{# Screen name and buttons shown in the top bar of a screen (block screen_header of base.html).
+   Expects: dashboard, edit_url (or none), fullscreen_target (CSS selector or none). #}
+<div class="hmi-screen-head" id="screen-head">
+  <h1 class="hmi-screen-name" title="{{ dashboard.description or dashboard.name }}">{{ dashboard.name }}</h1>
+  {% if fullscreen_target %}
+  <button type="button" class="nav-link hmi-head-btn" id="fullscreen-btn" data-fullscreen-target="{{ fullscreen_target }}" data-fullscreen-frame="1"
+          aria-label="{{ _('Full screen') }}"><i class="bi bi-fullscreen"></i><span class="hmi-nav-label">{{ _('Full screen') }}</span></button>
+  {% endif %}
+  {% if edit_url %}
+  <a class="nav-link hmi-head-btn hmi-head-edit" id="screen-edit" href="{{ edit_url }}" aria-label="{{ _('Edit') }}"><i class="bi bi-pencil-square"></i><span class="hmi-nav-label">{{ _('Edit') }}</span></a>
+  {% endif %}
+</div>

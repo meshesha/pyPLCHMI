@@ -1,0 +1,145 @@
+{% set lang = current_language() %}<!doctype html>
+<html lang="{{ lang.code }}" dir="{{ lang.direction }}" data-bs-theme="{{ 'light' if ui_theme == 'light' else 'dark' }}" data-hmi-theme="{{ ui_theme }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}pyPLCHMI{% endblock %} · pyPLCHMI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.rtl.min.css' if lang.rtl else 'vendor/bootstrap/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/sweetalert2/sweetalert2.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
+  <link href="{{ url_for('static', filename='css/hmi.css') }}" rel="stylesheet">
+  {% block head %}{% endblock %}
+  <script src="{{ url_for('i18n.messages_js', code=lang.code, v=lang.version or '0') }}"></script>
+  <script src="{{ url_for('static', filename='vendor/sweetalert2/sweetalert2.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/hmi-dialogs.js') }}"></script>
+</head>
+<body{% if embed %} class="hmi-embed"{% endif %}>
+{% if not embed %}
+{# Top bar: brand and (on screens) the screen name with its buttons on the left, the clock in the
+   middle, icon buttons on the right.  Icon labels appear when the pointer is over them (in the
+   collapsed mobile menu they are shown next to the icons). #}
+{% macro nav_label(text) %}<span class="hmi-nav-label">{{ text }}</span>{% endmacro %}
+<nav class="navbar navbar-expand-lg hmi-navbar">
+  <div class="container-fluid hmi-navbar-inner">
+    <div class="hmi-navbar-start">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('main.index') }}">
+        <i class="bi bi-cpu"></i> <span class="d-none d-sm-inline">pyPLC<strong>HMI</strong></span>
+      </a>
+      {% if plc_simulation %}<span class="badge text-bg-warning" title="{{ _('PLC_SIMULATION is on – no real PLC is contacted') }}">{{ _('SIMULATION') }}</span>{% endif %}
+      {% block screen_header %}{% endblock %}
+    </div>
+    <div class="hmi-clock" id="hmi-clock" role="timer" aria-live="off" title="{{ _('Current time') }}">
+      <span class="hmi-clock-dot" aria-hidden="true"></span>
+      <span class="hmi-clock-time" id="hmi-clock-time">--:--:--</span>
+      <span class="hmi-clock-date" id="hmi-clock-date"></span>
+    </div>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-label="{{ _('Menu') }}">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="nav">
+      {# The group always ends with the account button, so "Log in" and "Log out" occupy exactly
+         the same position.  Log in carries no ?next= so users land on their own home screen. #}
+      <ul class="navbar-nav ms-auto align-items-lg-center hmi-icon-nav">
+      {% if current_user.is_authenticated %}
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('main.screens') }}" id="nav-screens" aria-label="{{ _('Screens') }}"><i class="bi bi-grid-1x2"></i>{{ nav_label(_('Screens')) }}</a></li>
+        {% if current_user.can(Perm.VIEW_HISTORY) %}
+        <li class="nav-item dropdown">
+          <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" id="nav-history" aria-label="{{ _('Trends') }}"><i class="bi bi-graph-up"></i>{{ nav_label(_('Trends')) }}</a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="{{ url_for('history.charts') }}" id="nav-charts"><i class="bi bi-graph-up"></i> {{ _('Trend charts') }}</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('history.index') }}" id="nav-samples"><i class="bi bi-table"></i> {{ _('Tag history') }}</a></li>
+          </ul>
+        </li>
+        {% endif %}
+        <li class="nav-item dropdown">
+          <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" id="nav-library" aria-label="{{ _('Library') }}"><i class="bi bi-collection"></i>{{ nav_label(_('Library')) }}</a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            {% if current_user.can(Perm.MANAGE_DASHBOARDS) %}<li><a class="dropdown-item" href="{{ url_for('assets.index') }}" id="nav-images"><i class="bi bi-images"></i> {{ _('Images') }}</a></li>{% endif %}
+            <li><a class="dropdown-item" href="{{ url_for('documents.index') }}" id="nav-documents"><i class="bi bi-file-earmark-richtext"></i> {{ _('Information library') }}</a></li>
+          </ul>
+        </li>
+        {% if current_user.can(Perm.MANAGE_PLCS) %}
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.plcs') }}" id="nav-plcs" aria-label="{{ _('PLCs') }}"><i class="bi bi-hdd-network"></i>{{ nav_label(_('PLCs')) }}</a></li>
+        {% endif %}
+        {% if current_user.can(Perm.MANAGE_USERS) or current_user.can(Perm.MANAGE_ROLES) or current_user.can(Perm.VIEW_AUDIT) %}
+        <li class="nav-item dropdown">
+          <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" id="nav-admin" aria-label="{{ _('Admin') }}"><i class="bi bi-shield-lock"></i>{{ nav_label(_('Admin')) }}</a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            {% if current_user.can(Perm.MANAGE_USERS) or current_user.can(Perm.MANAGE_ROLES) %}<li><a class="dropdown-item" href="{{ url_for('admin.index') }}">{{ _('Overview') }}</a></li>{% endif %}
+            {% if current_user.can(Perm.MANAGE_USERS) %}<li><a class="dropdown-item" href="{{ url_for('admin.users') }}" id="nav-users"><i class="bi bi-people"></i> {{ _('Users') }}</a></li>{% endif %}
+            {% if current_user.can(Perm.MANAGE_ROLES) %}<li><a class="dropdown-item" href="{{ url_for('admin.roles') }}">{{ _('Roles & permissions') }}</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('admin.settings') }}">{{ _('System settings') }}</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('i18n.admin_languages') }}" id="nav-languages"><i class="bi bi-translate"></i> {{ _('Languages') }}</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="{{ url_for('tags.index') }}" id="nav-tags"><i class="bi bi-tags"></i> {{ _('Tag table') }}</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('alarms.index') }}" id="nav-alarms"><i class="bi bi-bell"></i> {{ _('Alarms') }}</a></li>{% endif %}
+            {% if current_user.can(Perm.VIEW_AUDIT) %}<li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="{{ url_for('audit.index') }}" id="nav-audit"><i class="bi bi-journal-text"></i> {{ _('Audit log') }}</a></li>{% endif %}
+          </ul>
+        </li>
+        {% endif %}
+        <li class="nav-item hmi-nav-sep" aria-hidden="true"></li>
+        <li class="nav-item">
+          <button type="button" class="nav-link events-btn" id="events-btn" data-bs-toggle="modal" data-bs-target="#events-modal"
+                  aria-label="{{ _('Active alarm events') }}">
+            <i class="bi bi-bell"></i><span class="badge rounded-pill events-count" id="events-count" hidden>0</span>{{ nav_label(_('Events')) }}
+          </button>
+        </li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.profile') }}" id="nav-settings" aria-label="{{ _('Settings') }}"><i class="bi bi-person-gear"></i>{{ nav_label(_('Settings') ~ ' · ' ~ current_user.username ~ ' (' ~ _(current_user.role.name) ~ ')') }}</a></li>
+        <li class="nav-item">
+          <form method="post" action="{{ url_for('auth.logout') }}" class="d-inline" data-confirm="{{ _('Log out of {0}?', current_user.username) }}"
+                data-confirm-button="{{ _('Log out') }}" data-confirm-icon="question">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-link nav-link hmi-account-btn" type="submit" id="logout-btn" aria-label="{{ _('Log out') }}"><i class="bi bi-box-arrow-right"></i>{{ nav_label(_('Log out')) }}</button>
+          </form>
+        </li>
+      {% else %}
+        {% set public_screens = nav_public_screens() %}
+        {% if public_screens %}
+        <li class="nav-item dropdown">
+          <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" aria-label="{{ _('Screens') }}"><i class="bi bi-grid-1x2"></i>{{ nav_label(_('Screens')) }}</a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            {% for s in public_screens %}<li><a class="dropdown-item" href="{{ url_for('dashboards.view', slug=s.slug) }}">{{ s.name }}</a></li>{% endfor %}
+          </ul>
+        </li>
+        {% endif %}
+        <li class="nav-item">
+          <a class="btn btn-link nav-link hmi-account-btn" id="login-btn" aria-label="{{ _('Log in') }}"
+             href="{{ url_for('auth.login') }}"><i class="bi bi-box-arrow-in-right"></i>{{ nav_label(_('Log in')) }}</a>
+        </li>
+      {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+{% endif %}
+
+<main class="{% block container %}container{% endblock %} {% block main_class %}{{ 'p-0' if embed else 'py-4' }}{% endblock %}"{% block main_attrs %}{% endblock %}>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {# Shown as a SweetAlert2 toast by hmi-dialogs.js (plain alerts without JavaScript). #}
+    <div id="hmi-flashes">
+    {% for category, message in messages %}
+      <div class="alert alert-{{ 'info' if category == 'message' else category }} alert-dismissible fade show" role="alert"
+           data-flash="{{ category }}">
+        {{ _(message) }}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ _('Close') }}"></button>
+      </div>
+    {% endfor %}
+    </div>
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+
+{% if current_user.is_authenticated %}{% include "alarms/_ui.html" %}{% endif %}
+<script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/alarms.js') }}"></script>
+<script src="{{ url_for('static', filename='js/hmi-shell.js') }}"></script>
+<script src="{{ url_for('static', filename='js/hmi-connection.js') }}" id="hmi-connection-js"
+        data-health-url="{{ url_for('api.health') }}"
+        data-worker-url="{{ url_for('static', filename='js/hmi-heartbeat.js') }}"
+        data-interval="{{ config.SERVER_CHECK_INTERVAL }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

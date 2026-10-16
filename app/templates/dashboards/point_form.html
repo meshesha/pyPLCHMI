@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "_macros.html" import render_field %}
+{% block title %}{{ _('Edit tag') if point else _('Add tag') }}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">{{ _('Edit tag') if point else _('Add tag') }}</h1>
+<p class="text-secondary mb-4">{{ _('Screen:') }} <a href="{{ url_for('dashboards.edit', dashboard_id=dashboard.id) }}">{{ dashboard.name }}</a></p>
+
+<form method="post" novalidate id="point-form">
+  {{ form.hidden_tag() }}
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="card hmi-panel"><div class="card-body">
+        <h2 class="h5">{{ _('Source') }}</h2>
+        {{ render_field(form.label) }}
+        {{ render_field(form.plc_id) }}
+        <div class="row">
+          {{ render_field(form.address, 'col-md-6') }}
+          {{ render_field(form.data_type, 'col-md-6') }}
+        </div>
+        <div class="row" id="string-length-row">{{ render_field(form.string_length, 'col-md-6') }}</div>
+        <div id="dummy-scope-row">{{ render_field(form.dummy_scope) }}</div>
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <button type="button" class="btn btn-outline-info btn-sm" id="test-read"
+                  data-url-template="{{ url_for('api.plc_read', plc_id=0) }}"><i class="bi bi-lightning"></i> {{ _('Test read') }}</button>
+          <span id="test-result" class="small"></span>
+        </div>
+{% include "_address_syntax.html" %}
+      </div></div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card hmi-panel"><div class="card-body">
+        <h2 class="h5">{{ _('Presentation') }}</h2>
+        <div class="row">{{ render_field(form.widget, 'col-md-6') }}{{ render_field(form.width, 'col-md-3') }}{{ render_field(form.position, 'col-md-3') }}</div>
+        <div class="row">{{ render_field(form.unit, 'col-md-4') }}{{ render_field(form.decimals, 'col-md-4') }}</div>
+        <div class="row">{{ render_field(form.scale, 'col-md-6') }}{{ render_field(form.offset, 'col-md-6') }}</div>
+        <p class="form-text mt-n2">{{ _('Displayed value = raw × scale + offset.') }}</p>
+        <div class="row">{{ render_field(form.min_value, 'col-md-6') }}{{ render_field(form.max_value, 'col-md-6') }}</div>
+        <div class="row">{{ render_field(form.true_text, 'col-md-6') }}{{ render_field(form.false_text, 'col-md-6') }}</div>
+        {{ render_field(form.writable) }}
+      </div></div>
+    </div>
+  </div>
+  <div class="mt-4 d-flex gap-2">
+    {{ form.submit(class_='btn btn-primary') }}
+    {% if not point %}<button type="submit" name="add_another" value="1" class="btn btn-outline-primary">{{ _('Save & add another') }}</button>{% endif %}
+    <a class="btn btn-outline-secondary" href="{{ url_for('dashboards.edit', dashboard_id=dashboard.id) }}">{{ _('Cancel') }}</a>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script type="application/json" id="plc-protocols">{{ plc_protocols|tojson }}</script>
+<script src="{{ url_for('static', filename='js/point_form.js') }}"></script>
+{% endblock %}

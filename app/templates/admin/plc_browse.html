@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Objects of {0}', plc.name) }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+  <div>
+    <h1 class="h3 mb-0">{{ _('BACnet objects – {0}', plc.name) }}</h1>
+    <div class="text-secondary small">{{ plc.endpoint }} · {{ _('default write priority {0}', plc.bacnet_priority) }}</div>
+  </div>
+  <div class="d-flex gap-2">
+    <input type="search" class="form-control form-control-sm" id="obj-filter" placeholder="{{ _('Filter…') }}" aria-label="{{ _('Filter objects') }}">
+    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('admin.plcs') }}">{{ _('Back') }}</a>
+  </div>
+</div>
+{% if error %}
+<div class="alert alert-danger">{{ _('The device did not answer: {0}', error) }}</div>
+{% elif not rows %}
+<p class="text-secondary">{{ _('The device reports no supported objects.') }}</p>
+{% else %}
+<p class="small text-secondary">{{ _("Use the Address column when adding tags (e.g. in the designer's New tag dialog). Click an address to copy it.") }}</p>
+<div class="table-responsive">
+<table class="table table-sm table-hover align-middle hmi-table" id="obj-table">
+  <thead><tr><th>{{ _('Address') }}</th><th>{{ _('Type') }}</th><th>{{ _('Name') }}</th><th>{{ _('Present value') }}</th><th>{{ _('Units') }}</th><th></th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr>
+      <td><button type="button" class="btn btn-sm btn-link p-0 copy-addr" data-addr="{{ r.address }}" title="{{ _('Copy') }}"><code>{{ r.address }}</code></button></td>
+      <td class="small">{{ r.type }}</td>
+      <td>{{ r.name }}</td>
+      <td class="font-monospace">{{ r.value }}</td>
+      <td class="small text-secondary">{{ r.units }}</td>
+      <td>{% if r.writable %}<span class="badge text-bg-secondary">{{ _('writable') }}</span>{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+  /* Filter rows and copy addresses to the clipboard. */
+  (function () {
+    const filter = document.getElementById("obj-filter");
+    const rows = document.querySelectorAll("#obj-table tbody tr");
+    filter.addEventListener("input", () => {
+      const q = filter.value.toLowerCase();
+      rows.forEach((r) => { r.hidden = q && !r.textContent.toLowerCase().includes(q); });
+    });
+    document.querySelectorAll(".copy-addr").forEach((b) => b.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(b.dataset.addr); b.title = T("Copied"); } catch (e) { /* clipboard unavailable */ }
+    }));
+  })();
+</script>
+{% endblock %}

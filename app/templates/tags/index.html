@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% from "_macros.html" import post_button %}
+{% from "_table.html" import search_bar, filter_select, sort_th, pager %}
+{% from "_excel.html" import excel_toolbar, select_all_th, select_td %}
+{% block title %}{{ _('Tags') }}{% endblock %}
+{% block container %}container-fluid{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">{{ _('PLC tag table') }}</h1>
+    <div class="small text-secondary">{{ _('Every tag of every PLC/device. Tags without a screen can still be used by alarms.') }}</div>
+  </div>
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    {{ excel_toolbar('tags.export', 'tags.import_file', state, 'tag') }}
+    <a class="btn btn-primary" href="{{ url_for('tags.create') }}" id="add-tag-btn"><i class="bi bi-plus-lg"></i> {{ _('Add tag') }}</a>
+  </div>
+</div>
+
+{% call search_bar(state, 'Search label, address, type, PLC, screen…') %}
+  {{ filter_select(state, 'plc', 'PLC', plc_options) }}
+  {{ filter_select(state, 'screen', 'Screen', screen_options) }}
+  {{ filter_select(state, 'writable', 'Writable', [('yes', 'Writable'), ('no', 'Read only')]) }}
+  {% if state.q or state.filters %}<a class="btn btn-sm btn-link" href="{{ url_for('tags.index', per_page=state.per_page) }}">{{ _('Clear') }}</a>{% endif %}
+{% endcall %}
+
+<div class="table-responsive mt-3">
+<table class="table table-hover table-sm align-middle hmi-table" id="tag-table"
+       data-values-url="{{ url_for('api.tag_values') }}">
+  <thead><tr>
+    {{ select_all_th() }}
+    {{ sort_th(state, 'label', 'Label') }}
+    {{ sort_th(state, 'plc', 'PLC') }}
+    {{ sort_th(state, 'address', 'Address') }}
+    {{ sort_th(state, 'type', 'Type') }}
+    <th>{{ _('Value') }}</th>
+    {{ sort_th(state, 'screen', 'Screens') }}
+    {{ sort_th(state, 'writable', 'Writable') }}
+    <th>{{ _('Alarms') }}</th>
+    <th class="text-end">{{ _('Actions') }}</th>
+  </tr></thead>
+  <tbody>
+  {% for t in pagination.items %}
+    {% set n_alarms = t.alarms.count() %}
+    <tr data-tag-id="{{ t.id }}">
+      {{ select_td(t.id, t.label) }}
+      <td><strong>{{ t.label }}</strong>{% if t.unit %} <span class="text-secondary small">[{{ t.unit }}]</span>{% endif %}
+        {% if t.is_logged %} <a href="{{ url_for('history.index', tags=t.id) }}" class="badge hmi-badge-neutral text-decoration-none tag-logged" title="{{ _('History saved every {0} s', t.log_interval) }}"><i class="bi bi-graph-up"></i> {{ t.log_interval }} s</a>{% endif %}</td>
+      <td>{{ t.plc.name }}{% if not t.plc.enabled %} <span class="badge text-bg-secondary">{{ _('disabled') }}</span>{% endif %}</td>
+      <td><code>{{ t.address_text or t.address }}</code>{% if t.is_local %} <span class="badge text-bg-info" title="{{ _('Local dummy tag: each browser window has its own value') }}">{{ _('local') }}</span>{% elif t.protocol == "dummy" %} <span class="badge text-bg-secondary" title="{{ _('General dummy tag: one value for everybody, stored in the database') }}">{{ _('general') }}</span>{% endif %}</td>
+      <td><span class="badge hmi-badge-neutral">{{ t.data_type }}</span></td>
+      <td class="tag-value text-nowrap" data-tag-value="{{ t.id }}"><span class="text-secondary">…</span></td>
+      <td class="small">{% for sc in t.screens %}<a href="{{ url_for('dashboards.view', slug=sc.slug) }}">{{ sc.name }}</a>{{ ', ' if not loop.last }}{% else %}<span class="text-secondary">—</span>{% endfor %}</td>
+      <td>{% if t.writable %}<i class="bi bi-pencil-square text-warning" title="{{ _('writable') }}"></i>{% else %}<i class="bi bi-eye text-secondary" title="{{ _('read only') }}"></i>{% endif %}</td>
+      <td>{% if n_alarms %}<a href="{{ url_for('alarms.index', q=t.label) }}" class="badge text-bg-info text-decoration-none">{{ n_alarms }}</a>{% else %}<span class="text-secondary">0</span>{% endif %}</td>
+      <td class="text-end text-nowrap">
+        <a class="btn btn-sm btn-outline-warning" href="{{ url_for('alarms.create', tag=t.id) }}" title="{{ _('Add alarm for this tag') }}"><i class="bi bi-bell"></i></a>
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('tags.edit', tag_id=t.id) }}" title="{{ _('Edit') }}"><i class="bi bi-pencil"></i></a>
+        <a class="btn btn-sm btn-outline-info tag-copy" href="{{ url_for('tags.create', copy=t.id) }}" title="{{ _('Copy – new tag with these settings') }}"><i class="bi bi-copy"></i></a>
+        {{ post_button(url_for('tags.delete', tag_id=t.id), 'Delete', 'trash', confirm=_('Delete tag {0}?', t.label)) }}
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="10" class="text-secondary">{{ _('No tags match the search/filters.') if state.q or state.filters else _('No tags yet.') }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ pager(state, pagination) }}
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/hmi-local.js') }}"></script>
+<script src="{{ url_for('static', filename='js/tags.js') }}"></script>
+<script src="{{ url_for('static', filename='js/table_select.js') }}"></script>
+{% endblock %}

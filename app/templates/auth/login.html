@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_macros.html" import render_field %}
+{% block title %}{{ _('Log in') }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-sm-10 col-md-6 col-lg-4">
+    <div class="card hmi-panel mt-5">
+      <div class="card-body p-4">
+        <h1 class="h4 mb-4 text-center"><i class="bi bi-cpu"></i> {{ _('pyPLCHMI login') }}</h1>
+        <form method="post" novalidate>
+          {{ form.hidden_tag() }}
+          {{ render_field(form.username) }}
+          {{ render_field(form.password) }}
+          {{ render_field(form.remember) }}
+          {{ form.submit(class_='btn btn-primary w-100') }}
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{# "Existing tag" picker: search the tag table and choose tags for a screen.
+   Opened by static/js/tag_picker.js (window.HMITagPicker.open). #}
+<div class="modal fade" id="tag-picker" tabindex="-1" aria-labelledby="tag-picker-title" aria-hidden="true"
+     data-search-url="{{ url_for('api.tag_search') }}">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tag-picker-title"><i class="bi bi-tags"></i> {{ _('Add existing tags') }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+      </div>
+      <div class="modal-body">
+        <div class="input-group input-group-sm mb-2">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="search" class="form-control" id="tag-picker-q" placeholder="{{ _('Search label, address, PLC, type…') }}" autocomplete="off">
+        </div>
+        <div class="small text-secondary mb-2" id="tag-picker-info"></div>
+        <table class="table table-sm table-hover align-middle mb-0 hmi-table">
+          <thead><tr><th style="width:2rem"></th><th>{{ _('Label') }}</th><th>{{ _('PLC') }}</th><th>{{ _('Address') }}</th><th>{{ _('Type') }}</th><th>{{ _('On screens') }}</th></tr></thead>
+          <tbody id="tag-picker-rows"></tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <span class="small text-secondary me-auto" id="tag-picker-count">{{ _('{0} selected', 0) }}</span>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+        <button type="button" class="btn btn-primary" id="tag-picker-ok" disabled>{{ _('Add to screen') }}</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% from "_macros.html" import post_button %}
+{% from "_table.html" import search_bar, filter_select, sort_th, pager, severity_badge %}
+{% from "_excel.html" import excel_toolbar, select_all_th, select_td %}
+{% block title %}{{ _('Alarms') }}{% endblock %}
+{% block container %}container-fluid{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">{{ _('Alarms') }}</h1>
+    <div class="small text-secondary">{{ _('An alarm fires when its tag condition becomes true and clears automatically when it is no longer true.') }}</div>
+    {% set late = scanner.age is none or scanner.age > 3 * scanner.interval + scanner.duration + 5 %}
+    <div class="small mt-1" id="scanner-status">
+      {% if scanner.thread == 'off' %}
+        <span class="text-warning"><i class="bi bi-exclamation-triangle"></i> {{ _('Background alarm scanning is off (ALARM_SCANNER=0): alarms are only checked while someone is logged in.') }}</span>
+      {% elif scanner.thread == 'stopped' %}
+        <span class="text-danger"><i class="bi bi-x-octagon"></i> {{ _('The alarm scanner is not running – it starts again with the next page request.') }}</span>
+      {% elif late %}
+        <span class="text-warning"><i class="bi bi-hourglass-split"></i> {{ _('Alarm scanning: no completed scan for {0} s.', scanner.age|int if scanner.age is not none else '?') }}</span>
+      {% else %}
+        <span class="text-success"><i class="bi bi-check-circle"></i> {{ _('Alarm scanning: running · last scan {0} s ago ({1} s).', scanner.age, scanner.duration) }}</span>
+      {% endif %}
+      {% if scanner.error and scanner.error_age is not none and scanner.error_age < 600 %}
+        <div class="text-danger" title="{{ scanner.error }}"><i class="bi bi-bug"></i> {{ _('Last problem ({0} s ago): {1}', scanner.error_age, scanner.error|truncate(160)) }}</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary" href="{{ url_for('alarms.history') }}"><i class="bi bi-clock-history"></i> {{ _('Event history') }}</a>
+    {{ excel_toolbar('alarms.export', 'alarms.import_file', state, 'alarm') }}
+    <a class="btn btn-primary" href="{{ url_for('alarms.create') }}" id="add-alarm-btn"><i class="bi bi-plus-lg"></i> {{ _('Add alarm') }}</a>
+  </div>
+</div>
+
+{% call search_bar(state, 'Search name, description, tag, PLC…') %}
+  {{ filter_select(state, 'kind', 'Trigger', kind_options) }}
+  {{ filter_select(state, 'severity', 'Severity', severity_options) }}
+  {{ filter_select(state, 'enabled', 'Status', [('yes', 'Enabled'), ('no', 'Disabled')]) }}
+  {{ filter_select(state, 'state', 'State', [('active', 'Active'), ('normal', 'Normal')]) }}
+  {% if state.q or state.filters %}<a class="btn btn-sm btn-link" href="{{ url_for('alarms.index', per_page=state.per_page) }}">{{ _('Clear') }}</a>{% endif %}
+{% endcall %}
+
+<div class="table-responsive mt-3">
+<table class="table table-hover align-middle hmi-table" id="alarm-table">
+  <thead><tr>
+    {{ select_all_th() }}
+    {{ sort_th(state, 'name', 'Name') }}
+    <th>{{ _('Description') }}</th>
+    {{ sort_th(state, 'tag', 'Condition') }}
+    {{ sort_th(state, 'severity', 'Severity') }}
+    {{ sort_th(state, 'enabled', 'Status') }}
+    {{ sort_th(state, 'state', 'State') }}
+    <th class="text-end">{{ _('Actions') }}</th>
+  </tr></thead>
+  <tbody>
+  {% for a in pagination.items %}
+    {% set active = a.is_active %}
+    <tr class="alarm-row" style="--sev: {{ a.severity_color }}">
+      {{ select_td(a.id, a.name) }}
+      <td class="alarm-name"><strong>{{ a.name }}</strong></td>
+      <td class="small text-secondary alarm-desc">{{ a.description|truncate(90) }}</td>
+      <td class="small">{% if a.is_comm %}<i class="bi bi-ethernet text-info" title="{{ _('PLC communication alarm') }}"></i> {% endif %}<code>{{ a.condition_text }}</code>
+        <div class="text-secondary">{{ a.source_text }}</div></td>
+      <td>{{ severity_badge(a.severity, a.severity_label, a.severity_color) }}</td>
+      <td>
+        <form method="post" action="{{ url_for('alarms.toggle', alarm_id=a.id) }}" class="d-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-sm {{ 'btn-outline-success' if a.enabled else 'btn-outline-secondary' }}"
+                  title="{{ _('Disable') if a.enabled else _('Enable') }}">
+            <i class="bi {{ 'bi-toggle-on' if a.enabled else 'bi-toggle-off' }}"></i> {{ _('Enabled') if a.enabled else _('Disabled') }}
+          </button>
+        </form>
+      </td>
+      <td>{% if active %}<span class="badge text-bg-danger alarm-state-active"><i class="bi bi-bell-fill"></i> {{ _('Active') }}</span>
+          {% elif a.enabled %}<span class="badge hmi-badge-neutral">{{ _('Normal') }}</span>
+          {% else %}<span class="badge text-bg-secondary">{{ _('Inactive') }}</span>{% endif %}</td>
+      <td class="text-end text-nowrap">
+        <a class="btn btn-sm btn-outline-info" href="{{ url_for('alarms.details', alarm_id=a.id) }}" title="{{ _('Details') }}"><i class="bi bi-info-circle"></i> {{ _('Details') }}</a>
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('alarms.edit', alarm_id=a.id) }}" title="{{ _('Edit') }}"><i class="bi bi-pencil"></i> {{ _('Edit') }}</a>
+        <form method="post" action="{{ url_for('alarms.delete', alarm_id=a.id) }}" class="d-inline"
+              data-confirm="{{ _('Delete alarm {0}? Its event history is kept.', a.name) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ _('Delete') }}"><i class="bi bi-trash"></i> {{ _('Delete') }}</button>
+        </form>
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="8" class="text-secondary">{{ _('No alarms match the search/filters.') if state.q or state.filters else _('No alarms defined yet.') }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ pager(state, pagination) }}
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/table_select.js') }}"></script>
+{% endblock %}

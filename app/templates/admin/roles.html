@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_macros.html" import post_button %}
+{% block title %}{{ _('Roles & permissions') }}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">{{ _('Roles & permissions') }}</h1>
+<p class="text-secondary">{{ _('Tick the permissions each role grants. The Admin role always keeps manage_roles.') }}</p>
+
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="table-responsive">
+  <table class="table align-middle hmi-table">
+    <thead>
+      <tr>
+        <th>{{ _('Permission') }}</th>
+        {% for r in roles %}
+        <th class="text-center">
+          {{ _(r.name) }}<div class="small fw-normal text-secondary">{{ _('{0} user(s)', r.users.count()) }}</div>
+          {% if r.name not in default_roles and r.users.count() == 0 %}
+          <button type="submit" form="del-role-{{ r.id }}" class="btn btn-sm btn-link text-danger p-0" title="{{ _('Delete role') }}"><i class="bi bi-trash"></i></button>
+          {% endif %}
+        </th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+    {% for p in permissions %}
+      <tr>
+        <td><code>{{ p.code }}</code><div class="small text-secondary">{{ _(p.description) }}</div></td>
+        {% for r in roles %}
+        <td class="text-center">
+          <input class="form-check-input" type="checkbox" name="perm-{{ r.id }}" value="{{ p.code }}"
+                 {% if r.has_permission(p.code) %}checked{% endif %}
+                 {% if r.name == 'Admin' and p.code == Perm.MANAGE_ROLES %}disabled checked{% endif %}
+                 aria-label="{{ r.name }} – {{ p.code }}">
+        </td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> {{ _('Save permissions') }}</button>
+</form>
+
+{% for r in roles %}{% if r.name not in default_roles %}
+<form id="del-role-{{ r.id }}" method="post" action="{{ url_for('admin.role_delete', role_id=r.id) }}" data-confirm="{{ _('Delete role {0}?', r.name) }}" data-confirm-danger="1">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+{% endif %}{% endfor %}
+
+<hr class="my-4">
+<h2 class="h5">{{ _('Add a custom role') }}</h2>
+<form method="post" action="{{ url_for('admin.role_create') }}" class="row g-2 align-items-end" style="max-width: 720px">
+  {{ role_form.hidden_tag() }}
+  <div class="col-sm-4">{{ role_form.name.label(class_='form-label') }}{{ role_form.name(class_='form-control') }}</div>
+  <div class="col-sm-5">{{ role_form.description.label(class_='form-label') }}{{ role_form.description(class_='form-control') }}</div>
+  <div class="col-sm-3">{{ role_form.submit(class_='btn btn-outline-primary w-100') }}</div>
+</form>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Restricted Area') }}{% endblock %}
+{% block content %}
+<div class="restricted text-center py-5">
+  <div class="restricted-icon"><i class="bi bi-shield-lock-fill"></i></div>
+  <h1 class="mt-3">{{ _('Restricted Area') }}</h1>
+  {% if current_user.is_authenticated %}
+    <p class="text-secondary mb-4">{% if screen %}{{ _('Your account is not allowed to open the screen {0}.', screen.name) }}{% else %}{{ _('Your account is not allowed to open this screen.') }}{% endif %}<br>
+      {{ _('Ask an administrator if you need access.') }}</p>
+    <a class="btn btn-primary" href="{{ url_for('main.index') }}"><i class="bi bi-house"></i> {{ _('My home screen') }}</a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('main.screens') }}">{{ _('All my screens') }}</a>
+  {% else %}
+    <p class="text-secondary mb-4">{{ _('This screen is not public. Please log in to view it.') }}</p>
+    <a class="btn btn-primary" href="{{ url_for('auth.login', next=request.path if screen else None) }}"><i class="bi bi-box-arrow-in-right"></i> {{ _('Log in') }}</a>
+    {% if current_user.landing_screen %}
+    <a class="btn btn-outline-secondary" href="{{ url_for('dashboards.view', slug=current_user.landing_screen.slug) }}"><i class="bi bi-house"></i> {{ _('Back to public screen') }}</a>
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

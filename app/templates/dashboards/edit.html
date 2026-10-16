@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% from "_macros.html" import render_field, post_button %}
+{% block title %}{{ _('Edit {0}', dashboard.name) }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <h1 class="h3 mb-0">{{ _('Edit screen: {0}', dashboard.name) }}</h1>
+  <div class="d-flex gap-2">
+    {% if dashboard.is_image %}<a class="btn btn-primary" href="{{ url_for('dashboards.designer', dashboard_id=dashboard.id) }}"><i class="bi bi-vector-pen"></i> {{ _('Open designer') }}</a>{% endif %}
+    <a class="btn btn-success" href="{{ url_for('dashboards.view', slug=dashboard.slug) }}"><i class="bi bi-play-fill"></i> {{ _('Open screen') }}</a>
+    {{ post_button(url_for('dashboards.delete', dashboard_id=dashboard.id), 'Delete screen', 'trash', 'btn-outline-danger', confirm=_('Delete this screen? Its tags stay in the tag table.')) }}
+  </div>
+</div>
+
+{% if dashboard.is_image %}
+<div class="alert alert-info small">{{ _('This is an Image screen: the tags below are placed on the drawing in the designer (widget settings are ignored).') }}</div>
+{% endif %}
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="card hmi-panel"><div class="card-body">
+      <h2 class="h5">{{ _('Settings') }}</h2>
+      <form method="post" novalidate>
+        {{ form.hidden_tag() }}
+        {{ render_field(form.name) }}
+        {{ render_field(form.kind) }}
+        {{ render_field(form.description) }}
+        {{ render_field(form.refresh_ms) }}
+        {{ render_field(form.is_public) }}
+        {{ form.submit(class_='btn btn-primary') }}
+      </form>
+    </div></div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card hmi-panel"><div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h5 mb-0">{{ _('Tags on this screen') }}</h2>
+        <div class="d-flex flex-wrap gap-2">
+          <button type="button" class="btn btn-outline-primary btn-sm" id="add-existing-btn"><i class="bi bi-tags"></i> {{ _('Add existing tag') }}</button>
+          {% if plc_count %}
+          <a class="btn btn-primary btn-sm" href="{{ url_for('dashboards.point_create', dashboard_id=dashboard.id) }}" id="new-tag-btn"><i class="bi bi-plus-lg"></i> {{ _('New tag') }}</a>
+          {% else %}
+          <a class="btn btn-warning btn-sm" href="{{ url_for('admin.plcs') }}">{{ _('Add or enable a PLC first') }}</a>
+          {% endif %}
+        </div>
+      </div>
+      <p class="small text-secondary">{{ _('Tags come from the tag table. New tag creates a tag there and shows it here; Add existing tag picks tags from it. Removing a tag from this screen keeps it in the tag table.') }}
+        <a href="{{ url_for('tags.index') }}">{{ _('Tag table') }}</a></p>
+      <form method="post" action="{{ url_for('dashboards.point_add_existing', dashboard_id=dashboard.id) }}" id="add-existing-form" hidden>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      </form>
+      <div class="table-responsive">
+      <table class="table table-sm align-middle hmi-table">
+        <thead><tr><th>#</th><th>{{ _('Label') }}</th><th>{{ _('PLC') }}</th><th>{{ _('Address') }}</th><th>{{ _('Type') }}</th><th>{{ _('Widget') }}</th><th>{{ _('Also on') }}</th><th></th><th class="text-end">{{ _('Actions') }}</th></tr></thead>
+        <tbody>
+        {% for dp in dashboard.datapoints %}
+          <tr>
+            <td class="text-nowrap">
+              {{ post_button(url_for('dashboards.point_move', dashboard_id=dashboard.id, point_id=dp.id, direction='up'), 'Up', 'arrow-up', 'btn-outline-secondary') }}
+              {{ post_button(url_for('dashboards.point_move', dashboard_id=dashboard.id, point_id=dp.id, direction='down'), 'Down', 'arrow-down', 'btn-outline-secondary') }}
+            </td>
+            <td>{{ dp.label }}</td>
+            <td>{{ dp.plc.name }}</td>
+            <td><code>{{ dp.address }}</code></td>
+            <td>{{ dp.data_type }}{% if dp.data_type == 'STRING' %}[{{ dp.string_length }}]{% endif %}</td>
+            <td>{{ _(dp.WIDGETS.get(dp.widget, dp.widget)) }}</td>
+            <td class="small text-secondary">{{ dp.screens|rejectattr('id', 'equalto', dashboard.id)|map(attribute='name')|join(', ') or '—' }}</td>
+            <td>{% if dp.writable %}<i class="bi bi-pencil-square text-warning" title="{{ _('writable') }}"></i>{% endif %}</td>
+            <td class="text-end text-nowrap">
+              <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('dashboards.point_edit', dashboard_id=dashboard.id, point_id=dp.id) }}" title="{{ _('Edit') }}"><i class="bi bi-pencil"></i></a>
+              {{ post_button(url_for('dashboards.point_duplicate', dashboard_id=dashboard.id, point_id=dp.id), 'Duplicate', 'copy', 'btn-outline-secondary') }}
+              {{ post_button(url_for('dashboards.point_delete', dashboard_id=dashboard.id, point_id=dp.id), 'Remove from screen', 'x-lg', confirm=_('Remove {0} from this screen? The tag stays in the tag table.', dp.label)) }}
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="9" class="text-secondary">{{ _('No tags on this screen yet.') }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+{% include "dashboards/_tag_picker.html" %}
+<script src="{{ url_for('static', filename='js/tag_picker.js') }}"></script>
+<script>
+  /* "Add existing tag": pick tags from the tag table and post their ids. */
+  document.getElementById("add-existing-btn").addEventListener("click", () => {
+    HMITagPicker.open({
+      screenId: {{ dashboard.id }}, multiple: true,
+      onPick(tags) {
+        const form = document.getElementById("add-existing-form");
+        tags.forEach((t) => {
+          const input = document.createElement("input");
+          input.type = "hidden"; input.name = "datapoint_id"; input.value = t.id;
+          form.append(input);
+        });
+        form.submit();
+      },
+    });
+  });
+</script>
+{% endblock %}

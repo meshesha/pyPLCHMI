@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Administration') }}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">{{ _('Administration') }}</h1>
+<div class="row g-3">
+  {% if current_user.can(Perm.MANAGE_USERS) %}
+  <div class="col-md-4"><a class="card hmi-panel text-reset text-decoration-none h-100" href="{{ url_for('admin.users') }}"><div class="card-body">
+    <i class="bi bi-people fs-1"></i><h2 class="h5 mt-2">{{ _('Users') }}</h2><p class="display-6 mb-0">{{ user_count }}</p></div></a></div>
+  {% endif %}
+  {% if current_user.can(Perm.MANAGE_ROLES) %}
+  <div class="col-md-4"><a class="card hmi-panel text-reset text-decoration-none h-100" href="{{ url_for('admin.roles') }}"><div class="card-body">
+    <i class="bi bi-shield-lock fs-1"></i><h2 class="h5 mt-2">{{ _('Roles & permissions') }}</h2><p class="display-6 mb-0">{{ role_count }}</p></div></a></div>
+  {% endif %}
+  {% if current_user.can(Perm.MANAGE_ROLES) %}
+  <div class="col-md-4"><a class="card hmi-panel text-reset text-decoration-none h-100" href="{{ url_for('admin.settings') }}"><div class="card-body">
+    <i class="bi bi-sliders fs-1"></i><h2 class="h5 mt-2">{{ _('System settings') }}</h2><p class="mb-0 text-secondary">{{ _('Public home screen: {0}', public_home.name if public_home else _('none (login required)')) }}</p></div></a></div>
+  <div class="col-md-4"><a class="card hmi-panel text-reset text-decoration-none h-100" href="{{ url_for('i18n.admin_languages') }}"><div class="card-body">
+    <i class="bi bi-translate fs-1"></i><h2 class="h5 mt-2">{{ _('Languages') }}</h2><p class="display-6 mb-0">{{ available_languages()|length }}</p></div></a></div>
+  {% endif %}
+  {% if current_user.can(Perm.MANAGE_PLCS) %}
+  <div class="col-md-4"><a class="card hmi-panel text-reset text-decoration-none h-100" href="{{ url_for('admin.plcs') }}"><div class="card-body">
+    <i class="bi bi-hdd-network fs-1"></i><h2 class="h5 mt-2">{{ _('PLCs') }}</h2><p class="display-6 mb-0">{{ plc_count }}</p></div></a></div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+Flask>=3.0,<4
+Flask-SQLAlchemy>=3.1,<4
+SQLAlchemy>=2.0,<3
+Flask-Migrate>=4.0,<5
+Flask-Login>=0.6.3,<1
+Flask-Bcrypt>=1.0.1,<2
+Flask-WTF>=1.2,<2
+python-snap7>=2.0,<4
+pymodbus>=3.6,<4
+pyModbusTCP>=0.2,<1
+pyserial>=3.5          # Modbus RTU (serial) through pymodbus
+BAC0>=2025.0           # BACnet/IP (asyncio, bacpypes3)
+python-dotenv>=1.0
+waitress>=3.0
+openpyxl>=3.1         # Excel export/import of tags and alarms, history export
+tzdata>=2024.1         # time zone database (needed on Windows for the history dates)
+pytablericons>=1.0     # Tabler icons for graphic screens (only the SVG files are used)

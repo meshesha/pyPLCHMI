@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Server error') }}{% endblock %}
+{% block content %}
+<div class="text-center py-5">
+  <i class="bi bi-exclamation-octagon display-1 text-danger"></i>
+  <h1 class="mt-3">{{ _('500 – Internal error') }}</h1>
+  <p class="text-secondary">{{ _('The error was logged. Please try again.') }}</p>
+</div>
+{% endblock %}

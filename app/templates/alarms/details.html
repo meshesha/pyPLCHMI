@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% from "_macros.html" import post_button %}
+{% from "_table.html" import local_time, severity_badge %}
+{% block title %}{{ _('Alarm {0}', alarm.name) }}{% endblock %}
+{% block content %}
+{% set ev = alarm.open_event %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <p class="mb-1"><a href="{{ url_for('alarms.index') }}"><i class="bi bi-arrow-left"></i> {{ _('Alarms') }}</a></p>
+    <h1 class="h3 mb-0">{{ alarm.name }} {{ severity_badge(alarm.severity, alarm.severity_label, alarm.severity_color) }}</h1>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary" href="{{ url_for('alarms.edit', alarm_id=alarm.id) }}"><i class="bi bi-pencil"></i> {{ _('Edit') }}</a>
+    {{ post_button(url_for('alarms.delete', alarm_id=alarm.id), 'Delete', 'trash', confirm=_('Delete alarm {0}? Its event history is kept.', alarm.name)) }}
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card hmi-panel alarm-card" style="--sev: {{ alarm.severity_color }}"><div class="card-body">
+      <h2 class="h5">{{ _('Definition') }}</h2>
+      <dl class="row mb-0">
+        <dt class="col-sm-4">{{ _('Description') }}</dt><dd class="col-sm-8">{{ alarm.description or '—' }}</dd>
+        <dt class="col-sm-4">{{ _('Condition') }}</dt><dd class="col-sm-8"><code>{{ alarm.condition_text }}</code></dd>
+        {% if alarm.is_comm %}
+        <dt class="col-sm-4">{{ _('PLC') }}</dt>
+        <dd class="col-sm-8">{{ alarm.source_text }}
+          {% if alarm.plc %}<a href="{{ url_for('admin.plc_edit', plc_id=alarm.plc_id) }}" class="small">{{ _('edit PLC / timeout') }}</a>{% endif %}</dd>
+        {% else %}
+        <dt class="col-sm-4">{{ _('Tag') }}</dt>
+        <dd class="col-sm-8">{{ alarm.datapoint.label }} — {{ alarm.datapoint.plc.name }} <code>{{ alarm.datapoint.address }}</code> ({{ alarm.datapoint.data_type }})
+          <a href="{{ url_for('tags.edit', tag_id=alarm.datapoint_id) }}" class="small">{{ _('edit tag') }}</a></dd>
+        {% endif %}
+        <dt class="col-sm-4">{{ _('Screen') }}</dt>
+        <dd class="col-sm-8">{% if alarm.screen %}<a href="{{ url_for('dashboards.view', slug=alarm.screen.slug) }}">{{ alarm.screen.name }}</a>{% else %}—{% endif %}</dd>
+        <dt class="col-sm-4">{{ _('Status') }}</dt><dd class="col-sm-8">{{ _('Enabled') if alarm.enabled else _('Disabled') }}{% if alarm.suppressed %} · <span class="text-warning">{{ _('suppressed until the condition clears (removed manually)') }}</span>{% endif %}</dd>
+        <dt class="col-sm-4">{{ _('Created') }}</dt><dd class="col-sm-8">{{ local_time(alarm.created_at) }}</dd>
+      </dl>
+    </div></div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card hmi-panel"><div class="card-body">
+      <h2 class="h5">{{ _('Live state') }}</h2>
+      <dl class="row mb-0">
+        {% if alarm.is_comm %}
+        <dt class="col-sm-4">{{ _('Communication') }}</dt>
+        <dd class="col-sm-8" id="alarm-comm-state">
+          {% if not comm %}<span class="text-secondary">{{ _('PLC deleted') }}</span>
+          {% elif comm.state == 'online' %}<span class="badge text-bg-success">{{ _('online') }}</span>
+          {% elif comm.state == 'unstable' %}<span class="badge text-bg-warning">{{ _('reconnecting') }}</span> {{ _('for {0} s (timeout {1} s)', comm.down_for, comm.offline_delay|round(1)) }}
+          {% elif comm.state == 'offline' %}<span class="badge text-bg-danger">{{ _('offline') }}</span> {{ _('for {0} s', comm.down_for) }}
+          {% elif comm.state == 'disabled' %}<span class="badge text-bg-secondary">{{ _('PLC disabled') }}</span>
+          {% else %}<span class="badge hmi-badge-neutral">{{ _('not contacted yet') }}</span>{% endif %}
+          {% if comm and comm.error %}<div class="small text-danger mt-1">{{ comm.error }}</div>{% endif %}
+        </dd>
+        <dt class="col-sm-4">{{ _('Condition now') }}</dt>
+        <dd class="col-sm-8">{% if would_trigger %}<span class="text-danger">{{ _('true') }}</span>{% else %}<span class="text-success">{{ _('false') }}</span>{% endif %}</dd>
+        {% else %}
+        <dt class="col-sm-4">{{ _('Tag value') }}</dt>
+        <dd class="col-sm-8" id="alarm-live-value">
+          {% if reading and reading.quality == 'good' %}<span class="font-monospace">{{ reading.display }}</span>{% if reading.stale %} <span class="badge text-bg-warning" title="{{ _('PLC briefly unreachable – last good value') }}">{{ _('stale') }}</span>{% endif %}
+          {% else %}<span class="text-danger">{{ reading.error if reading else _('not read') }}</span>{% endif %}
+        </dd>
+        <dt class="col-sm-4">{{ _('Condition now') }}</dt>
+        <dd class="col-sm-8">{% if reading and reading.quality == 'good' %}{% if would_trigger %}<span class="text-danger">{{ _('true') }}</span>{% else %}<span class="text-success">{{ _('false') }}</span>{% endif %}{% else %}{{ _('unknown') }}{% endif %}</dd>
+        {% endif %}
+        <dt class="col-sm-4">{{ _('State') }}</dt>
+        <dd class="col-sm-8">
+          {% if ev %}<span class="badge text-bg-danger"><i class="bi bi-bell-fill"></i> {{ _('Active') }}</span> {{ _('since') }} {{ local_time(ev.occurred_at) }}
+            {% if ev.acked_at %}<div class="small text-secondary">{{ _('acknowledged') }} {{ local_time(ev.acked_at) }}{% if ev.acked_by %} {{ _('by {0}', ev.acked_by.username) }}{% endif %}</div>{% endif %}
+            <div class="mt-2"><button type="button" class="btn btn-sm btn-outline-info" data-alarm-event="{{ ev.id }}"><i class="bi bi-window"></i> {{ _('Open alarm window') }}</button></div>
+          {% else %}<span class="badge hmi-badge-neutral">{{ _('Normal') }}</span>{% endif %}
+        </dd>
+      </dl>
+    </div></div>
+  </div>
+</div>
+
+<h2 class="h5 mt-4">{{ _('Recent events') }}</h2>
+<div class="table-responsive">
+<table class="table table-sm align-middle hmi-table">
+  <thead><tr><th>{{ _('Occurred') }}</th><th>{{ _('Value') }}</th><th>{{ _('Ack') }}</th><th>{{ _('Closed') }}</th><th>{{ _('Closure') }}</th><th></th></tr></thead>
+  <tbody>
+  {% for e in recent %}
+    <tr>
+      <td>{{ local_time(e.occurred_at) }}</td>
+      <td class="font-monospace">{{ e.value }}</td>
+      <td>{{ local_time(e.acked_at) }}</td>
+      <td>{{ local_time(e.cleared_at) }}</td>
+      <td>{{ e.close_text or _('open') }}</td>
+      <td class="text-end"><button type="button" class="btn btn-sm btn-outline-info" data-alarm-event="{{ e.id }}">{{ _('Details') }}</button></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6" class="text-secondary">{{ _('This alarm has not fired yet.') }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<a href="{{ url_for('alarms.history', q=alarm.name) }}">{{ _('All events of this alarm in the event history →') }}</a>
+{% endblock %}

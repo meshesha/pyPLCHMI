@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "_macros.html" import post_button %}
+{% block title %}{{ _('Users') }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">{{ _('Users') }}</h1>
+  <a class="btn btn-primary" href="{{ url_for('admin.user_create') }}"><i class="bi bi-person-plus"></i> {{ _('New user') }}</a>
+</div>
+<div class="table-responsive">
+<table class="table table-hover align-middle hmi-table">
+  <thead><tr><th>{{ _('Username') }}</th><th>{{ _('E-mail') }}</th><th>{{ _('Role') }}</th><th>{{ _('Screens') }}</th><th>{{ _('Home screen') }}</th><th>{{ _('Language') }}</th><th>{{ _('Status') }}</th><th>{{ _('Last login') }}</th><th class="text-end">{{ _('Actions') }}</th></tr></thead>
+  <tbody>
+  {% set langs = available_languages() %}
+  {% for u in users %}
+    <tr>
+      <td>{{ u.username }}{% if u.id == current_user.id %} <span class="badge text-bg-primary">{{ _('you') }}</span>{% endif %}</td>
+      <td>{{ u.email or '—' }}</td>
+      <td><span class="badge text-bg-secondary">{{ _(u.role.name) }}</span></td>
+      <td class="small">{% if u.restrict_screens %}<span title="{{ u.allowed_screens|map(attribute='name')|join(', ') }}">{{ _('{0} selected', u.allowed_screens|length) }}</span>{% else %}<span class="text-secondary">{{ _('by role') }}</span>{% endif %}</td>
+      <td class="small">{{ u.home_screen.name if u.home_screen else '—' }}</td>
+      <td class="small">{% if u.language and u.language in langs %}{{ langs[u.language].name }}{% else %}<span class="text-secondary">{{ _('default') }}</span>{% endif %}</td>
+      <td>{% if u.active %}<span class="text-success">{{ _('active') }}</span>{% else %}<span class="text-danger">{{ _('disabled') }}</span>{% endif %}</td>
+      <td class="small text-secondary">{{ u.last_login.strftime('%Y-%m-%d %H:%M') if u.last_login else _('never') }}</td>
+      <td class="text-end text-nowrap">
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('admin.user_edit', user_id=u.id) }}" title="{{ _('Edit') }}"><i class="bi bi-pencil"></i></a>
+        {% if u.id != current_user.id %}{{ post_button(url_for('admin.user_delete', user_id=u.id), 'Delete', 'trash', confirm=_('Delete user {0}?', u.username)) }}{% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

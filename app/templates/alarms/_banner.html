@@ -1,0 +1,20 @@
+{# Alarm shown at the top of a screen opened with "Open Screen" (?alarm=<event id>).
+   alarms.js keeps its state up to date and handles the Ack button. #}
+{% if alarm_event %}
+{% from "_table.html" import local_time %}
+<div class="alarm-banner {{ extra_class|default('') }}" id="alarm-banner" role="alert"
+     data-event-id="{{ alarm_event.id }}" style="--sev: {{ alarm_event.severity_color }}">
+  <i class="bi bi-exclamation-triangle-fill alarm-banner-icon"></i>
+  <div class="alarm-banner-text">
+    <strong>{{ alarm_event.name }}</strong>
+    <span class="badge severity-badge ms-1" style="background: {{ alarm_event.severity_color }}">{{ _(alarm_event.severity_label) }}</span>
+    {% if alarm_event.description %}<span class="alarm-banner-desc">— {{ alarm_event.description }}</span>{% endif %}
+    <div class="small opacity-75">{{ alarm_event.condition }}{% if alarm_event.value %} ({{ _('value {0}', alarm_event.value) }}){% endif %} · {{ _('since') }} {{ local_time(alarm_event.occurred_at) }}</div>
+  </div>
+  <span class="badge alarm-banner-state" id="alarm-banner-state">
+    {%- if not alarm_event.is_open %}{{ _('Closed') }}{% elif alarm_event.acked_at %}{{ _('Acknowledged') }}{% else %}{{ _('Active') }}{% endif -%}
+  </span>
+  <button type="button" class="btn btn-sm btn-warning" id="alarm-banner-ack" {{ 'hidden' if alarm_event.acked_at or not alarm_event.is_open }}><i class="bi bi-check2-circle"></i> {{ _('Ack') }}</button>
+  <button type="button" class="btn-close" aria-label="{{ _('Hide') }}" id="alarm-banner-close"></button>
+</div>
+{% endif %}

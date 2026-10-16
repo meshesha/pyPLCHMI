@@ -1,0 +1,35 @@
+# pyPLCHMI with Docker Compose
+#
+#   cp .env.example .env        # set SECRET_KEY (and HMI_ADMIN_* for the first start)
+#   docker compose up -d --build
+#   → http://<host>:8000
+#
+# Details, network modes for BACnet and serial ports: docs/DOCKER.md
+
+services:
+  hmi:
+    build: .
+    image: pyplchmi:latest
+    container_name: pyplchmi
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      FLASK_CONFIG: production
+      TZ: ${TZ:-UTC}                       # time zone of the server (logs, Excel exports)
+    ports:
+      - "8000:8000"                        # web UI
+      # - "47808:47808/udp"                # BACnet/IP – better: network_mode: host (see below)
+    volumes:
+      - hmi-data:/app/instance             # database, uploads, library, languages
+    # S7 (TCP 102) and Modbus TCP (502) work from the default bridge network.
+    # BACnet Who-Is needs broadcasts → on Linux use the host network instead
+    # (then remove "ports:" above):
+    # network_mode: host
+    #
+    # Modbus RTU over a USB/RS-485 adapter (Linux host):
+    # devices:
+    #   - /dev/ttyUSB0:/dev/ttyUSB0
+    stop_grace_period: 20s
+
+volumes:
+  hmi-data:

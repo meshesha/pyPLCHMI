@@ -1,0 +1,66 @@
+{# Excel export / import controls for the Tags and Alarms tables.
+   Row checkboxes (class "row-select") and the header box ("select-all") are
+   handled by static/js/table_select.js. #}
+
+{% macro excel_toolbar(export_endpoint, import_endpoint, state, what) -%}
+  {# Whole sentences per table, so that every language can phrase them naturally. #}
+  {% set W = {
+    'tag': {'all': _('All tags'), 'title': _('Import tags from Excel'),
+            'ids': _('Rows with the ID of an existing tag update it; rows without an ID create new tags.')},
+    'alarm': {'all': _('All alarms'), 'title': _('Import alarms from Excel'),
+              'ids': _('Rows with the ID of an existing alarm update it; rows without an ID create new alarms.')},
+  }[what] %}
+  <div class="btn-group" role="group" aria-label="Excel">
+    <button type="button" class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" id="export-btn">
+      <i class="bi bi-file-earmark-excel"></i> {{ _('Export') }}
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+      <li><a class="dropdown-item" id="export-all" href="{{ url_for(export_endpoint, scope='all') }}">{{ W.all }}</a></li>
+      <li><a class="dropdown-item" id="export-filtered" href="{{ url_for(export_endpoint, **state.args(page=None, per_page=None)) }}">{{ _('Current search / filter') }}</a></li>
+      <li><button type="button" class="dropdown-item" id="export-selected" disabled
+                  data-url="{{ url_for(export_endpoint) }}">{{ _('Selected') }} <span class="badge text-bg-secondary" id="selected-count">0</span></button></li>
+      <li><hr class="dropdown-divider"></li>
+      <li><button type="button" class="dropdown-item small" id="clear-selection">{{ _('Clear selection') }}</button></li>
+    </ul>
+    <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#import-modal" id="import-btn">
+      <i class="bi bi-upload"></i> {{ _('Import') }}
+    </button>
+  </div>
+
+  <div class="modal fade" id="import-modal" tabindex="-1" aria-labelledby="import-title" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content" method="post" action="{{ url_for(import_endpoint) }}" enctype="multipart/form-data" id="import-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="import-title"><i class="bi bi-file-earmark-excel"></i> {{ W.title }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+        </div>
+        <div class="modal-body">
+          <input class="form-control mb-3" type="file" name="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" name="check_only" id="check-only" value="1">
+            <label class="form-check-label" for="check-only">{{ _("Check only (validate, don't save)") }}</label>
+          </div>
+          <ul class="small text-secondary mb-0">
+            <li>{{ _('Use the columns of an exported file (the Help sheet explains them). The first row holds the column names.') }}</li>
+            <li>{{ W.ids }}</li>
+            <li>{{ _('Columns you remove keep their current values.') }}</li>
+            <li>{{ _('All or nothing: if any row has an error, nothing is saved and every problem is listed.') }}</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+          <button type="submit" class="btn btn-success"><i class="bi bi-upload"></i> {{ _('Import') }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{%- endmacro %}
+
+{% macro select_all_th() -%}
+  <th class="select-col"><input class="form-check-input" type="checkbox" id="select-all" aria-label="{{ _('Select all rows on this page') }}" title="{{ _('Select all rows on this page') }}"></th>
+{%- endmacro %}
+
+{% macro select_td(item_id, label) -%}
+  <td class="select-col"><input class="form-check-input row-select" type="checkbox" value="{{ item_id }}" aria-label="{{ _('Select {0}', label) }}"></td>
+{%- endmacro %}

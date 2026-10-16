@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Information library') }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0"><i class="bi bi-file-earmark-richtext"></i> {{ _('Information library') }}</h1>
+    <div class="small text-secondary">{{ _('Manuals, wiring diagrams, data sheets and photos (PDF and images) that can be attached to PLCs and devices. Each file is stored once – identical files are recognised by their SHA-1 hash.') }}</div>
+  </div>
+  {% if can_manage %}
+  <div>
+    <label class="btn btn-primary mb-0" for="library-file"><i class="bi bi-upload"></i> {{ _('Upload files') }}</label>
+    <input type="file" id="library-file" class="d-none" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.bmp,application/pdf,image/*">
+    <div class="small text-secondary mt-1">{{ _('PDF, PNG, JPEG, GIF, WebP, BMP · up to {0} MB', max_mb) }}</div>
+  </div>
+  {% endif %}
+</div>
+
+<form method="get" class="d-flex flex-wrap gap-2 align-items-center mb-3" role="search">
+  <div class="input-group input-group-sm" style="max-width: 24rem">
+    <span class="input-group-text"><i class="bi bi-search"></i></span>
+    <input type="search" class="form-control" name="q" value="{{ q }}" placeholder="{{ _('Search name, description, SHA-1…') }}" aria-label="{{ _('Search') }}">
+    <button class="btn btn-outline-secondary" type="submit">{{ _('Search') }}</button>
+  </div>
+  <select class="form-select form-select-sm w-auto" name="kind" onchange="this.form.submit()" aria-label="{{ _('Type') }}">
+    <option value="">{{ _('All types') }}</option>
+    <option value="pdf" {{ 'selected' if kind == 'pdf' }}>PDF</option>
+    <option value="image" {{ 'selected' if kind == 'image' }}>{{ _('Images') }}</option>
+  </select>
+  {% if q or kind %}<a class="btn btn-sm btn-link" href="{{ url_for('documents.index') }}">{{ _('Clear') }}</a>{% endif %}
+  <span class="small text-secondary ms-auto">{{ _('{0} of {1} files', files|length, total) }}</span>
+</form>
+
+<div class="table-responsive">
+<table class="table table-hover align-middle hmi-table" id="library-table">
+  <thead><tr><th style="width: 4.5rem"></th><th>{{ _('Name') }}</th><th>{{ _('Size') }}</th><th>SHA-1</th><th>{{ _('PLCs & devices') }}</th><th>{{ _('Uploaded') }}</th><th class="text-end">{{ _('Actions') }}</th></tr></thead>
+  <tbody>
+  {% for f in files %}
+    <tr data-file="{{ f.id }}" data-sha1="{{ f.sha1 }}">
+      <td>
+        <a href="{{ url_for('documents.file', file_id=f.id) }}" target="_blank" rel="noopener" class="library-thumb" title="{{ _('Open') }}">
+          {% if f.is_image %}<img src="{{ url_for('documents.file', file_id=f.id) }}" alt="" loading="lazy">{% else %}<i class="bi bi-file-earmark-pdf"></i>{% endif %}
+        </a>
+      </td>
+      <td><a href="{{ url_for('documents.file', file_id=f.id) }}" target="_blank" rel="noopener" class="fw-semibold">{{ f.name }}</a>
+        <div class="small text-secondary">{{ f.original_name }}{% if f.description %} · {{ f.description }}{% endif %}</div></td>
+      <td class="small text-nowrap">{{ f.size_text }}</td>
+      <td><code class="small" title="{{ f.sha1 }}">{{ f.sha1[:12] }}…</code></td>
+      <td class="small">{% for p in f.plcs %}<a class="badge hmi-badge-neutral text-decoration-none me-1" href="{{ url_for('admin.plc_edit', plc_id=p.id) if current_user.can(Perm.MANAGE_PLCS) else '#' }}">{{ p.name }}</a>{% else %}<span class="text-secondary">—</span>{% endfor %}</td>
+      <td class="small text-nowrap"><span dir="ltr">{{ format_local(f.created_at, zone, seconds=False) }}</span>
+        <div class="text-secondary">{{ f.uploaded_by.username if f.uploaded_by else '' }}</div></td>
+      <td class="text-end text-nowrap">
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('documents.file', file_id=f.id, download=1) }}" title="{{ _('Download') }}" aria-label="{{ _('Download') }}"><i class="bi bi-download"></i></a>
+        {% if can_manage %}
+        <button type="button" class="btn btn-sm btn-outline-primary library-edit" title="{{ _('Edit') }}" aria-label="{{ _('Edit') }}"
+                data-url="{{ url_for('documents.edit', file_id=f.id) }}" data-name="{{ f.name }}" data-description="{{ f.description }}"><i class="bi bi-pencil"></i></button>
+        <form method="post" action="{{ url_for('documents.delete', file_id=f.id) }}" class="d-inline"
+              data-confirm="{{ _('Delete {0} from the library?', f.name) }}{% if f.plcs %} {{ _('It is attached to {0} – it will be removed there too.', f.plcs|map(attribute='name')|join(', ')) }}{% endif %}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-sm btn-outline-danger" type="submit" title="{{ _('Delete') }}" aria-label="{{ _('Delete') }}"><i class="bi bi-trash"></i></button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="7" class="text-secondary">{{ _('No files match the search.') if q or kind else _('The library is empty.') }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% if can_manage %}
+<form method="post" id="library-edit-form" hidden>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="name"><input type="hidden" name="description">
+</form>
+{% include "documents/_urls.html" %}
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if can_manage %}
+<script src="{{ url_for('static', filename='js/library_upload.js') }}"></script>
+<script src="{{ url_for('static', filename='js/documents.js') }}"></script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% set W = {
+  'tag': {'title': _('Tag import'), 'col': _('Tag'),
+          'check': _('Check only – nothing was saved. The file is valid: it would create {0} and update {1} tag(s) ({2} unchanged). Import it again without Check only to save.'),
+          'done': _('Imported: {0} tag(s) created, {1} updated, {2} unchanged.')},
+  'alarm': {'title': _('Alarm import'), 'col': _('Alarm'),
+            'check': _('Check only – nothing was saved. The file is valid: it would create {0} and update {1} alarm(s) ({2} unchanged). Import it again without Check only to save.'),
+            'done': _('Imported: {0} alarm(s) created, {1} updated, {2} unchanged.')},
+}[what] %}
+{% block title %}{{ W.title }}{% endblock %}
+{% block content %}
+<p class="mb-1"><a href="{{ back_url }}"><i class="bi bi-arrow-left"></i> {{ _('Back') }}</a></p>
+<h1 class="h3 mb-3">{{ W.title }} <span class="text-secondary fs-6">{{ filename }}</span></h1>
+
+{% if result.errors %}
+  <div class="alert alert-danger" id="import-summary">
+    <strong>{{ _('Nothing was saved:') }}</strong> {{ _('{0} of {1} row(s) have errors. Fix them in the file and import it again.', result.errors, result.rows|length) }}
+  </div>
+{% elif result.check_only %}
+  <div class="alert alert-info" id="import-summary">
+    {{ W.check.format(result.count('created'), result.count('updated'), result.count('unchanged')) }}
+  </div>
+{% else %}
+  <div class="alert alert-success" id="import-summary">
+    {{ W.done.format(result.count('created'), result.count('updated'), result.count('unchanged')) }}
+  </div>
+{% endif %}
+
+<div class="table-responsive">
+<table class="table table-sm align-middle hmi-table" id="import-rows">
+  <thead><tr><th>{{ _('Row') }}</th><th>{{ _('Result') }}</th><th>{{ W.col }}</th><th>{{ _('Details') }}</th></tr></thead>
+  <tbody>
+  {% for number, action, label, message in result.rows %}
+    <tr class="{{ 'table-danger' if action == 'error' }}">
+      <td>{{ number }}</td>
+      <td>{% if action == 'error' %}<span class="badge text-bg-danger">{{ _('error') }}</span>
+          {% elif action == 'created' %}<span class="badge text-bg-success">{{ _('would create') if not result.saved else _('created') }}</span>
+          {% elif action == 'unchanged' %}<span class="badge hmi-badge-neutral">{{ _('unchanged') }}</span>
+          {% else %}<span class="badge text-bg-info">{{ _('would update') if not result.saved else _('updated') }}</span>{% endif %}</td>
+      <td>{{ label }}</td>
+      <td class="small {{ 'text-danger' if action == 'error' else 'text-secondary' }}">{{ message }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<a class="btn btn-primary" href="{{ back_url }}">{{ _('Back to the table') }}</a>
+{% endblock %}

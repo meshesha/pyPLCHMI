@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "_macros.html" import render_field %}
+{% block title %}{{ _('Edit user') if user else _('New user') }}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">{{ _('Edit user {0}', user.username) if user else _('New user') }}</h1>
+<div class="card hmi-panel" style="max-width: 640px"><div class="card-body">
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ render_field(form.username) }}
+    {{ render_field(form.email) }}
+    {{ render_field(form.role_id) }}
+    {{ render_field(form.language) }}
+    {{ render_field(form.active) }}
+    <hr>
+    <h2 class="h6">{{ _('Screen access') }}</h2>
+    <p class="small text-secondary mb-2">{{ _('By default the role decides (Viewer: all screens, Guest: public screens). Tick the option below to allow only the selected screens for this user. Users who can manage screens always see all of them.') }}</p>
+    {{ render_field(form.restrict_screens) }}
+    <div class="screen-checklist mb-3" id="screen-checklist">
+      {% for opt in form.allowed_screens %}
+      <div class="form-check">{{ opt(class_='form-check-input') }} {{ opt.label(class_='form-check-label') }}</div>
+      {% else %}
+      <span class="small text-secondary">{{ _('No screens yet.') }}</span>
+      {% endfor %}
+      {% for e in form.allowed_screens.errors %}<div class="text-danger small">{{ _(e) }}</div>{% endfor %}
+    </div>
+    {{ render_field(form.home_screen_id) }}
+    <hr>
+    {% if user %}<p class="small text-secondary">{{ _('Leave the password empty to keep the current one.') }}</p>{% endif %}
+    <div class="row">{{ render_field(form.password, 'col-md-6') }}{{ render_field(form.confirm, 'col-md-6') }}</div>
+    {{ form.submit(class_='btn btn-primary') }}
+    <a class="btn btn-outline-secondary" href="{{ url_for('admin.users') }}">{{ _('Cancel') }}</a>
+  </form>
+</div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+  /* Enable the screen checklist only while "Limit this user…" is ticked. */
+  (function () {
+    const box = document.getElementById("restrict_screens");
+    const list = document.getElementById("screen-checklist");
+    function sync() { list.classList.toggle("disabled-list", !box.checked);
+      list.querySelectorAll("input").forEach((i) => { i.disabled = !box.checked; }); }
+    box.addEventListener("change", sync); sync();
+  })();
+</script>
+{% endblock %}

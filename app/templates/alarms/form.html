@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "_macros.html" import render_field %}
+{% block title %}{{ _('Edit alarm') if alarm else _('Add alarm') }}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">{{ _('Edit alarm') if alarm else _('Add alarm') }}</h1>
+<p class="text-secondary mb-4"><a href="{{ url_for('alarms.index') }}"><i class="bi bi-arrow-left"></i> {{ _('Alarms') }}</a></p>
+
+<form method="post" novalidate id="alarm-form">
+  {{ form.hidden_tag() }}
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="card hmi-panel"><div class="card-body">
+        <h2 class="h5">{{ _('Alarm') }}</h2>
+        {{ render_field(form.name) }}
+        {{ render_field(form.description) }}
+        {{ render_field(form.severity) }}
+        <div class="d-flex gap-2 mb-3 small" aria-hidden="true">
+          <span class="badge severity-badge" style="background:#dc3545">{{ _('Critical') }}</span>
+          <span class="badge severity-badge" style="background:#fd7e14">{{ _('High') }}</span>
+          <span class="badge severity-badge" style="background:#198754">{{ _('Low') }}</span>
+        </div>
+        {{ render_field(form.screen_id) }}
+        <p class="form-text mt-n2">{{ _('"Open Screen" in the alarm window opens this screen with the alarm shown at the top.') }}</p>
+        {{ render_field(form.enabled) }}
+      </div></div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card hmi-panel"><div class="card-body">
+        <h2 class="h5">{{ _('Trigger logic') }}</h2>
+        {{ render_field(form.kind) }}
+        <div class="kind-group" data-kind="tag">
+          <p class="small text-secondary">{{ _('The alarm becomes active while "tag value <condition> value" is true. The value is compared in engineering units (after scale/offset).') }}</p>
+          {{ render_field(form.datapoint_id) }}
+          <div class="row">
+            {{ render_field(form.operator, 'col-md-5') }}
+            {{ render_field(form.setpoint, 'col-md-7') }}
+          </div>
+          <div class="alert alert-secondary small py-2 mb-0" id="condition-preview" hidden></div>
+        </div>
+        <div class="kind-group" data-kind="comm">
+          <p class="small text-secondary">{{ _('The alarm becomes active when the PLC has been unreachable for longer than its communication timeout, and closes automatically when communication is restored. Shorter interruptions do not raise it.') }}</p>
+          {{ render_field(form.plc_id) }}
+        </div>
+      </div></div>
+    </div>
+  </div>
+  <div class="mt-4 d-flex gap-2">
+    {{ form.submit(class_='btn btn-primary') }}
+    <a class="btn btn-outline-secondary" href="{{ url_for('alarms.index') }}">{{ _('Cancel') }}</a>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script type="application/json" id="tag-kinds">{{ form.tag_kinds|tojson }}</script>
+<script src="{{ url_for('static', filename='js/alarm_form.js') }}"></script>
+{% endblock %}

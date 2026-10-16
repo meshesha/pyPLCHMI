@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ dashboard.name }}{% endblock %}
+{% block container %}container-fluid{% endblock %}
+{# No space between the top bar and the drawing; the page around it can have its own colour / image. #}
+{% block main_class %}p-0 hmi-page-mimic{% endblock %}
+{% block main_attrs %}{% if page_style %} style="{{ page_style }}"{% endif %}{% endblock %}
+{% block screen_header %}
+{% with edit_url=url_for('dashboards.designer', dashboard_id=dashboard.id) if can_edit else none, fullscreen_target='#mimic-box' %}{% include "dashboards/_screen_header.html" %}{% endwith %}
+{% endblock %}
+{% block content %}
+<div id="mimic-box" class="mimic-box">
+  {% with extra_class='alarm-banner-overlay' %}{% include "alarms/_banner.html" %}{% endwith %}
+  <svg id="mimic-svg" class="mimic-svg" dir="ltr" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="{{ dashboard.name }}"></svg>
+</div>
+
+<script type="application/json" id="mimic-data">{{ runtime|tojson }}</script>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/hmi-symbols.js') }}"></script>
+<script src="{{ url_for('static', filename='js/hmi-local.js') }}"></script>
+<script src="{{ url_for('static', filename='js/hmi-render.js') }}"></script>
+<script src="{{ url_for('static', filename='js/hmi-mimic.js') }}"></script>
+{% include "dashboards/_tag_menu.html" %}
+{% endblock %}

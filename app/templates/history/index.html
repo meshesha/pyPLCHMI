@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% from "_table.html" import sort_th, pager %}
+{% from "history/_tag_picker.html" import tag_picker %}
+{% block title %}{{ _('Tag history') }}{% endblock %}
+{% block container %}container-fluid{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">{{ _('Tag history') }}</h1>
+    <div class="small text-secondary">{{ _('Saved samples of the tags with history logging. Dates and times are in the time zone {0}.', zone_name) }}</div>
+    <div class="small mt-1" id="logger-status">
+      {% if status.thread == 'off' %}
+        <span class="text-warning"><i class="bi bi-exclamation-triangle"></i> {{ _('The history logger is off (HISTORY_LOGGER=0): no new samples are saved.') }}</span>
+      {% elif status.thread == 'stopped' %}
+        <span class="text-danger"><i class="bi bi-x-octagon"></i> {{ _('The history logger is not running – it starts again with the next page request.') }}</span>
+      {% else %}
+        <span class="text-success"><i class="bi bi-record-circle"></i> {{ _('History logger running · {0} tag(s) logged', logged_count) }}{% if status.age is not none %} · {{ _('last check {0} s ago', status.age) }}{% endif %}</span>
+      {% endif %}
+      · <span class="text-secondary">{{ _('samples are kept for {0} days', retention) if retention else _('samples are kept forever') }}</span>
+      {% if status.failure %}<div class="text-danger"><i class="bi bi-bug"></i> {{ status.failure|truncate(160) }}</div>{% endif %}
+      {% for err in status.errors[:3] %}<div class="text-warning"><i class="bi bi-exclamation-triangle"></i> {{ err|truncate(160) }}</div>{% endfor %}
+    </div>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-secondary" href="{{ url_for('history.charts') }}"><i class="bi bi-graph-up"></i> {{ _('Trend charts') }}</a>
+    {% set export_args = state.args(page=None, per_page=None, sort=None, dir=None) %}
+    <div class="btn-group">
+      <a class="btn btn-outline-success" id="export-list" href="{{ url_for('history.export', **export_args) }}"><i class="bi bi-file-earmark-excel"></i> {{ _('Export to Excel') }}</a>
+      <button type="button" class="btn btn-outline-success dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-label="{{ _('More export options') }}"></button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="{{ url_for('history.export', **export_args) }}">{{ _('One row per sample') }}</a></li>
+        <li><a class="dropdown-item" id="export-wide" href="{{ url_for('history.export', layout='wide', **export_args) }}">{{ _('One column per tag') }}</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<form method="get" class="d-flex flex-wrap gap-2 align-items-center" id="history-filter">
+  <input type="hidden" name="per_page" value="{{ state.per_page }}">
+  <input type="hidden" name="dir" value="{{ state.direction }}">
+  {{ tag_picker(tags, selected, _('All tags')) }}
+  <label class="small text-secondary" for="f-from">{{ _('From') }}</label>
+  <input type="datetime-local" step="1" id="f-from" class="form-control form-control-sm w-auto" name="from" value="{{ state.filters.get('from', '') }}">
+  <label class="small text-secondary" for="f-to">{{ _('to') }}</label>
+  <input type="datetime-local" step="1" id="f-to" class="form-control form-control-sm w-auto" name="to" value="{{ state.filters.get('to', '') }}">
+  <div class="btn-group btn-group-sm" role="group" aria-label="{{ _('Quick ranges') }}">
+    <button type="button" class="btn btn-outline-secondary" data-last="3600">{{ _('Last hour') }}</button>
+    <button type="button" class="btn btn-outline-secondary" data-last="86400">{{ _('24 hours') }}</button>
+    <button type="button" class="btn btn-outline-secondary" data-last="604800">{{ _('7 days') }}</button>
+  </div>
+  <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel"></i> {{ _('Apply') }}</button>
+  {% if state.filters %}<a class="btn btn-sm btn-link" href="{{ url_for('history.index', per_page=state.per_page) }}">{{ _('Clear') }}</a>{% endif %}
+  {% if selected %}<a class="btn btn-sm btn-outline-info" id="chart-selected" href="{{ url_for('history.quick_chart', tags=state.filters.tags) }}"><i class="bi bi-graph-up"></i> {{ _('Chart these tags') }}</a>{% endif %}
+</form>
+{% if bad_range %}<div class="alert alert-warning small mt-2 mb-0">{{ _('The start of the range must be before its end.') }}</div>{% endif %}
+
+<div class="table-responsive mt-3">
+<table class="table table-hover table-sm align-middle hmi-table" id="samples-table">
+  <thead><tr>
+    {{ sort_th(state, 'time', 'Date & time') }}
+    <th>{{ _('Tag') }}</th>
+    <th>{{ _('PLC') }}</th>
+    <th class="text-end">{{ _('Value') }}</th>
+    <th>{{ _('Unit') }}</th>
+  </tr></thead>
+  <tbody>
+  {% for s in pagination.items %}
+    {% set dp = s.datapoint %}
+    <tr>
+      <td class="text-nowrap small sample-time"><span class="font-monospace" dir="ltr">{{ format_local(s.ts, zone) }}</span></td>
+      <td>{{ dp.label }}</td>
+      <td class="small text-secondary">{{ dp.plc.name if dp.plc else '' }}</td>
+      <td class="text-end hmi-value">{{ s.display(dp) }}</td>
+      <td class="small">{{ dp.unit }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5" class="text-secondary">
+      {% if not tags %}{{ _('No samples yet. Enable “Save history” in a tag’s settings (Admin → Tag table) to start logging.') }}
+      {% else %}{{ _('No samples match the filters.') }}{% endif %}
+    </td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ pager(state, pagination) }}
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/history.js') }}"></script>
+{% endblock %}

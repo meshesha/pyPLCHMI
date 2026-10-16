@@ -1,0 +1,38 @@
+{# Address syntax help shown by the tag forms (the table of the selected PLC's protocol is visible). #}
+        <details class="small text-secondary">
+          <summary>{{ _('Address syntax') }}</summary>
+          <table class="table table-sm small mt-2 mb-0 syntax-table" data-syntax="s7">
+            <tr><th colspan="2">Siemens S7</th></tr>
+            <tr><td><code>DB1.DBX0.0</code></td><td>{{ _('bit 0.0 of DB1 (BOOL)') }}</td></tr>
+            <tr><td><code>DB1.DBB2</code> / <code>DBW4</code> / <code>DBD6</code></td><td>{{ _('byte / word / double word in DB1') }}</td></tr>
+            <tr><td><code>M10.5</code>, <code>MW20</code>, <code>MD24</code></td><td>{{ _('memory (merker) bit / word / dword') }}</td></tr>
+            <tr><td><code>I0.0</code>, <code>IW64</code> ({{ _('or') }} <code>E</code>)</td><td>{{ _('process inputs') }}</td></tr>
+            <tr><td><code>Q0.1</code>, <code>QW2</code> ({{ _('or') }} <code>A</code>)</td><td>{{ _('process outputs') }}</td></tr>
+            <tr><td><code>T5</code>, <code>C3</code></td><td>{{ _('timer / counter (S7-300/400)') }}</td></tr>
+            <tr><td><code>DB1.DBD4:REAL</code></td><td>{{ _('type suffix overrides the drop-down') }}</td></tr>
+            <tr><td><code>DB2.DBB10:STRING[20]</code></td><td>{{ _('S7 string with max length 20') }}</td></tr>
+          </table>
+          <table class="table table-sm small mt-2 mb-0 syntax-table" data-syntax="modbus">
+            <tr><th colspan="2">{{ _('Modbus (0-based protocol addresses)') }}</th></tr>
+            <tr><td><code>HR100</code></td><td>{{ _('holding register 100 (read/write)') }}</td></tr>
+            <tr><td><code>IR5</code></td><td>{{ _('input register 5 (read only)') }}</td></tr>
+            <tr><td><code>C12</code> / <code>CO12</code></td><td>{{ _('coil 12 – BOOL, read/write') }}</td></tr>
+            <tr><td><code>DI3</code></td><td>{{ _('discrete input 3 – BOOL, read only') }}</td></tr>
+            <tr><td><code>HR10.3</code></td><td>{{ _('bit 3 of holding register 10 (BOOL)') }}</td></tr>
+            <tr><td><code>40001</code> / <code>400001</code></td><td>{{ _('Modicon numbering (1-based): 40001 = HR0, 30010 = IR9') }}</td></tr>
+            <tr><td><code>HR200:REAL</code></td><td>{{ _('REAL / DINT / UDINT use 2 registers, LREAL 4') }}</td></tr>
+            <tr><td><code>HR300:STRING[16]</code></td><td>{{ _('16 characters in 8 registers') }}</td></tr>
+            <tr><td colspan="2">{{ _('Types: BOOL, INT, UINT, WORD, DINT, UDINT, DWORD, REAL, LREAL, STRING. The 32/64-bit word order is set on the PLC.') }}</td></tr>
+          </table>
+          <table class="table table-sm small mt-2 mb-0 syntax-table" data-syntax="bacnet">
+            <tr><th colspan="2">{{ _('BACnet (object + instance)') }}</th></tr>
+            <tr><td><code>AI1</code>, <code>AO2</code>, <code>AV3</code></td><td>{{ _('analog input / output / value – REAL') }}</td></tr>
+            <tr><td><code>BI1</code>, <code>BO2</code>, <code>BV3</code></td><td>{{ _('binary – BOOL') }}</td></tr>
+            <tr><td><code>MI1</code>, <code>MO2</code>, <code>MV3</code></td><td>{{ _('multi-state – UINT (state number)') }}</td></tr>
+            <tr><td><code>CS4</code></td><td>{{ _('character string value') }}</td></tr>
+            <tr><td><code>AI1.units</code></td><td>{{ _('other property (read only)') }}</td></tr>
+            <tr><td><code>AV5@10</code></td><td>{{ _('write with priority 10 (default from the PLC)') }}</td></tr>
+            <tr><td><code>MV3:INT</code></td><td>{{ _('override the value type (the drop-down is ignored for BACnet)') }}</td></tr>
+            <tr><td colspan="2">{{ _('Outputs and values (AO/AV/BO/BV/MO/MV/CS) can be written; inputs are read only. Tip: PLCs → Browse objects lists every object of the device.') }}</td></tr>
+          </table>
+        </details>

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "_table.html" import search_bar, filter_select, sort_th, pager %}
+{% block title %}{{ _('Audit log') }}{% endblock %}
+{% block container %}container-fluid{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0"><i class="bi bi-journal-text"></i> {{ _('Audit log') }}</h1>
+    <div class="small text-secondary">{{ _('Every change made by users – who, when, what, and the values before and after. Times are in the time zone {0}.', zone.key if zone.key is defined else zone) }}</div>
+  </div>
+  <a class="btn btn-outline-success" id="audit-export" href="{{ url_for('audit.export', **state.args(page=None, per_page=None)) }}"><i class="bi bi-file-earmark-excel"></i> {{ _('Export to Excel') }}</a>
+</div>
+
+{% call search_bar(state, 'Search user, object, values…') %}
+  {{ filter_select(state, 'user', 'User', user_options) }}
+  {{ filter_select(state, 'action', 'Action', action_options) }}
+  {{ filter_select(state, 'type', 'Object type', type_options) }}
+  <label class="small text-secondary" for="f-from">{{ _('From') }}</label>
+  <input type="date" id="f-from" class="form-control form-control-sm w-auto" name="from" value="{{ state.filters.get('from', '') }}" onchange="this.form.submit()">
+  <label class="small text-secondary" for="f-to">{{ _('to') }}</label>
+  <input type="date" id="f-to" class="form-control form-control-sm w-auto" name="to" value="{{ state.filters.get('to', '') }}" onchange="this.form.submit()">
+  {% if state.q or state.filters %}<a class="btn btn-sm btn-link" href="{{ url_for('audit.index', per_page=state.per_page) }}">{{ _('Clear') }}</a>{% endif %}
+{% endcall %}
+
+<div class="table-responsive mt-3">
+<table class="table table-hover table-sm align-middle hmi-table" id="audit-table">
+  <thead><tr>
+    {{ sort_th(state, 'time', 'Date & time') }}
+    {{ sort_th(state, 'user', 'User') }}
+    {{ sort_th(state, 'action', 'Action') }}
+    {{ sort_th(state, 'type', 'Object type') }}
+    {{ sort_th(state, 'object', 'Object') }}
+    <th>{{ _('Changes (before → after)') }}</th>
+  </tr></thead>
+  <tbody>
+  {% for e in pagination.items %}
+    <tr class="audit-row audit-{{ e.action }}">
+      <td class="text-nowrap small"><span class="font-monospace" dir="ltr">{{ format_local(e.ts, zone) }}</span></td>
+      <td class="text-nowrap">{{ e.username or '—' }}<div class="small text-secondary" dir="ltr">{{ e.ip }}</div></td>
+      <td><span class="badge audit-badge audit-badge-{{ e.action }}">{{ _(e.action_label) }}</span></td>
+      <td class="small">{{ _(e.object_type) if e.object_type else '' }}</td>
+      <td>{{ e.object_label }}{% if e.object_id %} <span class="small text-secondary">#{{ e.object_id }}</span>{% endif %}</td>
+      <td class="small audit-changes">
+        {% set changes = e.changes %}
+        {% for c in changes[:4] %}
+          <div><span class="text-secondary">{{ c.field }}:</span>
+            {% if e.action != 'create' %}<span class="audit-before">{{ '—' if c.before is none else c.before }}</span> →{% endif %}
+            {% if e.action != 'delete' %}<span class="audit-after">{{ '—' if c.after is none else c.after }}</span>{% endif %}</div>
+        {% endfor %}
+        {% if changes|length > 4 %}
+        <details><summary class="text-secondary">{{ _('{0} more', changes|length - 4) }}</summary>
+          {% for c in changes[4:] %}
+          <div><span class="text-secondary">{{ c.field }}:</span>
+            {% if e.action != 'create' %}<span class="audit-before">{{ '—' if c.before is none else c.before }}</span> →{% endif %}
+            {% if e.action != 'delete' %}<span class="audit-after">{{ '—' if c.after is none else c.after }}</span>{% endif %}</div>
+          {% endfor %}
+        </details>
+        {% endif %}
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6" class="text-secondary">{{ _('No entries match the search/filters.') if state.q or state.filters else _('No actions recorded yet.') }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ pager(state, pagination) }}
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "_table.html" import search_bar, filter_select, sort_th, pager, local_time, severity_badge %}
+{% block title %}{{ _('Event history') }}{% endblock %}
+{% block container %}container-fluid{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">{{ _('Event history') }}</h1>
+    <div class="small text-secondary">{{ _('All alarm events, active and closed. Times are shown in your local time zone.') }}</div>
+  </div>
+  {% if current_user.is_admin %}<a class="btn btn-outline-secondary" href="{{ url_for('alarms.index') }}"><i class="bi bi-bell"></i> {{ _('Alarm definitions') }}</a>{% endif %}
+</div>
+
+{% call search_bar(state, 'Search name, description, condition…') %}
+  {{ filter_select(state, 'severity', 'Severity', severity_options) }}
+  {{ filter_select(state, 'status', 'Closure', [('open', 'Still active'), ('auto', 'Automatic'), ('manual', 'Manual')]) }}
+  <label class="small text-secondary" for="f-from">{{ _('From') }}</label>
+  <input type="date" id="f-from" class="form-control form-control-sm w-auto" name="from" value="{{ state.filters.get('from', '') }}" onchange="this.form.submit()">
+  <label class="small text-secondary" for="f-to">{{ _('to') }}</label>
+  <input type="date" id="f-to" class="form-control form-control-sm w-auto" name="to" value="{{ state.filters.get('to', '') }}" onchange="this.form.submit()">
+  {% if state.q or state.filters %}<a class="btn btn-sm btn-link" href="{{ url_for('alarms.history', per_page=state.per_page) }}">{{ _('Clear') }}</a>{% endif %}
+{% endcall %}
+
+<div class="table-responsive mt-3">
+<table class="table table-hover table-sm align-middle hmi-table" id="history-table">
+  <thead><tr>
+    {{ sort_th(state, 'name', 'Alarm') }}
+    {{ sort_th(state, 'severity', 'Severity') }}
+    {{ sort_th(state, 'occurred', 'Occurred') }}
+    {{ sort_th(state, 'acked', 'Ack time') }}
+    {{ sort_th(state, 'cleared', 'Closed') }}
+    {{ sort_th(state, 'close', 'Closure type') }}
+    <th class="text-end"></th>
+  </tr></thead>
+  <tbody>
+  {% for e in pagination.items %}
+    <tr class="alarm-row" style="--sev: {{ e.severity_color }}">
+      <td><strong>{{ e.name }}</strong><div class="small text-secondary">{{ e.condition }}{% if e.value %} · {{ _('value {0}', e.value) }}{% endif %}</div></td>
+      <td>{{ severity_badge(e.severity, e.severity_label, e.severity_color) }}</td>
+      <td class="text-nowrap">{{ local_time(e.occurred_at) }}</td>
+      <td class="text-nowrap">{{ local_time(e.acked_at) }}{% if e.acked_by %}<div class="small text-secondary">{{ e.acked_by.username }}</div>{% endif %}</td>
+      <td class="text-nowrap">{{ local_time(e.cleared_at) }}</td>
+      <td>{% if e.is_open %}<span class="badge text-bg-danger">{{ _('Active') }}</span>
+          {% elif e.close_type == 'auto' %}<span class="badge hmi-badge-neutral">{{ _('Automatic') }}</span>
+          {% else %}<span class="badge text-bg-warning">{{ _('Manual') }}</span> <span class="small">{{ e.closed_by.username if e.closed_by else _('deleted user') }}</span>{% endif %}</td>
+      <td class="text-end"><button type="button" class="btn btn-sm btn-outline-info" data-alarm-event="{{ e.id }}"><i class="bi bi-info-circle"></i> {{ _('Details') }}</button></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="7" class="text-secondary">{{ _('No events match the search/filters.') if state.q or state.filters else _('No alarm events yet.') }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ pager(state, pagination) }}
+{% endblock %}

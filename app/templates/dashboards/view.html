@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{{ dashboard.name }}{% endblock %}
+{% block container %}container-fluid{% endblock %}
+{% block screen_header %}
+{% with edit_url=url_for('dashboards.edit', dashboard_id=dashboard.id) if can_edit else none, fullscreen_target='#hmi-grid' %}{% include "dashboards/_screen_header.html" %}{% endwith %}
+{% endblock %}
+{% block content %}
+{% include "alarms/_banner.html" %}
+<div id="hmi-grid" class="hmi-grid"
+     data-values-url="{{ url_for('api.dashboard_values', dashboard_id=dashboard.id) }}"
+     data-write-url-template="{{ url_for('api.datapoint_write', point_id=0) }}"
+     data-refresh-ms="{{ dashboard.refresh_ms }}">
+  {% for dp in dashboard.datapoints %}
+  {% set writable = dp.writable and (can_write or dp.is_local) %}
+  <div class="hmi-tile span-{{ dp.width }}" data-id="{{ dp.id }}" data-widget="{{ dp.widget }}"{% if dp.is_local %}
+       data-local='{{ dp.local_spec()|tojson }}'{% endif %}
+       data-type="{{ dp.data_type }}" data-min="{{ dp.min_value if dp.min_value is not none else '' }}"
+       data-max="{{ dp.max_value if dp.max_value is not none else '' }}" data-writable="{{ 1 if writable else 0 }}">
+    <div class="hmi-tile-head">
+      <span class="hmi-label">{{ dp.label }}</span>
+      <span class="hmi-quality" title="{{ _('quality') }}"></span>
+    </div>
+    <div class="hmi-addr">{{ dp.plc.name }} · {{ dp.address }} · {{ dp.data_type }}{% if dp.is_local %} · <span title="{{ _('Local dummy tag: this browser window has its own value') }}">{{ _('local') }}</span>{% endif %}</div>
+
+    {% if dp.widget == 'indicator' %}
+      <div class="hmi-indicator"><span class="hmi-lamp"></span><span class="hmi-value">—</span></div>
+    {% elif dp.widget == 'switch' %}
+      <div class="hmi-indicator">
+        <span class="hmi-lamp"></span><span class="hmi-value">—</span>
+        {% if writable %}<button type="button" class="btn btn-sm btn-outline-secondary ms-auto hmi-toggle"><i class="bi bi-power"></i> {{ _('Toggle') }}</button>{% endif %}
+      </div>
+    {% elif dp.widget == 'gauge' %}
+      <div class="hmi-value hmi-big">—</div>
+      <div class="hmi-bar"><div class="hmi-bar-fill"></div></div>
+      <div class="d-flex justify-content-between small text-secondary"><span>{{ dp.min_value }}</span><span>{{ dp.max_value }}</span></div>
+    {% else %}
+      <div class="hmi-value hmi-big">—</div>
+    {% endif %}
+
+    {% if writable and dp.widget != 'switch' %}
+      <form class="hmi-write input-group input-group-sm mt-2">
+        {% if dp.is_bool %}
+          <select class="form-select"><option value="true">{{ dp.true_text }}</option><option value="false">{{ dp.false_text }}</option></select>
+        {% else %}
+          <input class="form-control" {% if dp.is_numeric %}type="number" step="any"{% else %}type="text"{% endif %} placeholder="{{ _('new value {0}', dp.unit)|trim }}" required>
+        {% endif %}
+        <button class="btn btn-warning" type="submit">{{ _('Set') }}</button>
+      </form>
+    {% endif %}
+    <div class="hmi-error small text-danger"></div>
+  </div>
+  {% else %}
+  <p class="text-secondary">{{ _('This screen has no tags yet.') }}</p>
+  {% endfor %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/hmi-local.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% include "dashboards/_tag_menu.html" %}
+{% endblock %}

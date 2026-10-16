@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% from "_macros.html" import render_field %}
+{% block title %}{{ _('Edit PLC') if plc else _('Add PLC') }}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">{{ _('Edit PLC / device {0}', plc.name) if plc else _('Add PLC / device') }}</h1>
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card hmi-panel"><div class="card-body">
+      <form method="post" novalidate id="plc-form">
+        {{ form.hidden_tag() }}
+        <div class="row">{{ render_field(form.name, 'col-md-6') }}{{ render_field(form.protocol, 'col-md-6') }}</div>
+
+        <div class="proto-group" data-protocols="s7 modbus_tcp bacnet_ip">
+          <div class="row">{{ render_field(form.ip_address, 'col-md-8') }}{{ render_field(form.tcp_port, 'col-md-4') }}</div>
+        </div>
+
+        <div class="proto-group" data-protocols="bacnet_ip">
+          <div class="row">{{ render_field(form.bacnet_device_id, 'col-md-6') }}{{ render_field(form.bacnet_priority, 'col-md-6') }}</div>
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+            <button type="button" class="btn btn-sm btn-outline-info" id="whois-btn"
+                    data-url="{{ url_for('api.bacnet_whois') }}"><i class="bi bi-broadcast"></i> {{ _('Who-Is (find devices)') }}</button>
+            <span class="small text-secondary" id="whois-status">{{ _('Broadcasts on the local network, or asks only the IP entered above.') }}</span>
+          </div>
+          <div class="list-group mb-3" id="whois-results"></div>
+        </div>
+
+        <div class="proto-group" data-protocols="s7">
+          <div class="row">{{ render_field(form.rack, 'col-6') }}{{ render_field(form.slot, 'col-6') }}</div>
+        </div>
+
+        <div class="proto-group" data-protocols="modbus_rtu">
+          <div class="row">
+            {{ render_field(form.serial_port, 'col-md-4') }}{{ render_field(form.baudrate, 'col-md-3') }}
+            {{ render_field(form.parity, 'col-md-2') }}{{ render_field(form.bytesize, 'col-md-1 col-6') }}{{ render_field(form.stopbits, 'col-md-2 col-6') }}
+          </div>
+        </div>
+
+        <div class="proto-group" data-protocols="modbus_tcp modbus_rtu">
+          <div class="row">
+            <div class="col-md-6 proto-group" data-protocols="modbus_tcp">{{ render_field(form.modbus_library) }}</div>
+            {{ render_field(form.unit_id, 'col-md-3 col-6') }}
+          </div>
+          {{ render_field(form.data_order) }}
+        </div>
+        <fieldset class="border rounded p-3 mb-3 proto-group" id="comm-settings" data-protocols="s7 modbus_tcp modbus_rtu bacnet_ip">
+          <legend class="float-none w-auto px-2 fs-6 mb-0">{{ _('Communication monitoring') }}</legend>
+          <div class="row">
+            {{ render_field(form.timeout, 'col-md-6') }}
+            {{ render_field(form.offline_delay, 'col-md-6') }}
+          </div>
+          <div class="row align-items-center">
+            {{ render_field(form.comm_alarm, 'col-md-7') }}
+            {{ render_field(form.comm_severity, 'col-md-5') }}
+          </div>
+          <p class="form-text mb-0">{{ _('The communication alarm appears in the alarm window and the Events list when the communication timeout expires, and closes automatically when communication is restored.') }}
+            {% if plc and plc.comm_alarm %}{{ _('Name, description and screen can be changed under') }}
+            <a href="{{ url_for('alarms.edit', alarm_id=plc.comm_alarm.id) }}">{{ _('Alarms') }}</a>.{% endif %}</p>
+        </fieldset>
+
+        {{ render_field(form.description) }}
+        {{ render_field(form.enabled) }}
+        {{ form.submit(class_='btn btn-primary') }}
+        <a class="btn btn-outline-secondary" href="{{ url_for('admin.plcs') }}">{{ _('Cancel') }}</a>
+      </form>
+    </div></div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card hmi-panel mb-4" id="plc-files-card"><div class="card-body">
+      <h2 class="h5"><i class="bi bi-paperclip"></i> {{ _('Files') }}</h2>
+      {% if plc %}
+      <p class="small text-secondary">{{ _('Manuals, diagrams and photos of this device (PDF and images) from the information library.') }}</p>
+      <ul class="list-unstyled mb-3" id="plc-files" data-plc="{{ plc.id }}"
+          data-url="{{ url_for('documents.api_plc_files', plc_id=plc.id) }}"></ul>
+      <div class="d-flex flex-wrap gap-2">
+        <button type="button" class="btn btn-sm btn-outline-primary" id="plc-files-add" data-bs-toggle="modal" data-bs-target="#file-picker"><i class="bi bi-collection"></i> {{ _('Add from library') }}</button>
+        <label class="btn btn-sm btn-outline-success mb-0" for="plc-files-upload"><i class="bi bi-upload"></i> {{ _('Upload new') }}</label>
+        <input type="file" id="plc-files-upload" class="d-none" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.bmp,application/pdf,image/*">
+        <a class="btn btn-sm btn-link" href="{{ url_for('documents.index') }}">{{ _('Information library') }}</a>
+      </div>
+      {% else %}
+      <p class="small text-secondary mb-0">{{ _('Save the PLC / device first, then attach files to it.') }}</p>
+      {% endif %}
+    </div></div>
+    <div class="card hmi-panel proto-group" data-protocols="s7"><div class="card-body small">
+      <h2 class="h6">{{ _('Typical rack / slot') }}</h2>
+      <table class="table table-sm mb-3">
+        <tr><td>S7-300</td><td>0 / 2</td></tr>
+        <tr><td>S7-400</td><td>{{ _('0 / 2 or 3 (see HW config)') }}</td></tr>
+        <tr><td>S7-1200 / S7-1500</td><td>0 / 1</td></tr>
+        <tr><td>LOGO! 8</td><td>0 / 1</td></tr>
+      </table>
+      <p class="mb-1"><strong>{{ _('S7-1200/1500 checklist') }}</strong></p>
+      <ul class="mb-0">
+        <li>{{ _('CPU properties → Protection & Security → Permit access with PUT/GET.') }}</li>
+        <li>{{ _('Each DB you read: Properties → Optimized block access OFF (absolute offsets).') }}</li>
+        <li>{{ _('TCP port 102 reachable from this server.') }}</li>
+      </ul>
+    </div></div>
+    <div class="card hmi-panel proto-group" data-protocols="dummy"><div class="card-body small">
+      <h2 class="h6">{{ _('Dummy PLC') }}</h2>
+      <p>{{ _('A PLC without a device: no IP address, and its tags need no address. Values start at 0 / OFF / empty and operators can write them like any writable tag.') }}</p>
+      <ul>
+        <li>{{ _('General dummy tags have one value for everybody, stored in the database.') }}</li>
+        <li>{{ _('Local dummy tags have their own value in each browser window.') }}</li>
+      </ul>
+      <p class="mb-0">{{ _('Use it to build screens before the PLC exists, or for values no PLC needs. A dummy tag can later be connected to a real PLC: edit the tag, choose the PLC and enter the address.') }}</p>
+    </div></div>
+    <div class="card hmi-panel proto-group" data-protocols="bacnet_ip"><div class="card-body small">
+      <h2 class="h6">{{ _('BACnet/IP notes') }}</h2>
+      <ul class="mb-2">
+        <li>{{ _('Uses BAC0. The HMI runs one local BACnet stack (UDP 47808); set its network card in .env with BACNET_LOCAL_IP=192.168.1.20/24 if auto-detection picks the wrong one.') }}</li>
+        <li>{{ _("Device instance: the remote device's object id — click Who-Is to find devices.") }}</li>
+        <li>{{ _('Write priority: 8 = manual operator. A tag can override it with @n, e.g. AV5@10.') }}</li>
+        <li>{{ _('After saving, use Browse objects in the PLC list to see all objects and their addresses.') }}</li>
+      </ul>
+      <p class="mb-1"><strong>{{ _('Tag addresses') }}</strong></p>
+      <table class="table table-sm mb-0">
+        <tr><td><code>AI1</code> <code>AO2</code> <code>AV3</code></td><td>{{ _('analog input / output / value (REAL)') }}</td></tr>
+        <tr><td><code>BI1</code> <code>BO2</code> <code>BV3</code></td><td>{{ _('binary (BOOL)') }}</td></tr>
+        <tr><td><code>MI1</code> <code>MO2</code> <code>MV3</code></td><td>{{ _('multi-state (UINT)') }}</td></tr>
+        <tr><td><code>CS4</code></td><td>{{ _('character string value') }}</td></tr>
+        <tr><td><code>AI1.units</code></td><td>{{ _('another property (read only)') }}</td></tr>
+        <tr><td><code>AV5@10</code></td><td>{{ _('write with priority 10') }}</td></tr>
+        <tr><td><code>analogValue:3</code></td><td>{{ _('long form also accepted') }}</td></tr>
+      </table>
+    </div></div>
+    <div class="card hmi-panel proto-group" data-protocols="modbus_tcp modbus_rtu"><div class="card-body small">
+      <h2 class="h6">{{ _('Modbus notes') }}</h2>
+      <ul class="mb-2">
+        <li>{{ _('Modbus TCP: port 502 by default. Choose the client library: PyModbus (full featured) or pyModbusTCP (lightweight).') }}</li>
+        <li>{{ _('Modbus RTU uses PyModbus over a serial port / USB-RS485 adapter. All devices on one bus must share baud rate, parity and stop bits.') }}</li>
+        <li>{{ _('Unit id: slave address on RTU; on TCP usually 1 (gateways use it to select the device behind them).') }}</li>
+        <li>{{ _('Value order: if REAL values look like nonsense, try CDAB (word swapped).') }}</li>
+      </ul>
+      <p class="mb-1"><strong>{{ _('Tag addresses') }}</strong></p>
+      <table class="table table-sm mb-0">
+        <tr><td><code>HR100</code> / <code>40101</code></td><td>{{ _('holding register 100 (read/write)') }}</td></tr>
+        <tr><td><code>IR5</code> / <code>30006</code></td><td>{{ _('input register 5 (read only)') }}</td></tr>
+        <tr><td><code>C12</code> / <code>00013</code></td><td>{{ _('coil 12 (BOOL, read/write)') }}</td></tr>
+        <tr><td><code>DI3</code> / <code>10004</code></td><td>{{ _('discrete input 3 (BOOL, read only)') }}</td></tr>
+        <tr><td><code>HR10.3</code></td><td>{{ _('bit 3 of holding register 10 (BOOL)') }}</td></tr>
+        <tr><td><code>HR200:REAL</code></td><td>{{ _('float in HR200–201') }}</td></tr>
+      </table>
+    </div></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+{% if plc %}
+<div class="modal fade" id="file-picker" tabindex="-1" aria-labelledby="file-picker-title" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title h5" id="file-picker-title">{{ _('Add files from the information library') }}</h2>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+    </div>
+    <div class="modal-body">
+      <input type="search" class="form-control mb-3" id="file-picker-search" placeholder="{{ _('Search name, description, SHA-1…') }}" aria-label="{{ _('Search') }}">
+      <div class="list-group" id="file-picker-list"></div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ _('Close') }}</button></div>
+  </div></div>
+</div>
+{% include "documents/_urls.html" %}
+<div id="plc-files-urls" hidden data-attach="{{ url_for('documents.api_attach', plc_id=plc.id) }}"></div>
+<script src="{{ url_for('static', filename='js/library_upload.js') }}"></script>
+<script src="{{ url_for('static', filename='js/plc_files.js') }}"></script>
+{% endif %}
+<script>
+  /* Show only the fields of the selected protocol and switch the default port. */
+  (function () {
+    const proto = document.getElementById("protocol");
+    const port = document.getElementById("tcp_port");
+    const defaults = { s7: "102", modbus_tcp: "502", bacnet_ip: "47808" };
+    function sync() {
+      document.querySelectorAll(".proto-group").forEach((g) => {
+        g.hidden = !g.dataset.protocols.split(" ").includes(proto.value);
+      });
+      if (defaults[proto.value] && (port.value === "" || Object.values(defaults).includes(port.value))) {
+        port.value = defaults[proto.value];
+      }
+    }
+    proto.addEventListener("change", sync);
+    sync();
+
+    /* BACnet Who-Is: list devices that answer; clicking one fills IP, port and instance. */
+    const whoisBtn = document.getElementById("whois-btn");
+    const statusEl = document.getElementById("whois-status");
+    const list = document.getElementById("whois-results");
+    whoisBtn.addEventListener("click", async () => {
+      statusEl.textContent = T("searching…");
+      list.replaceChildren();
+      try {
+        const resp = await fetch(whoisBtn.dataset.url, {
+          method: "POST", credentials: "same-origin",
+          headers: { "Content-Type": "application/json",
+                     "X-CSRFToken": document.querySelector('meta[name="csrf-token"]').content },
+          body: JSON.stringify({ address: document.getElementById("ip_address").value.trim() }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || "HTTP " + resp.status);
+        statusEl.textContent = data.devices.length ? T("{0} device(s) found – click one to use it", data.devices.length) : T("No device answered.");
+        data.devices.forEach((d) => {
+          const item = document.createElement("button");
+          item.type = "button";
+          item.className = "list-group-item list-group-item-action";
+          item.textContent = T("Device {0} at {1}", d.device_id, d.address);
+          item.addEventListener("click", () => {
+            const [ip, port] = String(d.address).split(":");
+            document.getElementById("ip_address").value = ip;
+            if (port) document.getElementById("tcp_port").value = port;
+            document.getElementById("bacnet_device_id").value = d.device_id;
+          });
+          list.appendChild(item);
+        });
+      } catch (err) {
+        statusEl.textContent = T("Who-Is failed: {0}", err.message);
+      }
+    });
+  })();
+</script>
+{% endblock %}

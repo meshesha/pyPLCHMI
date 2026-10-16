@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% from "_macros.html" import render_field %}
+{% block title %}{{ _('Settings') }}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4"><i class="bi bi-person-gear"></i> {{ _('Settings') }} <span class="text-secondary fs-6">· {{ current_user.username }}</span></h1>
+<div class="row g-4">
+  <div class="col-md-5">
+    <div class="card hmi-panel"><div class="card-body">
+      <dl class="row mb-0">
+        <dt class="col-5">{{ _('Username') }}</dt><dd class="col-7">{{ current_user.username }}</dd>
+        <dt class="col-5">{{ _('E-mail') }}</dt><dd class="col-7">{{ current_user.email or '—' }}</dd>
+        <dt class="col-5">{{ _('Role') }}</dt><dd class="col-7">{{ _(current_user.role.name) }}</dd>
+        <dt class="col-5">{{ _('Home screen') }}</dt><dd class="col-7">{{ current_user.landing_screen.name if current_user.landing_screen else _('screen list') }}</dd>
+        <dt class="col-5">{{ _('Screens') }}</dt><dd class="col-7">{% if current_user.restrict_screens and not current_user.can(Perm.MANAGE_DASHBOARDS) %}{{ current_user.allowed_screens|map(attribute='name')|join(', ') }}{% else %}{{ _('by role') }}{% endif %}</dd>
+        <dt class="col-5">{{ _('Permissions') }}</dt>
+        <dd class="col-7">{% for p in current_user.role.permissions %}<span class="badge text-bg-secondary me-1 mb-1" title="{{ _(p.description) }}">{{ p.code }}</span>{% endfor %}</dd>
+      </dl>
+    </div></div>
+    <div class="card hmi-panel mt-4"><div class="card-body">
+      <h2 class="h5">{{ _('Colour theme') }}</h2>
+      <form method="post" action="{{ url_for('auth.set_theme') }}" id="profile-theme">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="d-flex flex-wrap gap-2 mb-3" role="radiogroup" aria-label="{{ _('Colour theme') }}">
+          {% for code, label in themes.items() %}
+          <input type="radio" class="btn-check" name="theme" id="theme-{{ code }}" value="{{ code }}" autocomplete="off"
+                 {{ 'checked' if ui_theme == code }}>
+          <label class="btn btn-outline-primary" for="theme-{{ code }}">
+            <i class="bi {{ {'dark': 'bi-moon-stars', 'light': 'bi-sun', 'auto': 'bi-circle-half'}[code] }}"></i> {{ _(label) }}</label>
+          {% endfor %}
+        </div>
+        <button class="btn btn-primary" type="submit">{{ _('Save') }}</button>
+      </form>
+    </div></div>
+    <div class="card hmi-panel mt-4"><div class="card-body">
+      <h2 class="h5">{{ _('Language') }}</h2>
+      <form method="post" action="{{ url_for('i18n.set_language') }}" class="d-flex gap-2" id="profile-language">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ url_for('auth.profile') }}">
+        <select class="form-select" name="code" aria-label="{{ _('Language') }}">
+          <option value="" {{ 'selected' if not current_user.language }}>{{ _('Default ({0})', available_languages()[default_language()].name) }}</option>
+          {% for l in available_languages().values() %}
+          <option value="{{ l.code }}" {{ 'selected' if current_user.language == l.code }}>{{ l.name }}{% if l.name != l.english_name %} ({{ l.english_name }}){% endif %}</option>
+          {% endfor %}
+        </select>
+        <button class="btn btn-primary" type="submit">{{ _('Save') }}</button>
+      </form>
+    </div></div>
+  </div>
+  <div class="col-md-7">
+    <div class="card hmi-panel"><div class="card-body">
+      <h2 class="h5">{{ _('Change password') }}</h2>
+      <form method="post" novalidate>
+        {{ form.hidden_tag() }}
+        {{ render_field(form.current_password) }}
+        {{ render_field(form.new_password) }}
+        {{ render_field(form.confirm) }}
+        {{ form.submit(class_='btn btn-primary') }}
+      </form>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

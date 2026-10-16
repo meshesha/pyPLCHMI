@@ -1,0 +1,26 @@
+{# Reusable form rendering helpers (Bootstrap 5). #}
+
+{% macro render_field(field, col='') -%}
+  <div class="mb-3 {{ col }}">
+  {% if field.type == 'BooleanField' %}
+    <div class="form-check form-switch">
+      {{ field(class_='form-check-input' + (' is-invalid' if field.errors else '')) }}
+      {{ field.label(class_='form-check-label') }}
+      {% for e in field.errors %}<div class="invalid-feedback d-block">{{ _(e) }}</div>{% endfor %}
+    </div>
+  {% else %}
+    {{ field.label(class_='form-label') }}
+    {% set cls = 'form-select' if field.type == 'SelectField' else 'form-control' %}
+    {{ field(class_=cls + (' is-invalid' if field.errors else '')) }}
+    {% if field.description %}<div class="form-text">{{ field.description }}</div>{% endif %}
+    {% for e in field.errors %}<div class="invalid-feedback">{{ _(e) }}</div>{% endfor %}
+  {% endif %}
+  </div>
+{%- endmacro %}
+
+{% macro post_button(url, label, icon='', cls='btn-outline-danger', confirm=None) -%}
+  <form method="post" action="{{ url }}" class="d-inline"{% if confirm %} data-confirm="{{ confirm }}"{% endif %}>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-sm {{ cls }}" title="{{ _(label) }}">{% if icon %}<i class="bi bi-{{ icon }}"></i>{% endif %} {{ _(label) if not icon else '' }}</button>
+  </form>
+{%- endmacro %}

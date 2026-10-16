@@ -1,0 +1,39 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - run: pytest
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image
+        run: docker build -t pyplchmi:ci .
+      - name: Start a container and wait for /api/health
+        run: |
+          docker run -d --name hmi -p 8000:8000 \
+            -e SECRET_KEY=ci-secret -e PLC_SIMULATION=1 \
+            -e HMI_ADMIN_USER=admin -e HMI_ADMIN_PASSWORD=ci-password-1 -e HMI_DEMO=1 \
+            pyplchmi:ci
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8000/api/health && exit 0
+            sleep 2
+          done
+          docker logs hmi
+          exit 1

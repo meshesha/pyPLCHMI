@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% from "_macros.html" import post_button %}
+{% block title %}{{ _('Image library') }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+  <h1 class="h3 mb-0">{{ _('Image library') }}</h1>
+  <div class="d-flex flex-wrap align-items-center gap-2">
+    <span class="text-secondary small">{{ _('PNG, JPEG, GIF (animated), WebP or SVG · max {0} MB per file', config.ASSET_MAX_BYTES // 1024 // 1024) }}</span>
+    {% if builtin_count %}
+    <form method="post" action="{{ url_for('assets.add_animations') }}" class="d-inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-sm btn-outline-info" type="submit" id="add-animations"
+              title="{{ _('{0} animated GIFs: {1} – added to Animations/<category>; animations already in the library are skipped', builtin_count, builtin_categories|join(', ')) }}">
+        <i class="bi bi-film"></i> {{ _('Add built-in animations') }}</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-3">
+  {# ---------------- folder tree ---------------- #}
+  <div class="col-lg-3">
+    <div class="card hmi-panel asset-tree-card"><div class="card-body p-2">
+      <div class="list-group list-group-flush asset-tree" id="asset-tree">
+        <a class="list-group-item list-group-item-action d-flex align-items-center gap-2 {{ 'active' if not folder and not q }}"
+           href="{{ url_for('assets.index') }}" data-drop-folder="">
+          <i class="bi bi-collection"></i><span class="flex-grow-1">{{ _('Library') }}</span>
+          <span class="badge text-bg-secondary">{{ total }}</span></a>
+        {% for n in tree %}
+        <a class="list-group-item list-group-item-action d-flex align-items-center gap-2 {{ 'active' if n.path == folder }}"
+           href="{{ url_for('assets.index', folder=n.path) }}" data-drop-folder="{{ n.path }}"
+           style="padding-inline-start: {{ 0.75 + n.depth * 1.1 }}rem" title="{{ n.path }}">
+          <i class="bi {{ 'bi-folder2-open' if folder and (folder == n.path or folder.startswith(n.path ~ '/')) else 'bi-folder' }}"></i>
+          <span class="flex-grow-1 text-truncate">{{ n.name }}</span>
+          <span class="badge text-bg-secondary" title="{{ _('{0} here, {1} including sub-folders', n.count, n.total) }}">{{ n.total }}</span></a>
+        {% endfor %}
+      </div>
+      <form method="post" action="{{ url_for('assets.create_folder') }}" class="input-group input-group-sm mt-2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="parent" value="{{ folder }}">
+        <input class="form-control" name="name" maxlength="200" required aria-label="{{ _('New folder name') }}"
+               placeholder="{{ _('New folder in {0}', folder.rsplit('/', 1)[-1]) if folder else _('New folder') }}">
+        <button class="btn btn-outline-secondary" type="submit" title="{{ _('Create folder') }}"><i class="bi bi-folder-plus"></i></button>
+      </form>
+      <div class="form-text">{{ _('Drag images onto a folder to move them.') }}</div>
+    </div></div>
+  </div>
+
+  {# ---------------- current folder ---------------- #}
+  <div class="col-lg-9">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+      <nav aria-label="{{ _('Folder') }}"><ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a href="{{ url_for('assets.index') }}" data-drop-folder=""><i class="bi bi-collection"></i> {{ _('Library') }}</a></li>
+        {% if q %}<li class="breadcrumb-item active">{{ _('Search “{0}”', q) }}</li>{% endif %}
+        {% for path, name in crumbs %}
+        <li class="breadcrumb-item {{ 'active' if loop.last }}">{% if loop.last %}{{ name }}{% else %}<a href="{{ url_for('assets.index', folder=path) }}" data-drop-folder="{{ path }}">{{ name }}</a>{% endif %}</li>
+        {% endfor %}
+      </ol></nav>
+      <form method="get" action="{{ url_for('assets.index') }}" class="input-group input-group-sm" style="max-width: 260px">
+        <input class="form-control" name="q" value="{{ q }}" placeholder="{{ _('Search all images') }}" aria-label="{{ _('Search images') }}">
+        <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
+      </form>
+    </div>
+
+    {% if folder %}
+    <div class="card hmi-panel mb-3"><div class="card-body py-2">
+      <div class="row g-2 align-items-end">
+        <form method="post" action="{{ url_for('assets.upload') }}" enctype="multipart/form-data" class="col-xl-7 row g-2 align-items-end m-0 p-0">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="folder" value="{{ folder }}">
+          <div class="col-md-6"><label class="form-label small mb-1" for="file">{{ _('Upload to {0}', folder) }}</label>
+            <input class="form-control form-control-sm" type="file" id="file" name="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml,.svg" multiple required></div>
+          <div class="col-md-4"><label class="form-label small mb-1" for="name">{{ _('Name (single file)') }}</label><input class="form-control form-control-sm" id="name" name="name" maxlength="100"></div>
+          <div class="col-md-2"><button class="btn btn-sm btn-primary w-100" type="submit"><i class="bi bi-upload"></i> {{ _('Upload') }}</button></div>
+        </form>
+        <form method="post" action="{{ url_for('assets.rename_folder_view') }}" class="col-xl-5">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="path" value="{{ folder }}">
+          <label class="form-label small mb-1" for="new_path">{{ _('Rename / move folder (full path)') }}</label>
+          <div class="input-group input-group-sm">
+            <input class="form-control" id="new_path" name="new_path" value="{{ folder }}" maxlength="200" list="folder-list" required>
+            <button class="btn btn-outline-secondary" type="submit" title="{{ _('Rename or move this folder') }}"><i class="bi bi-pencil"></i></button>
+          </div>
+        </form>
+      </div>
+    </div></div>
+    {% elif not q %}
+    <div class="card hmi-panel mb-3"><div class="card-body py-2">
+      <form method="post" action="{{ url_for('assets.upload') }}" enctype="multipart/form-data" class="row g-2 align-items-end">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="col-md-5"><label class="form-label small mb-1" for="file">{{ _('Files') }}</label>
+          <input class="form-control form-control-sm" type="file" id="file" name="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml,.svg" multiple required></div>
+        <div class="col-md-3"><label class="form-label small mb-1" for="name">{{ _('Name (single file)') }}</label><input class="form-control form-control-sm" id="name" name="name" maxlength="100"></div>
+        <div class="col-md-2"><label class="form-label small mb-1" for="up-folder">{{ _('Folder') }}</label>
+          <input class="form-control form-control-sm" id="up-folder" name="folder" list="folder-list" value="Images" maxlength="200"></div>
+        <div class="col-md-2"><button class="btn btn-sm btn-primary w-100" type="submit"><i class="bi bi-upload"></i> {{ _('Upload') }}</button></div>
+      </form>
+    </div></div>
+    {% endif %}
+    <datalist id="folder-list">{% for p in folders %}<option value="{{ p }}">{% endfor %}</datalist>
+
+    {% if children %}
+    <div class="row g-2 mb-3">
+      {% for n in children %}
+      <div class="col-6 col-md-4 col-xl-3">
+        <a class="card hmi-panel asset-folder text-decoration-none h-100" href="{{ url_for('assets.index', folder=n.path) }}" data-drop-folder="{{ n.path }}">
+          <div class="card-body p-2 d-flex align-items-center gap-2">
+            <i class="bi bi-folder-fill fs-3 text-warning"></i>
+            <div class="flex-grow-1 text-truncate"><div class="fw-semibold text-truncate">{{ n.name }}</div>
+              <div class="small text-secondary">{{ _('{0} image(s)', n.total) }}</div></div>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if assets %}
+    <form method="post" action="{{ url_for('assets.move') }}" id="move-form" class="d-flex flex-wrap align-items-center gap-2 mb-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="back" value="{{ folder }}">
+      <div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="asset-select-all">
+        <label class="form-check-label small" for="asset-select-all">{{ _('Select all') }}</label></div>
+      <span class="small text-secondary" id="asset-selected-count">{{ _('{0} selected', 0) }}</span>
+      <div class="input-group input-group-sm" style="max-width: 360px">
+        <span class="input-group-text">{{ _('Move to') }}</span>
+        <input class="form-control" name="folder" list="folder-list" placeholder="{{ _('Folder path') }}" aria-label="{{ _('Target folder') }}" required>
+        <button class="btn btn-outline-primary" type="submit" id="move-btn" disabled><i class="bi bi-folder-symlink"></i> {{ _('Move') }}</button>
+      </div>
+    </form>
+    {% endif %}
+
+    <div class="row g-3" id="asset-grid">
+      {% for a in assets %}
+      <div class="col-6 col-md-4 col-xl-3 col-xxl-2">
+        <div class="card hmi-panel h-100 asset-card" draggable="true" data-asset-id="{{ a.id }}">
+          <div class="asset-thumb position-relative">
+            <input class="form-check-input asset-check position-absolute top-0 start-0 m-2" type="checkbox" name="asset_ids"
+                   value="{{ a.id }}" form="move-form" aria-label="{{ _('Select {0}', a.name) }}">
+            <img src="{{ url_for('assets.file', asset_id=a.id) }}" alt="{{ a.name }}" loading="lazy" draggable="false"></div>
+          <div class="card-body p-2 small">
+            <form method="post" action="{{ url_for('assets.rename', asset_id=a.id) }}" class="d-flex flex-column gap-1">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="back" value="{{ folder }}">
+              <div class="input-group input-group-sm">
+                <input class="form-control" name="name" value="{{ a.name }}" maxlength="100" aria-label="{{ _('Name') }}">
+                <button class="btn btn-outline-secondary" type="submit" title="{{ _('Save name') }}"><i class="bi bi-check-lg"></i></button>
+              </div>
+            </form>
+            {% if q %}<a class="d-block text-truncate small mt-1" href="{{ url_for('assets.index', folder=a.category) }}"><i class="bi bi-folder"></i> {{ a.category }}</a>{% endif %}
+            {% set used = usage.get(a.id, []) %}
+            <div class="mt-1 d-flex justify-content-between align-items-center">
+              <span class="text-secondary">{{ (a.size / 1024)|round(1) }} KB{% if a.mimetype == 'image/gif' %} · GIF{% endif %}</span>
+              {% if used %}<span class="text-info" title="{{ used|map(attribute='name')|join(', ') }}">{{ _('used by {0}', used|length) }}</span>
+              {% else %}{{ post_button(url_for('assets.delete', asset_id=a.id), 'Delete', 'trash', confirm=_('Delete image {0}?', a.name)) }}{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="col-12 text-secondary">
+        {% if q %}{{ _('No image matches “{0}”.', q) }}
+        {% elif folder %}{{ _('This folder has no images.') }}
+          {% set node = (tree|selectattr('path', 'equalto', folder)|first) %}
+          {% if node and node.total == 0 %}
+          <form method="post" action="{{ url_for('assets.delete_folder_view') }}" class="d-inline ms-2" data-confirm="{{ _('Delete folder {0}?', folder) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="path" value="{{ folder }}">
+            <button class="btn btn-sm btn-outline-danger" type="submit" id="delete-folder"><i class="bi bi-trash"></i> {{ _('Delete folder') }}</button>
+          </form>{% endif %}
+        {% elif not children %}{{ _('No images yet. Upload equipment pictures, floor plans or icons, or use Add built-in animations.') }}
+        {% else %}{{ _('Open a folder to see its images, or search all images.') }}{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/asset_library.js') }}"></script>
+{% endblock %}

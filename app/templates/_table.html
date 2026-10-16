@@ -1,0 +1,70 @@
+{# Table controls shared by the Tags, Alarms and Event history pages.
+   All state is kept in the query string (see app/utils/tables.py). #}
+
+{% macro search_bar(state, placeholder='Search…') -%}
+  {# Filters are rendered as controls inside this form (via the caller block),
+     so only the sort order and the page size are carried as hidden fields;
+     submitting the form always returns to page 1. #}
+  <form method="get" class="d-flex flex-wrap gap-2 align-items-center table-search" role="search">
+    {% for k in ('sort', 'dir', 'per_page') %}{% set v = state.args()[k] %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+    <div class="input-group input-group-sm" style="max-width: 22rem">
+      <span class="input-group-text"><i class="bi bi-search"></i></span>
+      <input type="search" class="form-control" name="q" value="{{ state.q }}" placeholder="{{ _(placeholder) }}" aria-label="{{ _('Search') }}">
+      <button class="btn btn-outline-secondary" type="submit">{{ _('Search') }}</button>
+    </div>
+    {{ caller() if caller }}
+  </form>
+{%- endmacro %}
+
+{% macro filter_select(state, name, label, options) -%}
+  {# options: list of (value, label); submits the surrounding form on change #}
+  <select class="form-select form-select-sm w-auto" name="{{ name }}" aria-label="{{ _(label) }}" onchange="this.form.submit()">
+    <option value="">{{ _('{0}: all', _(label)) }}</option>
+    {% for value, text in options %}
+    <option value="{{ value }}" {{ 'selected' if state.filters.get(name) == value|string }}>{{ _(text) }}</option>
+    {% endfor %}
+  </select>
+{%- endmacro %}
+
+{% macro sort_th(state, key, label, cls='') -%}
+  {% set active = state.sort == key %}
+  <th class="{{ cls }} text-nowrap" aria-sort="{{ ('ascending' if state.direction == 'asc' else 'descending') if active else 'none' }}">
+    <a class="sort-link {{ 'active' if active }}" href="{{ url_for(request.endpoint, **state.sort_args(key)) }}">
+      {{ _(label) }}<i class="bi {{ ('bi-caret-up-fill' if state.direction == 'asc' else 'bi-caret-down-fill') if active else 'bi-arrow-down-up opacity-25' }} ms-1"></i>
+    </a>
+  </th>
+{%- endmacro %}
+
+{% macro pager(state, pagination) -%}
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 small">
+    <div class="text-secondary">
+      {% if pagination.total %}{{ _('{0}–{1} of {2}', (pagination.page - 1) * pagination.per_page + 1, [pagination.page * pagination.per_page, pagination.total]|min, pagination.total) }}{% else %}{{ _('No rows') }}{% endif %}
+    </div>
+    <form method="get" class="d-flex align-items-center gap-1">
+      {% for k, v in state.args(per_page=None, page=None).items() %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+      <label for="per-page" class="text-secondary">{{ _('Rows') }}</label>
+      <select id="per-page" class="form-select form-select-sm w-auto" name="per_page" onchange="this.form.submit()">
+        {% for n in page_sizes %}<option value="{{ n }}" {{ 'selected' if n == state.per_page }}>{{ n }}</option>{% endfor %}
+      </select>
+    </form>
+    {% if pagination.pages > 1 %}
+    <nav aria-label="{{ _('Pages') }}"><ul class="pagination pagination-sm mb-0">
+      <li class="page-item {{ 'disabled' if not pagination.has_prev }}"><a class="page-link" href="{{ url_for(request.endpoint, **state.args(page=pagination.prev_num)) }}">‹</a></li>
+      {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}<li class="page-item {{ 'active' if p == pagination.page }}"><a class="page-link" href="{{ url_for(request.endpoint, **state.args(page=p)) }}">{{ p }}</a></li>
+        {% else %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+      {% endfor %}
+      <li class="page-item {{ 'disabled' if not pagination.has_next }}"><a class="page-link" href="{{ url_for(request.endpoint, **state.args(page=pagination.next_num)) }}">›</a></li>
+    </ul></nav>
+    {% endif %}
+  </div>
+{%- endmacro %}
+
+{% macro local_time(dt) -%}
+  {# Rendered in UTC, converted to the browser's local time by alarms.js #}
+  {% if dt %}<time class="js-local-time" datetime="{{ iso_time(dt) }}">{{ iso_time(dt)[:19].replace('T', ' ') }} UTC</time>{% else %}<span class="text-secondary">—</span>{% endif %}
+{%- endmacro %}
+
+{% macro severity_badge(code, label, color) -%}
+  <span class="badge severity-badge" style="background: {{ color }}">{{ _(label) }}</span>
+{%- endmacro %}

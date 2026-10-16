@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "_macros.html" import render_field %}
+{% block title %}{{ _('System settings') }}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">{{ _('System settings') }}</h1>
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card hmi-panel"><div class="card-body">
+      <h2 class="h5">{{ _('Public access') }}</h2>
+      {% if broken %}
+      <div class="alert alert-warning small">{{ _('The configured public home screen was deleted or is no longer public, so public access is currently off. Choose another screen.') }}</div>
+      {% endif %}
+      {% if not public_count %}
+      <div class="alert alert-info small">{{ _("No screen is marked public yet. Tick “Public” in a screen's settings to make it available here.") }}</div>
+      {% endif %}
+      <form method="post" novalidate>
+        {{ form.hidden_tag() }}
+        {{ render_field(form.public_home_screen_id) }}
+        <h2 class="h5 mt-4"><i class="bi bi-graph-up"></i> {{ _('Tag history') }}</h2>
+        {{ render_field(form.history_retention_days) }}
+        {{ form.submit(class_='btn btn-primary') }}
+      </form>
+    </div></div>
+    <div class="card hmi-panel mt-4"><div class="card-body">
+      <h2 class="h5">{{ _('Languages') }}</h2>
+      <p class="small text-secondary mb-2">{{ _('Language files, the default language and translation templates are managed on the Languages page.') }}</p>
+      <a class="btn btn-outline-primary btn-sm" href="{{ url_for('i18n.admin_languages') }}"><i class="bi bi-translate"></i> {{ _('Languages') }}</a>
+    </div></div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card hmi-panel"><div class="card-body small">
+      <h2 class="h6">{{ _('How it works') }}</h2>
+      <ul class="mb-0">
+        <li>{{ _('When a public home screen is set, visitors who are not logged in see it immediately — e.g. a wall display — and users land on it after Log out.') }}</li>
+        <li>{{ _('Visitors can move only between screens marked public (navigation menu and links on Image screens). Any other screen shows a Restricted Area message with a Log in button.') }}</li>
+        <li>{{ _('Visitors can never write values to the PLC.') }}</li>
+        <li>{{ _('Choose “none” to require a login for everything.') }}</li>
+      </ul>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Not found') }}{% endblock %}
+{% block content %}
+<div class="text-center py-5">
+  <i class="bi bi-question-octagon display-1 text-warning"></i>
+  <h1 class="mt-3">{{ _('404 – Page not found') }}</h1>
+  <a class="btn btn-primary" href="{{ url_for('main.screens') }}">{{ _('Back to screens') }}</a>
+</div>
+{% endblock %}

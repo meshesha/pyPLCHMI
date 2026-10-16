@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block container %}container-fluid{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+  <div>
+    <h1 class="h3 mb-0" id="chart-title">{{ title }}</h1>
+    <div class="small text-secondary">
+      <a href="{{ url_for('history.charts') }}"><i class="bi bi-arrow-left"></i> {{ _('Trend charts') }}</a>
+      {% if chart and chart.description %} · {{ chart.description }}{% endif %}
+    </div>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    {% if can_manage %}
+      {% if chart %}<a class="btn btn-outline-primary" href="{{ url_for('history.edit_chart', chart_id=chart.id) }}" id="edit-chart"><i class="bi bi-pencil"></i> {{ _('Edit') }}</a>
+      {% else %}<a class="btn btn-outline-primary" href="#" id="save-quick" data-url="{{ url_for('history.create_chart') }}"><i class="bi bi-save"></i> {{ _('Save as chart') }}</a>{% endif %}
+    {% endif %}
+    <a class="btn btn-outline-secondary" href="#" id="show-table" data-url="{{ url_for('history.index') }}"><i class="bi bi-table"></i> {{ _('Table') }}</a>
+    <a class="btn btn-outline-success" href="#" id="export-xlsx" data-url="{{ url_for('history.export') }}"><i class="bi bi-file-earmark-excel"></i> {{ _('Excel') }}</a>
+    <button type="button" class="btn btn-outline-info" id="save-image"><i class="bi bi-image"></i> {{ _('Save image') }}</button>
+  </div>
+</div>
+
+<div class="card hmi-panel mb-3"><div class="card-body py-2">
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    <div class="btn-group btn-group-sm" role="group" id="range-buttons" aria-label="{{ _('Time range') }}">
+      {% for key, (seconds, label) in ranges.items() %}
+      <button type="button" class="btn btn-outline-secondary {{ 'active' if key == range_key }}" data-range="{{ key }}" data-seconds="{{ seconds }}">{{ _(label) }}</button>
+      {% endfor %}
+    </div>
+    <label class="small text-secondary" for="c-from">{{ _('From') }}</label>
+    <input type="datetime-local" step="1" id="c-from" class="form-control form-control-sm w-auto">
+    <label class="small text-secondary" for="c-to">{{ _('to') }}</label>
+    <input type="datetime-local" step="1" id="c-to" class="form-control form-control-sm w-auto">
+    <button type="button" class="btn btn-sm btn-primary" id="apply-range">{{ _('Show') }}</button>
+    <div class="btn-group btn-group-sm">
+      <button type="button" class="btn btn-outline-secondary" id="shift-back" title="{{ _('Earlier') }}" aria-label="{{ _('Earlier') }}"><i class="bi bi-chevron-double-left"></i></button>
+      <button type="button" class="btn btn-outline-secondary" id="shift-fwd" title="{{ _('Later') }}" aria-label="{{ _('Later') }}"><i class="bi bi-chevron-double-right"></i></button>
+    </div>
+    <div class="form-check form-switch ms-lg-2 mb-0">
+      <input class="form-check-input" type="checkbox" role="switch" id="live" checked>
+      <label class="form-check-label small" for="live">{{ _('Live (follow new samples)') }}</label>
+    </div>
+    <span class="small text-secondary ms-auto" id="chart-status"></span>
+  </div>
+</div></div>
+
+<div class="row g-3">
+  <div class="col-xl-9">
+    <div class="hmi-chart-box"><canvas id="trend-canvas" aria-label="{{ title }}" role="img"></canvas></div>
+    <div class="small text-secondary mt-1">{{ _('Drag across the chart to zoom in; double-click to go back.') }}</div>
+  </div>
+  <div class="col-xl-3">
+    <div class="card hmi-panel"><div class="card-body">
+      <h2 class="h6">{{ _('Tags') }}</h2>
+      <ul class="list-unstyled mb-0" id="series-list"></ul>
+      <p class="small text-secondary mt-2 mb-0">{{ _('Colours changed here are used for this view and the image; edit the chart to keep them.') if chart else _('Colours changed here are used for this view and the image.') }}</p>
+    </div></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script type="application/json" id="chart-config">{{ {"series": series, "range": range_key, "ranges": ranges, "title": title, "api": url_for('history.api_series')}|tojson }}</script>
+<script src="{{ url_for('static', filename='vendor/chartjs/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/chartjs/chartjs-adapter-date-fns.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/trend_chart.js') }}"></script>
+{% endblock %}
