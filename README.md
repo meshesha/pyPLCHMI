@@ -1,5 +1,9 @@
 # pyPLCHMI
 
+[![tests](https://github.com/meshesha/pyPLCHMI/actions/workflows/tests.yml/badge.svg)](https://github.com/meshesha/pyPLCHMI/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
+
 **A web-based HMI / light SCADA for Siemens S7, Modbus and BACnet – built in Python, running in any browser.**
 
 Draw a P&ID-style screen, bind it to PLC tags, and open it on any PC, tablet or wall display on
@@ -40,7 +44,7 @@ operator station is just a browser window, and the engineering tools are on the 
 Requires **Python 3.10+** (Windows, Linux or macOS).
 
 ```bash
-git clone https://github.com/<your-account>/pyPLCHMI.git
+git clone https://github.com/meshesha/pyPLCHMI.git
 cd pyPLCHMI
 python -m venv venv
 source venv/bin/activate          # Windows: venv\Scripts\activate
@@ -117,8 +121,8 @@ pip install -r requirements-dev.txt
 pytest                  # 640 tests, incl. a real snap7 S7 server on localhost
 ```
 
-Contributions, bug reports and feature ideas are welcome – please open an issue first for larger
-changes.
+Contributions, bug reports and feature ideas are welcome – please
+[open an issue](https://github.com/meshesha/pyPLCHMI/issues) first for larger changes.
 
 ## License
 

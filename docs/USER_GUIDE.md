@@ -42,6 +42,7 @@ A web-based HMI for **Siemens S7 PLCs** (S7-300/400/1200/1500, LOGO! 8),
 ## 1. Quick start (Windows, PowerShell)
 
 ```powershell
+git clone https://github.com/meshesha/pyPLCHMI.git
 cd pyPLCHMI
 py -3 -m venv venv
 .\venv\Scripts\Activate.ps1          # cmd.exe: venv\Scripts\activate.bat
