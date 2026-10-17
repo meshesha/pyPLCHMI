@@ -224,6 +224,7 @@ def role_delete(role_id: int):
     elif role.users.count():
         flash(gettext("Reassign this role's users before deleting it."), "danger")
     else:
+        role.write_tags = []  # tags limited to this role lose it (SQLite does not cascade by itself)
         db.session.delete(role)
         db.session.commit()
         flash(gettext("Role '{0}' deleted.", role.name), "success")

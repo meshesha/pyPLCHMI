@@ -283,6 +283,8 @@
       [T("Range (min … max)"), range],
       [T("Texts TRUE / FALSE"), d.true_text !== null ? d.true_text + " / " + d.false_text : null],
       [T("Writable"), d.writable ? yes : no],
+      [T("Who may write"), d.writable ? (d.write_roles ? d.write_roles.join(", ") : T("Everyone")) : null],
+      [T("You may write"), d.writable ? (d.may_write ? yes : no) : null],
       [T("Dummy tag"), d.dummy ? (d.dummy === "local" ? T("local (this browser window)") : T("general (stored in the database)")) : null],
       [T("History"), history],
       ["-", T("PLC")],

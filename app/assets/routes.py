@@ -73,7 +73,7 @@ def _back(folder: str | None = None):
 
 
 @bp.route("/")
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def index():
     """Show the image library: folder tree, current folder and its images.
 
@@ -112,7 +112,7 @@ def index():
 
 
 @bp.route("/list")
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def list_json():
     """List all assets as JSON (used by the designer palette).
 
@@ -123,7 +123,7 @@ def list_json():
 
 
 @bp.route("/upload", methods=["POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def upload():
     """Upload one or more image files into a library folder.
 
@@ -167,7 +167,7 @@ def upload():
 
 
 @bp.route("/folders/create", methods=["POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def create_folder():
     """Create a folder (form fields ``parent`` and ``name``; ``/`` in the name creates several levels).
 
@@ -188,7 +188,7 @@ def create_folder():
 
 
 @bp.route("/folders/rename", methods=["POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def rename_folder_view():
     """Rename or move a folder (form fields ``path`` and ``new_path``).
 
@@ -211,7 +211,7 @@ def rename_folder_view():
 
 
 @bp.route("/folders/delete", methods=["POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def delete_folder_view():
     """Delete an empty folder (form field ``path``) together with its empty sub-folders.
 
@@ -230,7 +230,7 @@ def delete_folder_view():
 
 
 @bp.route("/move", methods=["POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def move():
     """Move images to another folder.
 
@@ -262,7 +262,7 @@ def move():
 
 
 @bp.route("/animations", methods=["POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def add_animations():
     """Add the built-in animated GIFs to the folders ``Animations/<Category>``.
 
@@ -325,7 +325,7 @@ def file(asset_id: int):
 
 
 @bp.route("/<int:asset_id>/rename", methods=["POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def rename(asset_id: int):
     """Change an image's display name and, optionally, its folder (``folder`` or ``category`` field).
 
@@ -350,7 +350,7 @@ def rename(asset_id: int):
 
 
 @bp.route("/<int:asset_id>/delete", methods=["POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def delete(asset_id: int):
     """Delete an asset that no dashboard uses any more.
 

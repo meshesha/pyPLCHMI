@@ -33,15 +33,15 @@ def test_default_roles(app):
     viewer = Role.query.filter_by(name="Viewer").one()
     guest = Role.query.filter_by(name="Guest").one()
     assert admin.permission_codes == set(Perm.all())
-    assert viewer.has_permission(Perm.VIEW_DASHBOARDS)
+    assert viewer.has_permission(Perm.VIEW_SCREENS)
     assert not viewer.has_permission(Perm.WRITE_VALUES)
-    assert guest.permission_codes == {Perm.VIEW_PUBLIC_DASHBOARDS}
+    assert guest.permission_codes == {Perm.VIEW_PUBLIC_SCREENS}
 
 
 def test_insert_defaults_keeps_custom_permissions(app, db):
     """Re-seeding keeps customised permissions unless reset is asked."""
     viewer = Role.query.filter_by(name="Viewer").one()
-    viewer.set_permissions([Perm.VIEW_DASHBOARDS, Perm.WRITE_VALUES])
+    viewer.set_permissions([Perm.VIEW_SCREENS, Perm.WRITE_VALUES])
     db.session.commit()
     Role.insert_defaults()
     assert viewer.has_permission(Perm.WRITE_VALUES)

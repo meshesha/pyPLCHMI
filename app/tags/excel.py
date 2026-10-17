@@ -24,7 +24,7 @@ from werkzeug.datastructures import MultiDict
 
 from app.tags.forms import TagForm
 from app.extensions import db
-from app.models import PLC, Dashboard, DataPoint
+from app.models import PLC, Dashboard, DataPoint, Role
 from app.utils.xlsx import ImportFileError, boolean, build_workbook, number, read_rows, text, yes_no
 from app.i18n.catalog import gettext
 
@@ -33,7 +33,7 @@ COLUMNS = [
     ("ID", 7), ("Label", 28), ("PLC", 18), ("Address", 16), ("Data type", 11), ("String length", 9),
     ("Unit", 8), ("Scale", 8), ("Offset", 8), ("Decimals", 9), ("Min", 9), ("Max", 9),
     ("Text TRUE", 11), ("Text FALSE", 11), ("Writable", 9), ("Widget", 10), ("Tile width", 9), ("Screens", 34),
-    ("Dummy kind", 11), ("History", 9), ("History interval (s)", 12),
+    ("Dummy kind", 11), ("History", 9), ("History interval (s)", 12), ("Write roles", 18),
 ]
 
 HELP = [
@@ -59,6 +59,9 @@ HELP = [
     ("History", "yes = save samples of the value (Trends → Tag history, trend charts). Not possible for local "
                 "dummy tags."),
     ("History interval (s)", "Seconds between two history samples (1–86400, default 60)."),
+    ("Write roles", "Who may write a writable tag: empty = everyone allowed to write values; otherwise role "
+                    "names separated by commas (e.g. Operator, Admin) – only those roles may write. If the "
+                    "column is missing, the setting is not changed."),
 ]
 
 #: Accepted header spellings (lower case) -> internal field.
@@ -67,7 +70,8 @@ ALIASES = {
     "address": "address", "data type": "data_type", "type": "data_type", "datatype": "data_type",
     "string length": "string_length", "unit": "unit", "scale": "scale", "offset": "offset",
     "decimals": "decimals", "min": "min_value", "max": "max_value", "text true": "true_text",
-    "text false": "false_text", "writable": "writable", "widget": "widget", "tile width": "width",
+    "text false": "false_text", "writable": "writable", "write roles": "write_roles",
+    "write role": "write_roles", "write access": "write_roles", "widget": "widget", "tile width": "width",
     "width": "width", "screens": "screens", "screen": "screens", "dummy kind": "dummy_scope",
     "dummy scope": "dummy_scope", "scope": "dummy_scope", "kind": "dummy_scope",
     "history": "log_enabled", "log": "log_enabled", "logging": "log_enabled",
@@ -89,7 +93,8 @@ def _row(dp: DataPoint) -> list:
     return [dp.id, dp.label, dp.plc.name if dp.plc else "", address, dp.data_type,
             dp.string_length if dp.data_type == "STRING" else None, dp.unit, dp.scale, dp.offset, dp.decimals,
             dp.min_value, dp.max_value, dp.true_text, dp.false_text, yes_no(dp.writable), dp.widget, dp.width,
-            ", ".join(s.name for s in dp.screens), dp.scope_label, yes_no(dp.log_enabled), dp.log_interval]
+            ", ".join(s.name for s in dp.screens), dp.scope_label, yes_no(dp.log_enabled), dp.log_interval,
+            ", ".join(r.name for r in dp.write_roles) if dp.limited_write else ""]
 
 
 def export_tags(tags) -> bytes:
@@ -148,13 +153,15 @@ def _current_fields(dp: DataPoint | None) -> dict:
     if dp is None:
         return {"widget": "value", "scale": 1, "offset": 0, "decimals": 2, "width": 1, "true_text": "ON",
                 "false_text": "OFF", "string_length": 20, "data_type": "INT", "unit": "", "writable": False,
-                "dummy_scope": "general", "log_enabled": False, "log_interval": 60}
+                "dummy_scope": "general", "log_enabled": False, "log_interval": 60, "write_access": "all",
+                "write_roles": []}
     return {"label": dp.label, "plc_id": dp.plc_id, "address": "" if dp.protocol == "dummy" else dp.address,
             "data_type": dp.data_type, "string_length": dp.string_length or 20, "unit": dp.unit, "scale": dp.scale,
             "offset": dp.offset, "decimals": dp.decimals, "min_value": dp.min_value, "max_value": dp.max_value,
             "true_text": dp.true_text, "false_text": dp.false_text, "writable": dp.writable, "widget": dp.widget,
             "width": dp.width, "dummy_scope": dp.dummy_scope or "general", "log_enabled": dp.log_enabled,
-            "log_interval": dp.log_interval or 60}
+            "log_interval": dp.log_interval or 60, "write_access": dp.write_access or "all",
+            "write_roles": [r.id for r in dp.write_roles]}
 
 
 #: Form fields that need whole numbers.
@@ -170,8 +177,12 @@ def _formdata(values: dict) -> MultiDict:
     Returns:
         ``MultiDict`` for :class:`~app.tags.forms.TagForm`.
     """
-    data = {}
+    data = MultiDict()
     for key, value in values.items():
+        if key == "write_roles":  # several values (one per role id)
+            for role_id in value or []:
+                data.add(key, str(role_id))
+            continue
         if key in ("writable", "log_enabled"):
             if value:
                 data[key] = "y"
@@ -179,10 +190,11 @@ def _formdata(values: dict) -> MultiDict:
         if isinstance(value, float) and value.is_integer() and key in _INTEGER_FIELDS:
             value = int(value)  # "10" read as 10.0 must stay a valid integer
         data[key] = "" if value is None else str(value)
-    return MultiDict(data)
+    return data
 
 
-def _apply_row(record: dict, columns: set, plcs: dict, screens: dict) -> tuple[str, DataPoint | None, str]:
+def _apply_row(record: dict, columns: set, plcs: dict, screens: dict,
+               roles: dict | None = None) -> tuple[str, DataPoint | None, str]:
     """Validate one sheet row and apply it to a new or existing tag (not committed).
 
     Args:
@@ -190,6 +202,7 @@ def _apply_row(record: dict, columns: set, plcs: dict, screens: dict) -> tuple[s
         columns: Fields present in the sheet.
         plcs: ``lower-case name -> PLC``.
         screens: ``lower-case name -> Dashboard``.
+        roles: ``lower-case name -> Role`` (for the *Write roles* column).
 
     Returns:
         ``(action, tag, message)`` – action ``created``/``updated``/``unchanged``/``error``.
@@ -223,6 +236,13 @@ def _apply_row(record: dict, columns: set, plcs: dict, screens: dict) -> tuple[s
             values["log_interval"] = number(record.get("log_interval"))
         if "dummy_scope" in columns:
             values["dummy_scope"] = text(record.get("dummy_scope")).lower() or "general"
+        if "write_roles" in columns:
+            names = [n.strip() for n in text(record.get("write_roles")).replace(";", ",").split(",") if n.strip()]
+            unknown = [n for n in names if n.lower() not in (roles or {})]
+            if unknown:
+                return "error", None, gettext('Unknown role(s): {0}', ', '.join(unknown))
+            values["write_access"] = "roles" if names else "all"
+            values["write_roles"] = [roles[n.lower()].id for n in names]
         wanted = None
         if "screens" in columns:
             names = [n.strip() for n in text(record.get("screens")).replace(";", ",").split(",") if n.strip()]
@@ -245,10 +265,12 @@ def _apply_row(record: dict, columns: set, plcs: dict, screens: dict) -> tuple[s
         problems = "; ".join(f"{k.replace('_', ' ')}: {', '.join(v)}" for k, v in form.errors.items())
         return "error", None, problems
     dp = existing or DataPoint()
+    roles_before = {r.id for r in dp.write_roles} if existing is not None else set()
     if existing is None:
         db.session.add(dp)
     form.populate_datapoint(dp)
-    changed = existing is None or db.session.is_modified(dp, include_collections=False)
+    changed = existing is None or db.session.is_modified(dp, include_collections=False) \
+        or {r.id for r in dp.write_roles} != roles_before
     if wanted is not None:
         for link in list(dp.screen_links):
             if link.dashboard not in wanted:
@@ -281,9 +303,10 @@ def import_tags(stream, check_only: bool = False) -> ImportResult:
         raise ImportFileError(gettext('The sheet has no data rows.'))
     plcs = {p.name.lower(): p for p in PLC.query.all()}
     screens = {d.name.lower(): d for d in Dashboard.query.all()}
+    roles = {r.name.lower(): r for r in Role.query.all()}
     result = ImportResult(check_only=check_only)
     for number_, record in rows:
-        action, dp, message = _apply_row(record, columns, plcs, screens)
+        action, dp, message = _apply_row(record, columns, plcs, screens, roles)
         label = text(record.get("label")) or (dp.label if dp else "")
         result.rows.append((number_, action, label, message))
     if result.errors or check_only:

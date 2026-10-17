@@ -87,15 +87,14 @@ def view(slug: str):
             runtime=_runtime_data(dashboard),
             page_style=page_style(dashboard.layout_data,
                                   lambda asset_id: url_for("assets.file", asset_id=asset_id)),
-            can_edit=current_user.can(Perm.MANAGE_DASHBOARDS),
+            can_edit=current_user.can(Perm.MANAGE_SCREENS),
             alarm_event=alarm_event,
             tag_menu=tag_menu_data(dashboard),
         )
     return render_template(
         "dashboards/view.html",
         dashboard=dashboard,
-        can_write=current_user.can(Perm.WRITE_VALUES),
-        can_edit=current_user.can(Perm.MANAGE_DASHBOARDS),
+        can_edit=current_user.can(Perm.MANAGE_SCREENS),
         alarm_event=alarm_event,
         tag_menu=tag_menu_data(dashboard),
     )
@@ -147,7 +146,8 @@ def _runtime_data(dashboard: Dashboard) -> dict:
         "dashboard": {"id": dashboard.id, "name": dashboard.name, "slug": dashboard.slug,
                       "refresh_ms": dashboard.refresh_ms, "description": dashboard.description},
         "layout": layout,
-        "points": {str(dp.id): dp.to_dict() for dp in dashboard.datapoints},
+        "points": {str(dp.id): {**dp.to_dict(), "may_write": dp.may_write(current_user)}
+                   for dp in dashboard.datapoints},
         "icons": icon_shapes_for_layout(layout),
         "can_write": current_user.can(Perm.WRITE_VALUES),
         "urls": {
@@ -179,7 +179,7 @@ def go(dashboard_id: int):
 
 
 @bp.route("/<int:dashboard_id>/designer")
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def designer(dashboard_id: int):
     """Open the drag-and-drop SVG designer of an Image dashboard.
 
@@ -195,6 +195,8 @@ def designer(dashboard_id: int):
         return redirect(url_for("dashboards.edit", dashboard_id=dashboard.id))
     data = _runtime_data(dashboard)
     data["can_write"] = True  # buttons are always clickable in the editor's live preview
+    for point in data["points"].values():  # (the API still checks every write)
+        point["may_write"] = point["writable"]
     data["plcs"] = [{"id": p.id, "name": p.name, "ip": p.endpoint, "protocol": p.protocol} for p in enabled_plcs()]
     data["assets"] = [a.to_dict() for a in Asset.query.order_by(Asset.category, Asset.name)]
     data["dashboards"] = [{"id": d.id, "name": d.name} for d in Dashboard.query.order_by(Dashboard.name)]
@@ -221,7 +223,7 @@ def designer(dashboard_id: int):
 # Dashboard CRUD
 # ---------------------------------------------------------------------------
 @bp.route("/new", methods=["GET", "POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def create():
     """Create a dashboard and continue to its editor.
 
@@ -252,7 +254,7 @@ def create():
 
 
 @bp.route("/<int:dashboard_id>/edit", methods=["GET", "POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def edit(dashboard_id: int):
     """Edit dashboard settings and list its data points.
 
@@ -280,7 +282,7 @@ def edit(dashboard_id: int):
 
 
 @bp.route("/import", methods=["POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def import_svg_files():
     """Create Image screens from uploaded SVG files (Screens page → *Import SVG*).
 
@@ -316,7 +318,7 @@ def import_svg_files():
 
 
 @bp.route("/<int:dashboard_id>/delete", methods=["POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def delete(dashboard_id: int):
     """Delete a screen.  Its tags stay in the tag table (only the links are removed).
 
@@ -346,7 +348,7 @@ def delete(dashboard_id: int):
 # Data point CRUD
 # ---------------------------------------------------------------------------
 @bp.route("/<int:dashboard_id>/points/new", methods=["GET", "POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def point_create(dashboard_id: int):
     """Create a new tag (added to the tag table) and show it on this screen.
 
@@ -378,7 +380,7 @@ def point_create(dashboard_id: int):
 
 
 @bp.route("/<int:dashboard_id>/points/add", methods=["POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def point_add_existing(dashboard_id: int):
     """Show existing tags from the tag table on this screen.
 
@@ -406,7 +408,7 @@ def point_add_existing(dashboard_id: int):
 
 
 @bp.route("/<int:dashboard_id>/points/<int:point_id>/edit", methods=["GET", "POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def point_edit(dashboard_id: int, point_id: int):
     """Edit a tag shown on this screen (changes apply wherever the tag is used).
 
@@ -435,7 +437,7 @@ def point_edit(dashboard_id: int, point_id: int):
 
 
 @bp.route("/<int:dashboard_id>/points/<int:point_id>/delete", methods=["POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def point_delete(dashboard_id: int, point_id: int):
     """Remove a tag from this screen; the tag stays in the tag table.
 
@@ -455,7 +457,7 @@ def point_delete(dashboard_id: int, point_id: int):
 
 
 @bp.route("/<int:dashboard_id>/points/<int:point_id>/duplicate", methods=["POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def point_duplicate(dashboard_id: int, point_id: int):
     """Copy a tag (new tag in the tag table, shown on this screen) and open the copy.
 
@@ -476,7 +478,7 @@ def point_duplicate(dashboard_id: int, point_id: int):
 
 
 @bp.route("/<int:dashboard_id>/points/<int:point_id>/move/<direction>", methods=["POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def point_move(dashboard_id: int, point_id: int, direction: str):
     """Move a data point one place up or down in the screen order.
 

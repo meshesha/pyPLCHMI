@@ -69,13 +69,13 @@ def test_many_to_many_and_foreign_keys(client, login_as, users, db):
     """Role permissions are listed by name; foreign keys show the referenced name."""
     login_as("admin")
     viewer = Role.query.filter_by(name="Viewer").one()
-    viewer.set_permissions(["view_dashboards"])
+    viewer.set_permissions(["view_screens"])
     with client.application.test_request_context("/"):
         db.session.commit()
     entry = entries("update", "Role")[-1]
     perms = change(entry, "permissions")
-    assert "view_history" in perms["before"] and perms["after"] == "view_dashboards"
-    client.post(f"/admin/users/{users['viewer'].id}/edit", data={"username": "viewer", "role_id": viewer.id - 1,
+    assert "view_history" in perms["before"] and perms["after"] == "view_screens"
+    client.post(f"/admin/users/{users['viewer'].id}/edit", data={"username": "viewer", "role_id": Role.query.filter_by(name="Admin").one().id,
                                                                 "active": "y"})
     role_change = change(entries("update", "User")[-1], "role_id")
     assert "(Viewer)" in role_change["before"] and "(Admin)" in role_change["after"]

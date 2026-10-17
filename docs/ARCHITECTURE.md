@@ -229,6 +229,18 @@ PLCConnectionManager ─┬─ S7:     Snap7Connection / SimulatedConnection  (r
   (instance 1001 with AV/BV/MSV/AI/CSV objects) on 127.0.0.1 and exercises
   reads, prioritised writes, error isolation, object browsing and Who-Is.
 
+## Write access per tag
+
+`DataPoint.may_write(user)` is the single rule: the tag is writable, the user has
+`write_values` (not needed for local dummy tags), and, when `write_access == "roles"`, the
+user's role is in `DataPoint.write_roles` (link table `datapoint_write_roles`, migration
+`b8e4f1a6c2d9`, which also adds the built-in *Operator* role to existing databases). The
+write API (`api.datapoint_write`) enforces it with 403. The grid view (`view.html`) and the
+graphic runtime (`points[id].may_write` in `_runtime_data`, used by `hmi-mimic.js`) only show
+controls for allowed tags. The form fields `write_access` / `write_roles` live in
+`DataPointForm` and are rendered by `dashboards/_write_access.html` + `static/js/write_access.js`.
+Deleting a role clears its links first, because SQLite does not cascade by itself.
+
 ## Tag table and alarms
 
 ```
@@ -405,7 +417,7 @@ HistoryLogger thread (wakes every HISTORY_TICK s, just after each whole second)
   server zone) to show dates, to parse the From/To filters and for the Excel date cells
   (`tzdata` provides the zone database on Windows).
 * **Pages** (`routes.py`, permission `view_history`; chart create/edit/delete need
-  `manage_dashboards`): `/history/` (table, filter `tags=1,2` or repeated `t`, `from`, `to`,
+  `manage_screens`): `/history/` (table, filter `tags=1,2` or repeated `t`, `from`, `to`,
   sort by time, pagination), `/history/export.xlsx` (`layout=list|wide`, openpyxl write-only
   workbook, ≤ 1,000,000 rows, *Info* sheet), `/history/charts`, `/charts/<id>`,
   `/charts/quick?tags=`, `/charts/new|<id>/edit|<id>/delete`.

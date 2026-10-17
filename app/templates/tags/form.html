@@ -49,6 +49,7 @@
         <div class="row">{{ render_field(form.min_value, 'col-md-6') }}{{ render_field(form.max_value, 'col-md-6') }}</div>
         <div class="row">{{ render_field(form.true_text, 'col-md-6') }}{{ render_field(form.false_text, 'col-md-6') }}</div>
         {{ render_field(form.writable) }}
+        {% include "dashboards/_write_access.html" %}
       </div></div>
       <div class="card hmi-panel mt-4" id="history-settings"><div class="card-body">
         <h2 class="h5"><i class="bi bi-graph-up"></i> {{ _('History / trends') }}</h2>
@@ -70,4 +71,5 @@
 {% block scripts %}
 <script type="application/json" id="plc-protocols">{{ plc_protocols|tojson }}</script>
 <script src="{{ url_for('static', filename='js/point_form.js') }}"></script>
+<script src="{{ url_for('static', filename='js/write_access.js') }}"></script>
 {% endblock %}

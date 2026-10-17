@@ -6,11 +6,13 @@ check *permissions* (``user.can(Perm.MANAGE_PLCS)``) rather than role names,
 so an administrator can change what a role is allowed to do from the web UI
 without touching code.
 
-Three roles are created by default (see :data:`DEFAULT_ROLES`):
+Four built-in roles are created by default (see :data:`DEFAULT_ROLES`):
 
-* **Admin**  – everything: users, roles/permissions, PLCs, dashboards, writes.
-* **Viewer** – can open every dashboard (read only) and the tag history / trends.
-* **Guest**  – can open dashboards that are flagged *public* only.
+* **Admin**    – everything: users, roles/permissions, PLCs, dashboards, writes.
+* **Operator** – can open every screen and the trends, and write values to
+  writable tags (each tag can further limit writing to selected roles).
+* **Viewer**   – can open every dashboard (read only) and the tag history / trends.
+* **Guest**    – can open dashboards that are flagged *public* only.
 """
 
 from datetime import datetime, timezone
@@ -35,9 +37,9 @@ class Perm:
     MANAGE_USERS = "manage_users"
     MANAGE_ROLES = "manage_roles"
     MANAGE_PLCS = "manage_plcs"
-    MANAGE_DASHBOARDS = "manage_dashboards"
-    VIEW_DASHBOARDS = "view_dashboards"
-    VIEW_PUBLIC_DASHBOARDS = "view_public_dashboards"
+    MANAGE_SCREENS = "manage_screens"
+    VIEW_SCREENS = "view_screens"
+    VIEW_PUBLIC_SCREENS = "view_public_screens"
     WRITE_VALUES = "write_values"
     VIEW_HISTORY = "view_history"
     VIEW_AUDIT = "view_audit"
@@ -47,10 +49,10 @@ class Perm:
         MANAGE_USERS: "Create, edit and delete user accounts",
         MANAGE_ROLES: "Edit roles and their permissions",
         MANAGE_PLCS: "Add, edit and delete PLC connections",
-        MANAGE_DASHBOARDS: "Create and edit screens and their tags",
-        VIEW_DASHBOARDS: "Open every screen",
-        VIEW_PUBLIC_DASHBOARDS: "Open screens marked as public",
-        WRITE_VALUES: "Write values to writable data points",
+        MANAGE_SCREENS: "Create and edit screens and their tags",
+        VIEW_SCREENS: "Open every screen",
+        VIEW_PUBLIC_SCREENS: "Open screens marked as public",
+        WRITE_VALUES: "Write values to writable tags",
         VIEW_HISTORY: "View tag history and trend charts, export history to Excel",
         VIEW_AUDIT: "View the audit log (who changed what and when)",
     }
@@ -68,13 +70,17 @@ class Perm:
 #: Roles created by ``flask seed`` and their default permissions.
 DEFAULT_ROLES: dict[str, dict] = {
     "Admin": {"description": "Full control of the system", "permissions": Perm.all()},
+    "Operator": {
+        "description": "Operates the plant: all screens and trends, writes values to writable tags",
+        "permissions": [Perm.VIEW_SCREENS, Perm.VIEW_PUBLIC_SCREENS, Perm.VIEW_HISTORY, Perm.WRITE_VALUES],
+    },
     "Viewer": {
         "description": "Read-only access to all screens",
-        "permissions": [Perm.VIEW_DASHBOARDS, Perm.VIEW_PUBLIC_DASHBOARDS, Perm.VIEW_HISTORY],
+        "permissions": [Perm.VIEW_SCREENS, Perm.VIEW_PUBLIC_SCREENS, Perm.VIEW_HISTORY],
     },
     "Guest": {
         "description": "Access to public screens only",
-        "permissions": [Perm.VIEW_PUBLIC_DASHBOARDS],
+        "permissions": [Perm.VIEW_PUBLIC_SCREENS],
     },
 }
 
@@ -102,12 +108,12 @@ user_screens = db.Table(
 def screen_visible(role, restrict: bool, allowed_ids, screen) -> bool:
     """Central screen-access rule for logged-in users.
 
-    1. Users who can manage screens (``manage_dashboards``) see everything.
+    1. Users who can manage screens (``manage_screens``) see everything.
     2. If the account is limited to selected screens (``restrict``), exactly
        those screens are visible – an explicit per-user grant, which may
        include non-public screens even for a Guest.
-    3. Otherwise the role decides: ``view_dashboards`` → all screens,
-       ``view_public_dashboards`` → public screens only.
+    3. Otherwise the role decides: ``view_screens`` → all screens,
+       ``view_public_screens`` → public screens only.
 
     Args:
         role: The user's :class:`Role` (may be ``None``).
@@ -120,13 +126,13 @@ def screen_visible(role, restrict: bool, allowed_ids, screen) -> bool:
     """
     if role is None:
         return False
-    if role.has_permission(Perm.MANAGE_DASHBOARDS):
+    if role.has_permission(Perm.MANAGE_SCREENS):
         return True
     if restrict:
         return screen.id in set(allowed_ids)
-    if role.has_permission(Perm.VIEW_DASHBOARDS):
+    if role.has_permission(Perm.VIEW_SCREENS):
         return True
-    return bool(screen.is_public) and role.has_permission(Perm.VIEW_PUBLIC_DASHBOARDS)
+    return bool(screen.is_public) and role.has_permission(Perm.VIEW_PUBLIC_SCREENS)
 
 
 class Permission(db.Model):
@@ -204,7 +210,7 @@ class Role(db.Model):
 
     @staticmethod
     def insert_defaults(reset_permissions: bool = False) -> None:
-        """Create the default roles (Admin, Viewer, Guest).
+        """Create the default roles (Admin, Operator, Viewer, Guest).
 
         Safe to run repeatedly.  Existing roles keep their customised
         permissions unless ``reset_permissions`` is true.  The *Admin* role

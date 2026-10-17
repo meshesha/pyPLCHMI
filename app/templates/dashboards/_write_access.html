@@ -1,0 +1,25 @@
+{# "Who may write this value" – shown under the "writable" switch (tag form and screen tag form).
+   Expects: form (DataPointForm). write_access.js shows it only while "writable" is ticked. #}
+<div class="hmi-write-access border rounded p-3 mb-3" id="write-access-box"{% if not form.writable.data %} hidden{% endif %}>
+  <div class="form-label fw-semibold mb-1">{{ _(form.write_access.label.text) }}</div>
+  {% for option in form.write_access %}
+  <div class="form-check form-check-inline">
+    {{ option(class_='form-check-input') }}
+    <label class="form-check-label" for="{{ option.id }}">{{ _(option.label.text) }}</label>
+  </div>
+  {% endfor %}
+  <div class="form-text">{{ _(form.write_access.description) }}</div>
+  <div class="mt-2" id="write-roles-box"{% if form.write_access.data != 'roles' %} hidden{% endif %}>
+    <div class="form-label mb-1">{{ _(form.write_roles.label.text) }}</div>
+    <div class="d-flex flex-wrap gap-3{{ ' is-invalid' if form.write_roles.errors }}">
+      {% for option in form.write_roles %}
+      <div class="form-check">
+        {{ option(class_='form-check-input') }}
+        <label class="form-check-label" for="{{ option.id }}">{{ option.label.text }}</label>
+      </div>
+      {% endfor %}
+    </div>
+    {% for e in form.write_roles.errors %}<div class="invalid-feedback d-block">{{ _(e) }}</div>{% endfor %}
+    <div class="form-text">{{ _(form.write_roles.description) }}</div>
+  </div>
+</div>

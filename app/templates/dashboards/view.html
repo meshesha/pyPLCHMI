@@ -11,7 +11,7 @@
      data-write-url-template="{{ url_for('api.datapoint_write', point_id=0) }}"
      data-refresh-ms="{{ dashboard.refresh_ms }}">
   {% for dp in dashboard.datapoints %}
-  {% set writable = dp.writable and (can_write or dp.is_local) %}
+  {% set writable = dp.may_write(current_user) %}
   <div class="hmi-tile span-{{ dp.width }}" data-id="{{ dp.id }}" data-widget="{{ dp.widget }}"{% if dp.is_local %}
        data-local='{{ dp.local_spec()|tojson }}'{% endif %}
        data-type="{{ dp.data_type }}" data-min="{{ dp.min_value if dp.min_value is not none else '' }}"

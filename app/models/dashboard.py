@@ -11,7 +11,7 @@ import re
 from sqlalchemy import false as sa_false
 
 from app.extensions import db
-from app.models.user import utcnow
+from app.models.user import Perm, utcnow
 from app.plc.datatypes import DATA_TYPES, is_numeric
 
 
@@ -218,6 +218,18 @@ class ScreenTag(db.Model):
         return f"<ScreenTag {self.dashboard_id}:{self.datapoint_id}>"
 
 
+#: Roles allowed to write a tag whose ``write_access`` is ``"roles"``.
+datapoint_write_roles = db.Table(
+    "datapoint_write_roles",
+    db.Column("datapoint_id", db.Integer, db.ForeignKey("datapoints.id", ondelete="CASCADE"), primary_key=True),
+    db.Column("role_id", db.Integer, db.ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
+)
+
+#: Who may write a writable tag: everybody with the ``write_values`` permission,
+#: or only users whose role is selected in :attr:`DataPoint.write_roles`.
+WRITE_ACCESS = {"all": "Everyone", "roles": "Based on user roles"}
+
+
 class DataPoint(db.Model):
     """A PLC tag: one PLC variable, shown (and written) on any number of screens.
 
@@ -274,6 +286,8 @@ class DataPoint(db.Model):
     true_text = db.Column(db.String(30), nullable=False, default="ON")
     false_text = db.Column(db.String(30), nullable=False, default="OFF")
     writable = db.Column(db.Boolean, nullable=False, default=False)
+    #: ``all`` (every user allowed to write values) or ``roles`` (only :attr:`write_roles`).
+    write_access = db.Column(db.String(10), nullable=False, default="all", server_default="all")
     width = db.Column(db.Integer, nullable=False, default=1)  # grid columns 1..4
     #: Dummy PLC tags only: ``general`` (one value for everybody, stored in the
     #: database) or ``local`` (an own value in every browser window).
@@ -284,6 +298,9 @@ class DataPoint(db.Model):
     log_interval = db.Column(db.Integer, nullable=False, default=60, server_default="60")
 
     plc = db.relationship("PLC", back_populates="datapoints", lazy="joined")
+    #: Roles allowed to write this tag when :attr:`write_access` is ``roles``.
+    write_roles = db.relationship("Role", secondary=datapoint_write_roles, order_by="Role.name",
+                                  backref=db.backref("write_tags", lazy="select"))
     #: Links to the screens showing this tag (deleted with the tag).
     screen_links = db.relationship("ScreenTag", back_populates="datapoint", cascade="all, delete-orphan")
     #: Screens showing this tag, by name (read-only).
@@ -483,6 +500,48 @@ class DataPoint(db.Model):
             text = str(value)
         return f"{text} {self.unit}".strip()
 
+    @property
+    def limited_write(self) -> bool:
+        """``True`` when only the selected roles may write this tag."""
+        return self.write_access == "roles"
+
+    def may_write(self, user) -> bool:
+        """Decide whether a user may write this tag.
+
+        Rules:
+
+        1. The tag must be writable.
+        2. Server tags need the ``write_values`` permission.  Local dummy
+           tags are only changed in the user's own browser window, so they
+           need no permission (as before).
+        3. With *Based on user roles* the user's role must be one of
+           :attr:`write_roles` (this applies to every role, Admin included).
+
+        Args:
+            user: The current user (``AnonymousUser`` for visitors).
+
+        Returns:
+            ``True`` if allowed.
+        """
+        if not self.writable:
+            return False
+        if not self.is_local and not user.can(Perm.WRITE_VALUES):
+            return False
+        if self.limited_write:
+            role_id = getattr(user, "role_id", None)
+            return role_id is not None and role_id in {role.id for role in self.write_roles}
+        return True
+
+    def write_access_text(self) -> str:
+        """Short description of who may write, e.g. ``Everyone`` or ``Operator, Admin``.
+
+        Returns:
+            Text in English (translate where it is shown).
+        """
+        if not self.limited_write:
+            return WRITE_ACCESS["all"]
+        return ", ".join(role.name for role in self.write_roles) or "—"
+
     def to_dict(self) -> dict:
         """Serialise the configuration of this data point for JSON.
 
@@ -501,6 +560,8 @@ class DataPoint(db.Model):
             "min": self.min_value,
             "max": self.max_value,
             "writable": self.writable,
+            "write_access": self.write_access,
+            "write_roles": [role.name for role in self.write_roles] if self.limited_write else [],
             "is_bool": self.is_bool,
             "is_numeric": self.is_numeric,
             "true_text": self.true_text,

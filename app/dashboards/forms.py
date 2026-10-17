@@ -1,11 +1,15 @@
 """WTForms classes for dashboards and data points."""
 
 from app.i18n.forms import FlaskForm
-from wtforms import BooleanField, FloatField, IntegerField, SelectField, StringField, SubmitField, TextAreaField
+from wtforms import (
+    BooleanField, FloatField, IntegerField, RadioField, SelectField, StringField, SubmitField, TextAreaField,
+)
 from wtforms.validators import DataRequired, Length, NumberRange, Optional, ValidationError
 
 from app.extensions import db
-from app.models import PLC, Dashboard, DataPoint
+from app.admin.forms import MultiCheckboxField
+from app.models import PLC, Dashboard, DataPoint, Role
+from app.models.dashboard import WRITE_ACCESS
 from app.plc.addressing import AddressError
 from app.plc.dummy import DummyAddress, next_slot
 from app.plc.protocols import parse_tag_address
@@ -94,6 +98,10 @@ class DataPointForm(FlaskForm):
     true_text = StringField("Text when TRUE", default="ON", validators=[Optional(), Length(max=30)])
     false_text = StringField("Text when FALSE", default="OFF", validators=[Optional(), Length(max=30)])
     writable = BooleanField("Operators may write this value")
+    write_access = RadioField("Who may write this value", choices=list(WRITE_ACCESS.items()), default="all",
+                              description="Everyone = every user whose role has the 'write values' permission.")
+    write_roles = MultiCheckboxField("Roles allowed to write", coerce=int,
+                                     description="Users of other roles see the value but cannot change it.")
     width = SelectField("Tile width", coerce=int, choices=[(1, "1 column"), (2, "2 columns"), (3, "3 columns"), (4, "Full row")], default=1)
     #: Order on the screen being edited (stored on the screen–tag link, not on the tag).
     position = IntegerField("Order", default=0, validators=[Optional()])
@@ -116,6 +124,11 @@ class DataPointForm(FlaskForm):
         super().__init__(*args, **kwargs)
         self.datapoint = datapoint
         self.plc_id.choices = plc_choices(current_plc_id)
+        self.write_roles.choices = [(r.id, r.name) for r in Role.query.order_by(Role.name)]
+        if self.write_roles.data is None:
+            self.write_roles.data = []
+        if self.write_access.data not in WRITE_ACCESS:
+            self.write_access.data = "all"
         self.parsed_address = None
 
     def validate_address(self, field) -> None:
@@ -187,6 +200,9 @@ class DataPointForm(FlaskForm):
                                    or not getattr(addr, "writable_area", True)):
             self.writable.errors.append(gettext('{0} cannot be written.', addr.format(True)))
             ok = False
+        if self.writable.data and self.write_access.data == "roles" and not self.write_roles.data:
+            self.write_roles.errors = list(self.write_roles.errors) + [gettext('Select at least one role.')]
+            ok = False
         if self.scale.data == 0:
             self.scale.errors.append(gettext('Scale cannot be 0.'))
             ok = False
@@ -223,6 +239,10 @@ class DataPointForm(FlaskForm):
         dp.true_text = self.true_text.data or "ON"
         dp.false_text = self.false_text.data or "OFF"
         dp.writable = bool(self.writable.data)
+        dp.write_access = self.write_access.data if self.write_access.data in WRITE_ACCESS else "all"
+        wanted = set(self.write_roles.data or []) if dp.write_access == "roles" else set()
+        with db.session.no_autoflush:  # one flush for the whole tag = one audit entry
+            dp.write_roles = Role.query.filter(Role.id.in_(wanted)).order_by(Role.name).all() if wanted else []
         dp.width = self.width.data or 1
         dp.dummy_scope = (self.dummy_scope.data or "general") if isinstance(self.parsed_address, DummyAddress) \
             else "general"
@@ -236,6 +256,8 @@ class DataPointForm(FlaskForm):
         for name in ("label", "plc_id", "data_type", "widget", "unit", "scale", "offset", "decimals",
                      "min_value", "max_value", "true_text", "false_text", "writable", "width", "dummy_scope"):
             getattr(self, name).data = getattr(dp, name)
+        self.write_access.data = dp.write_access or "all"
+        self.write_roles.data = [role.id for role in dp.write_roles]
         # Dummy tags have no user address (so moving them to a real PLC starts empty).
         self.address.data = "" if dp.protocol == "dummy" else dp.address
         self.string_length.data = dp.string_length or 20

@@ -535,9 +535,10 @@ BACnet note: *Who-Is* uses broadcasts. If the server has several network cards, 
 2. *PLCs → Add* each PLC or device, then click *Test connection*.
 3. *Admin → Tag table*: create tags, or import them from Excel.
 4. *Screens → New screen*: build the screens.
-5. *Admin → Users*: create personal accounts for the operators. The *Viewer* role is
-   read-only. For operators who may write set-points, create a role with the
-   *write values* permission under *Admin → Roles*.
+5. *Admin → Users*: create personal accounts for the operators with the built-in
+   **Operator** role (screens, trends, writing values). *Viewer* is read-only. In a tag's
+   settings you can limit writing to selected roles (*Who may write this value → Based on
+   user roles*).
 6. Optional: *Admin → System settings*: history retention, public wall-display screen.
 
 ---

@@ -55,7 +55,7 @@
         <li class="nav-item dropdown">
           <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" id="nav-library" aria-label="{{ _('Library') }}"><i class="bi bi-collection"></i>{{ nav_label(_('Library')) }}</a>
           <ul class="dropdown-menu dropdown-menu-end">
-            {% if current_user.can(Perm.MANAGE_DASHBOARDS) %}<li><a class="dropdown-item" href="{{ url_for('assets.index') }}" id="nav-images"><i class="bi bi-images"></i> {{ _('Images') }}</a></li>{% endif %}
+            {% if current_user.can(Perm.MANAGE_SCREENS) %}<li><a class="dropdown-item" href="{{ url_for('assets.index') }}" id="nav-images"><i class="bi bi-images"></i> {{ _('Images') }}</a></li>{% endif %}
             <li><a class="dropdown-item" href="{{ url_for('documents.index') }}" id="nav-documents"><i class="bi bi-file-earmark-richtext"></i> {{ _('Information library') }}</a></li>
           </ul>
         </li>

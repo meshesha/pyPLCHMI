@@ -26,7 +26,7 @@ operator station is just a browser window, and the engineering tools are on the 
 | 📈 **Historian & trends** | Per-tag sampling interval, multi-pen trend charts, zoom, live mode, Excel export, save charts as PNG |
 | 🖱️ **Right-click any value** | *Show graph* (last *N* days) and *Details*: PLC, address, data type, scaling, alarms, attached manuals |
 | 📚 **Information library** | Attach manuals, wiring diagrams and photos (PDF / images) to each PLC; SHA-1 de-duplication |
-| 🔐 **Security & audit** | Roles & permissions, bcrypt passwords, CSRF protection, full **audit log** (who changed what – before/after values) |
+| 🔐 **Security & audit** | Built-in Admin / Operator / Viewer / Guest roles plus your own, **per-tag write rights by role** (only the shift lead may change that set-point), bcrypt passwords, CSRF protection, full **audit log** (who changed what – before/after values) |
 | 📡 **Knows when it's blind** | A Web Worker heartbeat raises a red *Connection to the server lost* banner within seconds, greys out stale values, and shows when the server is back or was restarted. It also works in background tabs and full screen. |
 | 🌍 **Built for the floor** | Dark & light mode, full-screen kiosk mode, public wall-display screens, screen list as cards or a sortable/filterable table, English & Hebrew (RTL) + your own language files |
 | 🧪 **Simulator included** | `PLC_SIMULATION=1` – develop and demo without hardware |
@@ -125,7 +125,7 @@ front-end libraries are bundled, so the HMI works on networks **without internet
 
 ```bash
 pip install -r requirements-dev.txt
-pytest                  # 640 tests, incl. a real snap7 S7 server on localhost
+pytest                  # 652 tests, incl. a real snap7 S7 server on localhost
 ```
 
 Contributions, bug reports and feature ideas are welcome – please

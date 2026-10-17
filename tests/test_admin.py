@@ -74,20 +74,20 @@ class TestRoles:
         viewer = Role.query.filter_by(name="Viewer").one()
         admin = Role.query.filter_by(name="Admin").one()
         client.post("/admin/roles", data={
-            f"perm-{viewer.id}": [Perm.VIEW_DASHBOARDS, Perm.WRITE_VALUES],
+            f"perm-{viewer.id}": [Perm.VIEW_SCREENS, Perm.WRITE_VALUES],
             f"perm-{admin.id}": [Perm.MANAGE_USERS],
         })
-        assert viewer.permission_codes == {Perm.VIEW_DASHBOARDS, Perm.WRITE_VALUES}
+        assert viewer.permission_codes == {Perm.VIEW_SCREENS, Perm.WRITE_VALUES}
         # Admin keeps manage_roles even if unticked (lock-out protection)
         assert admin.has_permission(Perm.MANAGE_ROLES)
 
     def test_create_and_delete_role(self, client, login_as):
         """Custom roles can be added and removed."""
         login_as("admin")
-        client.post("/admin/roles/new", data={"name": "Operator", "description": "Shift operator"})
-        role = Role.query.filter_by(name="Operator").one()
+        client.post("/admin/roles/new", data={"name": "Shift lead", "description": "Shift lead"})
+        role = Role.query.filter_by(name="Shift lead").one()
         client.post(f"/admin/roles/{role.id}/delete")
-        assert Role.query.filter_by(name="Operator").first() is None
+        assert Role.query.filter_by(name="Shift lead").first() is None
 
     def test_default_role_protected(self, client, login_as):
         """Default roles cannot be deleted."""

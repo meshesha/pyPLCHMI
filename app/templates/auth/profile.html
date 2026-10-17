@@ -11,7 +11,7 @@
         <dt class="col-5">{{ _('E-mail') }}</dt><dd class="col-7">{{ current_user.email or '—' }}</dd>
         <dt class="col-5">{{ _('Role') }}</dt><dd class="col-7">{{ _(current_user.role.name) }}</dd>
         <dt class="col-5">{{ _('Home screen') }}</dt><dd class="col-7">{{ current_user.landing_screen.name if current_user.landing_screen else _('screen list') }}</dd>
-        <dt class="col-5">{{ _('Screens') }}</dt><dd class="col-7">{% if current_user.restrict_screens and not current_user.can(Perm.MANAGE_DASHBOARDS) %}{{ current_user.allowed_screens|map(attribute='name')|join(', ') }}{% else %}{{ _('by role') }}{% endif %}</dd>
+        <dt class="col-5">{{ _('Screens') }}</dt><dd class="col-7">{% if current_user.restrict_screens and not current_user.can(Perm.MANAGE_SCREENS) %}{{ current_user.allowed_screens|map(attribute='name')|join(', ') }}{% else %}{{ _('by role') }}{% endif %}</dd>
         <dt class="col-5">{{ _('Permissions') }}</dt>
         <dd class="col-7">{% for p in current_user.role.permissions %}<span class="badge text-bg-secondary me-1 mb-1" title="{{ _(p.description) }}">{{ p.code }}</span>{% endfor %}</dd>
       </dl>

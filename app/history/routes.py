@@ -1,7 +1,7 @@
 """Views of the tag history: sample table, Excel export, trend charts and the series API.
 
 Permissions: everything needs ``view_history``; creating, editing and
-deleting saved charts also needs ``manage_dashboards``.
+deleting saved charts also needs ``manage_screens``.
 """
 
 from __future__ import annotations
@@ -51,7 +51,7 @@ def _filter_args() -> tuple[list[int], datetime | None, datetime | None]:
 
 def _can_manage_charts() -> bool:
     """Whether the current user may create, edit and delete saved charts."""
-    return current_user.is_authenticated and current_user.can(Perm.MANAGE_DASHBOARDS)
+    return current_user.is_authenticated and current_user.can(Perm.MANAGE_SCREENS)
 
 
 # ---------------------------------------------------------------------------
@@ -194,7 +194,7 @@ def _form_page(form: ChartForm, chart: TrendChart | None):
 
 
 @bp.route("/charts/new", methods=["GET", "POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def create_chart():
     """Create a chart (``?tags=1,2`` / ``colors=…`` pre-fill the series, e.g. from a quick chart).
 
@@ -225,7 +225,7 @@ def create_chart():
 
 
 @bp.route("/charts/<int:chart_id>/edit", methods=["GET", "POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def edit_chart(chart_id: int):
     """Edit a chart.
 
@@ -248,7 +248,7 @@ def edit_chart(chart_id: int):
 
 
 @bp.route("/charts/<int:chart_id>/delete", methods=["POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def delete_chart(chart_id: int):
     """Delete a chart (the samples are kept).
 

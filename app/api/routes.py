@@ -127,12 +127,14 @@ def datapoint_write(point_id: int):
     """
     dp = db.get_or_404(DataPoint, point_id)
     # Allowed on any screen the user may open; tags on no screen: screen managers only.
-    allowed = current_user.can(Perm.MANAGE_DASHBOARDS) or any(
+    allowed = current_user.can(Perm.MANAGE_SCREENS) or any(
         current_user.can_view_dashboard(screen) for screen in dp.screens)
     if not allowed:
         abort(403)
     if not dp.writable:
         return _json_error(gettext('data point is read-only'), 400)
+    if not dp.may_write(current_user):  # tag limited to selected roles
+        return _json_error(gettext('Your role may not write this value.'), 403)
     if dp.is_local:
         return _json_error(gettext('local dummy tag: the value is kept by each browser window (not written to the server)'),
                            400)
@@ -175,7 +177,7 @@ def datapoint_details(point_id: int):
 
     dp = db.get_or_404(DataPoint, point_id)
     visible = [s for s in dp.screens if current_user.can_view_dashboard(s)]
-    if not (current_user.can(Perm.MANAGE_DASHBOARDS) or visible):
+    if not (current_user.can(Perm.MANAGE_SCREENS) or visible):
         abort(403)
     plc = dp.plc
     info = {
@@ -198,6 +200,8 @@ def datapoint_details(point_id: int):
         "true_text": dp.true_text if dp.is_bool else None,
         "false_text": dp.false_text if dp.is_bool else None,
         "writable": dp.writable,
+        "write_roles": ([r.name for r in dp.write_roles] if dp.limited_write else None) if dp.writable else None,
+        "may_write": dp.may_write(current_user),
         "dummy": dp.scope_label if dp.protocol == "dummy" else None,
         "screens": [s.name for s in visible],
         "alarms": [a.name for a in dp.alarms] if current_user.is_authenticated else [],
@@ -215,7 +219,7 @@ def datapoint_details(point_id: int):
 
 
 @bp.route("/plcs")
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def plc_list():
     """List PLCs with their cached connection status.
 
@@ -242,7 +246,7 @@ def plc_status(plc_id: int):
 
 
 @bp.route("/plcs/<int:plc_id>/read", methods=["POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def plc_read(plc_id: int):
     """Read an arbitrary address once – used by the *Test read* button.
 
@@ -292,7 +296,7 @@ def dashboard_layout(dashboard_id: int):
 
 
 @bp.route("/dashboards/<int:dashboard_id>/layout", methods=["PUT", "POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def dashboard_layout_save(dashboard_id: int):
     """Validate and store the layout sent by the designer.
 
@@ -324,7 +328,7 @@ def dashboard_layout_save(dashboard_id: int):
 
 
 @bp.route("/dashboards/<int:dashboard_id>/datapoints", methods=["POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def datapoint_create(dashboard_id: int):
     """Create a data point (PLC tag) from the designer's *New tag* dialog.
 
@@ -360,7 +364,7 @@ def datapoint_create(dashboard_id: int):
 
 
 @bp.route("/icons")
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def icon_search():
     """Search the Tabler icon set (designer palette).
 
@@ -381,7 +385,7 @@ def icon_search():
 
 
 @bp.route("/icons/<style>/<name>")
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def icon_shape(style: str, name: str):
     """The drawable shapes of one icon.
 
@@ -399,7 +403,7 @@ def icon_shape(style: str, name: str):
 
 
 @bp.route("/tags/search")
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def tag_search():
     """Search the tag table (the *existing tag* picker of the screen editors).
 
@@ -426,7 +430,7 @@ def tag_search():
 
 
 @bp.route("/dashboards/<int:dashboard_id>/tags", methods=["POST"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def dashboard_tag_add(dashboard_id: int):
     """Show an existing tag on a screen (designer's *existing tag* picker).
 
@@ -450,7 +454,7 @@ def dashboard_tag_add(dashboard_id: int):
 
 
 @bp.route("/dashboards/<int:dashboard_id>/tags/<int:point_id>", methods=["DELETE"])
-@permission_required(Perm.MANAGE_DASHBOARDS)
+@permission_required(Perm.MANAGE_SCREENS)
 def dashboard_tag_remove(dashboard_id: int, point_id: int):
     """Remove a tag from a screen (the tag stays in the tag table).
 

@@ -40,13 +40,13 @@ def test_permission_change_takes_effect(client, login_as, db, dashboards):
     login_as("guest")
     assert client.get("/screens/private").status_code == 403
     guest = Role.query.filter_by(name="Guest").one()
-    guest.set_permissions([Perm.VIEW_DASHBOARDS])
+    guest.set_permissions([Perm.VIEW_SCREENS])
     db.session.commit()
     assert client.get("/screens/private").status_code == 200
 
 
 def test_edit_button_only_for_managers(client, login_as, dashboards):
-    """The *Edit* button is shown only with manage_dashboards."""
+    """The *Edit* button is shown only with manage_screens."""
     login_as("viewer")
     assert b'id="screen-edit"' not in client.get("/screens/private").data
     client.post("/auth/logout")

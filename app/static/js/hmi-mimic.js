@@ -27,12 +27,16 @@
 
   /**
    * Tell whether the operator may press a button bound to a point.
-   * Local dummy tags only change this browser window, so they need no write permission.
+   * The server decides per tag (``may_write``: writable, the "write values"
+   * permission – not needed for local dummy tags – and the tag's allowed roles);
+   * the API checks the same rule again on every write.
    * @param {?Object} point Point metadata.
    * @returns {boolean}
    */
   function mayWrite(point) {
-    return Boolean(point && (data.can_write || point.local));
+    if (!point) return false;
+    if (point.may_write !== undefined) return Boolean(point.may_write);
+    return Boolean(data.can_write || point.local);
   }
 
   layout.elements.forEach((e) => {
@@ -158,8 +162,8 @@
     if (el.action === "link") return;
     const point = el.point && data.points[el.point];
     if (!point) { flash(T("Button has no tag."), true); return; }
-    if (!mayWrite(point)) { flash(T("Your role is not allowed to write values."), true); return; }
     if (!point.writable) { flash(T("{0} is read-only.", point.label), true); return; }
+    if (!mayWrite(point)) { flash(T("Your role may not write {0}.", point.label), true); return; }
     let value;
     if (el.action === "toggle") {
       const cur = lastValues[String(point.id)];

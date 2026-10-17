@@ -107,7 +107,7 @@ pyPLCHMI/
 │   ├── templates/           # Jinja2 templates (Bootstrap 5, dark theme)
 │   └── static/              # hmi.css, hmi-dialogs.js (T(), SweetAlert2), hmi-*.js, Bootstrap (+RTL), SweetAlert2, Chart.js
 ├── migrations/              # Flask-Migrate / Alembic scripts
-├── tests/                   # pytest suite (640 tests)
+├── tests/                   # pytest suite (652 tests)
 ├── tools/make_animations.py # generator of the built-in animated GIFs (Pillow)
 ├── tools/i18n_extract.py    # collects every UI text into app/i18n/languages/en.json
 ├── Dockerfile / docker-compose.yml / docker/entrypoint.sh   # container image (see docs/DOCKER.md)
@@ -148,22 +148,37 @@ Generate a secret key: `python -c "import secrets; print(secrets.token_hex(32))"
 
 ## 4. Roles and permissions
 
-| Permission | Admin | Viewer | Guest |
-|---|:-:|:-:|:-:|
-| `manage_users` – create/edit/delete users | ✔ | | |
-| `manage_roles` – edit the permission matrix | ✔ | | |
-| `manage_plcs` – add/edit/delete/test PLCs | ✔ | | |
-| `manage_dashboards` – build screens & data points | ✔ | | |
-| `view_dashboards` – open every screen | ✔ | ✔ | |
-| `view_public_dashboards` – open screens marked *public* | ✔ | ✔ | ✔ |
-| `write_values` – write to writable data points | ✔ | | |
-| `view_history` – tag history, trend charts, history Excel export | ✔ | ✔ | |
-| `view_audit` – audit log (who changed what and when) | ✔ | | |
+| Permission | Admin | Operator | Viewer | Guest |
+|---|:-:|:-:|:-:|:-:|
+| `manage_users` – create/edit/delete users | ✔ | | | |
+| `manage_roles` – edit the permission matrix | ✔ | | | |
+| `manage_plcs` – add/edit/delete/test PLCs | ✔ | | | |
+| `manage_screens` – build screens & their tags | ✔ | | | |
+| `view_screens` – open every screen | ✔ | ✔ | ✔ | |
+| `view_public_screens` – open screens marked *public* | ✔ | ✔ | ✔ | ✔ |
+| `write_values` – write to writable tags | ✔ | ✔ | | |
+| `view_history` – tag history, trend charts, history Excel export | ✔ | ✔ | ✔ | |
+| `view_audit` – audit log (who changed what and when) | ✔ | | | |
 
-Change these at **Admin → Roles & permissions** (e.g. grant `write_values` to
-Viewer to create operators), or add custom roles. Safeguards: the Admin role
-always keeps `manage_roles`, and the last active administrator cannot be
-deleted, disabled or demoted. `flask seed --reset` restores the defaults.
+The four roles are **built-in**: they cannot be deleted, but their permissions can be
+changed at **Admin → Roles & permissions**, and custom roles can be added. Existing
+installations get the *Operator* role with the database upgrade (`flask db upgrade`).
+Safeguards: the Admin role always keeps `manage_roles`, and the last active administrator
+cannot be deleted, disabled or demoted. `flask seed --reset` restores the default
+permissions.
+
+**Who may write a tag.** Under *Operators may write this value* in the tag form, choose:
+
+* **Everyone**: every user whose role has `write_values` (the default).
+* **Based on user roles**: tick one or more roles. Only users of those roles may write the
+  tag. This also applies to Admin, so tick *Admin* if administrators should write it too.
+
+The rule is checked by the server on every write. Screens show the input field, switch or
+button only to users who may write the tag; everyone else sees the value read-only. The
+Details window (right-click on a value) shows *Who may write* and *You may write*. In the
+Tag table a 🔒 badge lists the allowed roles, and the Excel export/import has a
+**Write roles** column: empty means everyone, otherwise role names separated by commas.
+Changes are recorded in the audit log.
 
 ## 5. Connecting real PLCs
 
@@ -539,9 +554,10 @@ background colour** and/or **page background image** (cover, contain, stretch, r
 the whole window of the screen – combined with *Background colour: none* for the drawing, the
 drawing blends into its surroundings. The designer shows the page background around the canvas.
 
-Old `/dashboards/...` bookmarks redirect to `/screens/...`. (Internally the code
-still uses the names `Dashboard` / `dashboards` and permission codes such as
-`view_dashboards`; only the UI and URLs say *screen*.)
+Old `/dashboards/...` bookmarks redirect to `/screens/...`. The permission codes say *screen*
+too (`manage_screens`, `view_screens`, `view_public_screens`; the old `…_dashboards` codes are
+renamed by `flask db upgrade`, and every role keeps its permissions). Only internal code names
+(the `Dashboard` model, the `dashboards` blueprint) still use the old word.
 
 ## 7b. Tag table and alarms
 
@@ -713,7 +729,7 @@ unit, address) or as *one column per tag* (one row per time stamp) – handy for
 Excel files contain real date-time cells and an *Info* sheet (time zone, range, tags); at most
 1,000,000 rows are exported.
 
-**Trend charts** (*Trends → Trend charts*). Users who can build screens (`manage_dashboards`)
+**Trend charts** (*Trends → Trend charts*). Users who can build screens (`manage_screens`)
 create named charts: choose tags with history logging (numeric and BOOL tags), give **each tag
 its own colour** and put tags with very different ranges on the **right axis**. Anyone with
 `view_history` can open the charts or draw a **Quick chart** of any logged tags without saving
@@ -811,7 +827,7 @@ Migrations use Alembic *batch mode*, so column changes also work on SQLite.
 ## 9. Tests
 
 ```powershell
-pytest                       # 640 tests
+pytest                       # 652 tests
 pytest --cov=app             # with coverage (~94 %)
 ```
 

@@ -59,7 +59,7 @@ def test_write_forbidden_for_viewer(client, login_as, dashboards):
 def test_write_allowed_after_grant(client, login_as, db, dashboards):
     """Granting write_values to Viewer enables writes."""
     viewer = Role.query.filter_by(name="Viewer").one()
-    viewer.set_permissions([Perm.VIEW_DASHBOARDS, Perm.WRITE_VALUES])
+    viewer.set_permissions([Perm.VIEW_SCREENS, Perm.WRITE_VALUES])
     db.session.commit()
     login_as("viewer")
     resp = client.post(f"/api/datapoints/{dashboards['points']['setpoint'].id}/write", json={"value": 3})

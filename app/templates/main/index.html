@@ -4,7 +4,7 @@
 {% block content %}
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
   <h1 class="h3 mb-0">{{ _('Screens') }}</h1>
-  {% if current_user.can(Perm.MANAGE_DASHBOARDS) %}
+  {% if current_user.can(Perm.MANAGE_SCREENS) %}
   <div class="d-flex gap-2">
     <a class="btn btn-outline-secondary" href="{{ url_for('assets.index') }}"><i class="bi bi-images"></i> {{ _('Image library') }}</a>
     <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#svg-import-modal" id="svg-import-btn"><i class="bi bi-filetype-svg"></i> {{ _('Import SVG') }}</button>
@@ -58,7 +58,7 @@
       <td class="small text-nowrap">{{ local_time(d.created_at) }}</td>
       <td class="text-end text-nowrap">
         <a class="btn btn-sm btn-outline-primary" href="{{ url_for('dashboards.view', slug=d.slug) }}" title="{{ _('Open') }}" aria-label="{{ _('Open') }}"><i class="bi bi-box-arrow-up-right"></i></a>
-        {% if current_user.can(Perm.MANAGE_DASHBOARDS) %}
+        {% if current_user.can(Perm.MANAGE_SCREENS) %}
         {% if d.is_image %}<a class="btn btn-sm btn-outline-info" href="{{ url_for('dashboards.designer', dashboard_id=d.id) }}" title="{{ _('Designer') }}" aria-label="{{ _('Designer') }}"><i class="bi bi-vector-pen"></i></a>{% endif %}
         <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('dashboards.edit', dashboard_id=d.id) }}" title="{{ _('Settings') }}" aria-label="{{ _('Settings') }}"><i class="bi bi-gear"></i></a>
         {% endif %}
@@ -98,7 +98,7 @@
 
 {% endif %}
 
-{% if current_user.can(Perm.MANAGE_DASHBOARDS) %}
+{% if current_user.can(Perm.MANAGE_SCREENS) %}
 <div class="modal fade" id="svg-import-modal" tabindex="-1" aria-labelledby="svg-import-title" aria-hidden="true">
   <div class="modal-dialog">
     <form class="modal-content" method="post" action="{{ url_for('dashboards.import_svg_files') }}" enctype="multipart/form-data" id="svg-import-form">

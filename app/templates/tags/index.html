@@ -50,7 +50,7 @@
       <td><span class="badge hmi-badge-neutral">{{ t.data_type }}</span></td>
       <td class="tag-value text-nowrap" data-tag-value="{{ t.id }}"><span class="text-secondary">…</span></td>
       <td class="small">{% for sc in t.screens %}<a href="{{ url_for('dashboards.view', slug=sc.slug) }}">{{ sc.name }}</a>{{ ', ' if not loop.last }}{% else %}<span class="text-secondary">—</span>{% endfor %}</td>
-      <td>{% if t.writable %}<i class="bi bi-pencil-square text-warning" title="{{ _('writable') }}"></i>{% else %}<i class="bi bi-eye text-secondary" title="{{ _('read only') }}"></i>{% endif %}</td>
+      <td>{% if t.writable %}<i class="bi bi-pencil-square text-warning" title="{{ _('writable') }}"></i>{% if t.limited_write %} <span class="badge hmi-badge-neutral tag-write-roles" title="{{ _('Only these roles may write') }}"><i class="bi bi-person-lock"></i> {{ t.write_access_text() }}</span>{% endif %}{% else %}<i class="bi bi-eye text-secondary" title="{{ _('read only') }}"></i>{% endif %}</td>
       <td>{% if n_alarms %}<a href="{{ url_for('alarms.index', q=t.label) }}" class="badge text-bg-info text-decoration-none">{{ n_alarms }}</a>{% else %}<span class="text-secondary">0</span>{% endif %}</td>
       <td class="text-end text-nowrap">
         <a class="btn btn-sm btn-outline-warning" href="{{ url_for('alarms.create', tag=t.id) }}" title="{{ _('Add alarm for this tag') }}"><i class="bi bi-bell"></i></a>
