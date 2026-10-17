@@ -347,6 +347,8 @@ circle.dz-handle { cursor: move; }
 
 /* ---- Top bar: screen name, clock, icon buttons with hover labels --------- */
 .hmi-navbar { padding-top: .35rem; padding-bottom: .35rem; }
+/* The top bar (and its drop-down menus) stays above the sticky alarm strip of UI templates. */
+.hmi-navbar { position: relative; z-index: 1030; }
 .hmi-navbar-inner { position: relative; flex-wrap: nowrap; gap: .5rem; }
 .hmi-navbar-start { display: flex; align-items: center; gap: .6rem; min-width: 0; flex: 1 1 0; }
 .hmi-navbar .navbar-brand { margin-inline-end: 0; }
