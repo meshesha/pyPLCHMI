@@ -395,3 +395,20 @@ def test_settings_retention(client, login_as, db):
     assert hl.retention_days() == 14
     assert hl.purge_old_samples() == 0
     assert datetime.now(timezone.utc) - timedelta(days=14)  # sanity
+
+
+def test_chart_form_palette_not_shadowed(client, login_as):
+    """The chart form gets the colour list (not the quick-search flag of base.html)."""
+    import json  # noqa: PLC0415
+    import re  # noqa: PLC0415
+
+    from app.extensions import db  # noqa: PLC0415
+    from app.models.setting import set_setting  # noqa: PLC0415
+
+    login_as("admin")
+    for template in ("classic", "engineering"):           # engineering turns the quick search on
+        set_setting("ui_template", template)
+        db.session.commit()
+        html = client.get("/history/charts/new").get_data(as_text=True)
+        palette = json.loads(re.search(r'id="chart-palette">(.*?)</script>', html).group(1))
+        assert isinstance(palette, list) and palette[0].startswith("#"), template

@@ -1,9 +1,9 @@
 {% set lang = current_language() %}
 {# UI template (Admin → UI templates): its CSS/JS files and feature switches.  The data-ui-*
    attributes let template stylesheets target a feature, e.g. [data-ui-nav="sidebar"]. #}
-{% set sidebar = ui.feature('nav') == 'sidebar' and current_user.is_authenticated and not embed %}
-{% set alarm_strip = ui.feature('alarm_ui') == 'banner' and current_user.is_authenticated %}
-{% set palette = ui.feature('command_palette') and current_user.is_authenticated %}<!doctype html>
+{% set ui_sidebar = ui.feature('nav') == 'sidebar' and current_user.is_authenticated and not embed %}
+{% set ui_alarm_strip = ui.feature('alarm_ui') == 'banner' and current_user.is_authenticated %}
+{% set ui_palette = ui.feature('command_palette') and current_user.is_authenticated %}<!doctype html>
 <html lang="{{ lang.code }}" dir="{{ lang.direction }}" data-bs-theme="{{ 'light' if ui_theme == 'light' else 'dark' }}" data-hmi-theme="{{ ui_theme }}"
       data-ui-template="{{ ui.id }}" data-ui-nav="{{ ui.feature('nav') }}" data-ui-alarms="{{ ui.feature('alarm_ui') }}"
       data-ui-tiles="{{ ui.feature('tiles') }}" data-ui-tags="{{ ui.feature('tags_ui') }}" data-ui-home="{{ ui.feature('home') }}">
@@ -23,9 +23,9 @@
   <script src="{{ url_for('static', filename='vendor/sweetalert2/sweetalert2.min.js') }}"></script>
   <script src="{{ url_for('static', filename='js/hmi-dialogs.js') }}"></script>
 </head>
-<body class="{{ 'hmi-embed' if embed }}{{ ' hmi-layout-sidebar' if sidebar }}">
+<body class="{{ 'hmi-embed' if embed }}{{ ' hmi-layout-sidebar' if ui_sidebar }}">
 {% if ui_preview %}{% include "admin/_ui_preview_bar.html" %}{% endif %}
-{% if sidebar %}<div class="hmi-shell">{% include "_sidebar.html" %}<div class="hmi-shell-main">{% endif %}
+{% if ui_sidebar %}<div class="hmi-shell">{% include "_sidebar.html" %}<div class="hmi-shell-main">{% endif %}
 {% if not embed %}
 {# Top bar: brand and (on screens) the screen name with its buttons on the left, the clock in the
    middle, icon buttons on the right.  Icon labels appear when the pointer is over them (in the
@@ -45,7 +45,7 @@
       <span class="hmi-clock-time" id="hmi-clock-time">--:--:--</span>
       <span class="hmi-clock-date" id="hmi-clock-date"></span>
     </div>
-    {% if sidebar %}
+    {% if ui_sidebar %}
     <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#hmi-sidebar" aria-controls="hmi-sidebar" aria-label="{{ _('Menu') }}">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -59,11 +59,11 @@
       {# The group always ends with the account button, so "Log in" and "Log out" occupy exactly
          the same position.  Log in carries no ?next= so users land on their own home screen. #}
       <ul class="navbar-nav ms-auto align-items-lg-center hmi-icon-nav">
-      {% if palette %}
+      {% if ui_palette %}
         <li class="nav-item"><button type="button" class="nav-link hmi-palette-btn" id="hmi-palette-btn" aria-keyshortcuts="Control+K"
             aria-label="{{ _('Quick search') }}"><i class="bi bi-search"></i><span class="hmi-palette-hint">{{ _('Go to…') }}</span><kbd>Ctrl K</kbd></button></li>
       {% endif %}
-      {% if current_user.is_authenticated and not sidebar %}
+      {% if current_user.is_authenticated and not ui_sidebar %}
         {% if ui.feature('home') == 'overview' %}
         <li class="nav-item"><a class="nav-link" href="{{ url_for('main.overview') }}" id="nav-overview" aria-label="{{ _('Plant overview') }}"><i class="bi bi-speedometer2"></i>{{ nav_label(_('Plant overview')) }}</a></li>
         {% endif %}
@@ -143,7 +143,7 @@
   </div>
 </nav>
 {% endif %}
-{% if alarm_strip and (not embed or request.endpoint == 'dashboards.view') %}{% include "alarms/_strip.html" %}{% endif %}
+{% if ui_alarm_strip and (not embed or request.endpoint == 'dashboards.view') %}{% include "alarms/_strip.html" %}{% endif %}
 
 <main class="{% block container %}container{% endblock %} {% block main_class %}{{ 'p-0' if embed else 'py-4' }}{% endblock %}"{% block main_attrs %}{% endblock %}>
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -161,10 +161,10 @@
   {% endwith %}
   {% block content %}{% endblock %}
 </main>
-{% if sidebar %}</div></div>{% endif %}
+{% if ui_sidebar %}</div></div>{% endif %}
 
 {% if current_user.is_authenticated %}{% include "alarms/_ui.html" %}{% endif %}
-{% if palette %}{% include "_palette.html" %}{% endif %}
+{% if ui_palette %}{% include "_palette.html" %}{% endif %}
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/alarms.js') }}"></script>
 <script src="{{ url_for('static', filename='js/hmi-shell.js') }}"></script>
@@ -172,8 +172,8 @@
         data-health-url="{{ url_for('api.health') }}"
         data-worker-url="{{ url_for('static', filename='js/hmi-heartbeat.js') }}"
         data-interval="{{ config.SERVER_CHECK_INTERVAL }}"></script>
-{% if sidebar %}<script src="{{ url_for('static', filename='js/hmi-sidebar.js') }}"></script>{% endif %}
-{% if palette %}<script src="{{ url_for('static', filename='js/hmi-palette.js') }}"></script>{% endif %}
+{% if ui_sidebar %}<script src="{{ url_for('static', filename='js/hmi-sidebar.js') }}"></script>{% endif %}
+{% if ui_palette %}<script src="{{ url_for('static', filename='js/hmi-palette.js') }}"></script>{% endif %}
 {% block scripts %}{% endblock %}
 {% for f in ui.js %}<script src="{{ url_for('ui_templates.asset', tid=ui.id, filename=f, v=ui.stamp) }}" data-ui-js></script>
 {% endfor %}
