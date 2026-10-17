@@ -53,7 +53,7 @@ class DashboardForm(FlaskForm):
 
     name = StringField("Name", validators=[DataRequired(), Length(max=100)])
     kind = SelectField("Type", choices=list(Dashboard.KINDS.items()), default="grid",
-                       description="Grid = automatic tiles. Image = free drawing with symbols, images and buttons.")
+                       description="Grid = automatic tiles. Plane = free drawing with symbols, images and buttons.")
     description = TextAreaField("Description", validators=[Optional(), Length(max=500)])
     is_public = BooleanField("Public (visible to Guest role)")
     refresh_ms = IntegerField(

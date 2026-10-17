@@ -46,7 +46,7 @@ class Dashboard(db.Model):
 
     __tablename__ = "dashboards"
 
-    KINDS = {"grid": "Grid (automatic tiles)", "image": "Image (graphic designer)"}  # shown as screen types
+    KINDS = {"grid": "Grid (automatic tiles)", "image": "Plane (graphic designer)"}  # shown as screen types
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)

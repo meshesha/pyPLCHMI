@@ -20,7 +20,7 @@
 {% if total %}
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
   {% call search_bar(state, 'Search name, description, PLC…') %}
-    {{ filter_select(state, 'kind', 'Type', [('grid', 'Grid'), ('image', 'Image')]) }}
+    {{ filter_select(state, 'kind', 'Type', [('grid', 'Grid'), ('image', 'Plane')]) }}
     {{ filter_select(state, 'access', 'Access', [('public', 'Public'), ('private', 'Login required')]) }}
     {% if plc_options|length > 1 %}{{ filter_select(state, 'plc', 'PLC', plc_options) }}{% endif %}
     {% if state.q or state.filters %}<a class="btn btn-sm btn-link" id="screens-clear" href="{{ url_for('main.screens', per_page=state.per_page) }}">{{ _('Clear') }}</a>{% endif %}
@@ -50,7 +50,7 @@
     <tr data-screen-id="{{ d.id }}">
       <td><a class="fw-semibold" href="{{ url_for('dashboards.view', slug=d.slug) }}">{{ d.name }}</a>
         {% if home and home.id == d.id %} <span class="badge text-bg-success" title="{{ _('Your home screen') }}"><i class="bi bi-house-fill"></i> {{ _('home') }}</span>{% endif %}</td>
-      <td>{% if d.is_image %}<span class="badge text-bg-primary"><i class="bi bi-image"></i> {{ _('image') }}</span>{% else %}<span class="badge hmi-badge-neutral"><i class="bi bi-grid-3x3-gap"></i> {{ _('grid') }}</span>{% endif %}</td>
+      <td>{% if d.is_image %}<span class="badge text-bg-primary"><i class="bi bi-image"></i> {{ _('plane') }}</span>{% else %}<span class="badge hmi-badge-neutral"><i class="bi bi-grid-3x3-gap"></i> {{ _('grid') }}</span>{% endif %}</td>
       <td class="small text-secondary screens-desc" title="{{ d.description }}">{{ d.description or '—' }}</td>
       <td class="small">{% for p in d.plcs %}{{ p.name }}{{ ', ' if not loop.last }}{% else %}<span class="text-secondary">—</span>{% endfor %}</td>
       <td class="text-end">{{ d.datapoints|length }}</td>
@@ -80,7 +80,7 @@
         <h2 class="h5 card-title d-flex justify-content-between align-items-start">
           <a class="stretched-link text-reset text-decoration-none" href="{{ url_for('dashboards.view', slug=d.slug) }}">{{ d.name }}</a>
           <span>{% if home and home.id == d.id %}<span class="badge text-bg-success" title="{{ _('Your home screen') }}"><i class="bi bi-house-fill"></i> {{ _('home') }}</span>{% endif %}
-          {% if d.is_image %}<span class="badge text-bg-primary"><i class="bi bi-image"></i> {{ _('image') }}</span>{% endif %}
+          {% if d.is_image %}<span class="badge text-bg-primary"><i class="bi bi-image"></i> {{ _('plane') }}</span>{% endif %}
           {% if d.is_public %}<span class="badge text-bg-info">{{ _('public') }}</span>{% endif %}</span>
         </h2>
         <p class="card-text text-secondary small">{{ d.description or _('No description') }}</p>
@@ -111,7 +111,7 @@
         <input class="form-control mb-3" type="file" name="file" accept=".svg,image/svg+xml" multiple required>
         <ul class="small text-secondary mb-0">
           <li>{{ _('Files saved with Export SVG in the designer become complete, editable screens again: tags are matched by name and PLC (missing tags are created when their PLC exists), images are added to the library.') }}</li>
-          <li>{{ _('Other drawings (Inkscape, CAD, Visio…) become a new Image screen with the drawing as background, ready for tags, symbols and buttons on top.') }}</li>
+          <li>{{ _('Other drawings (Inkscape, CAD, Visio…) become a new Plane screen with the drawing as background, ready for tags, symbols and buttons on top.') }}</li>
           <li>{{ _('Each file creates a new screen; existing screens are never changed.') }}</li>
         </ul>
       </div>

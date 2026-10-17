@@ -11,7 +11,7 @@ A web-based HMI for **Siemens S7 PLCs** (S7-300/400/1200/1500, LOGO! 8),
 * Data points are addressed in Siemens notation: `DB1.DBD4`, `DB1.DBX0.0`,
   `M10.5`, `MW20`, `IW64`, `Q0.1`, `T5`, `C3`, with types BOOL, BYTE, (U)SINT,
   CHAR, WORD, (U)INT, DWORD, (U)DINT, REAL, LREAL, TIME, DTL, STRING[n].
-* Two screen types: **Grid** (automatic tiles) and **Image** – a graphic
+* Two screen types: **Grid** (automatic tiles) and **Plane** – a graphic
   (mimic) screen drawn in a drag-and-drop **SVG designer** with buildings,
   floors, rooms, walls, pipes, ~20 built-in equipment symbols (fan, pump,
   generator, valve, tank…), your own uploaded images (PNG/JPEG/GIF/WebP/SVG),
@@ -366,9 +366,9 @@ and the HMI gives each tag an internal slot (shown as `D1`, `D2`…). Choose the
   address (the address is required again). Its screens and alarms stay attached.
 * A dummy PLC is always *connected* and gets no communication alarm.
 
-## 6. Image (graphic) screens
+## 6. Plane (graphic) screens
 
-Create one with **Screens → New screen → Type: Image**; the designer opens.
+Create one with **Screens → New screen → Type: Plane**; the designer opens.
 
 **Palette (left)** – drag an item onto the canvas, or click it to drop it in the middle:
 
@@ -451,7 +451,7 @@ the section shows an installation hint.
   drawing – including unsaved changes – as a standalone `.svg` file: images are embedded,
   objects hidden at run time are left out, and the complete screen (layout, descriptions of
   the tags used, images, names of linked screens) is stored inside the file.
-* **Import SVG** (Screens page, several files at once) creates a new Image screen per file:
+* **Import SVG** (Screens page, several files at once) creates a new Plane screen per file:
   - a file from *Export SVG* becomes the same, fully editable screen again (also on another
     pyPLCHMI installation): tags are matched by label + PLC name; missing tags are created
     when their PLC exists, otherwise their bindings are removed (reported); identical images
@@ -535,7 +535,7 @@ be bookmarked.
 * Visitors who are not logged in see it immediately (wall display / kiosk), and
   users land on it after **Log out**.
 * Visitors can move only between screens marked **public** (the *Screens* menu
-  lists them, and links on Image screens work). Opening any other screen shows a
+  lists them, and links on Plane screens work). Opening any other screen shows a
   **Restricted Area** page with a *Log in* button that returns to that screen.
 * Visitors can never write to the PLC; buttons are greyed out.
 * With “none” selected (the default) every page requires a login, as before.
@@ -554,7 +554,7 @@ the next screen loads). Leave with **Esc** or the small button in the top corner
 stays on the screen that was open last.
 Alarm pop-ups and other messages appear inside full screen too.
 
-**Image screens** start directly under the top bar, without a frame or border. In the designer
+**Plane screens** start directly under the top bar, without a frame or border. In the designer
 (*Canvas* properties, nothing selected) the section **Page around the drawing** sets a **page
 background colour** and/or **page background image** (cover, contain, stretch, repeat, centre) for
 the whole window of the screen – combined with *Background colour: none* for the drawing, the
@@ -591,7 +591,7 @@ appear on any number of screens, and changing a tag changes it everywhere.
   one or more tags and *Add to screen*. ✕ **Remove from screen** keeps the tag in the
   tag table. ↑/↓ order the tiles of this screen (each screen has its own order).
   Widget and tile width belong to the tag, so they are the same on every grid screen.
-* **Image screens** (designer, *PLC tags* palette): **New tag** or **Existing tag**
+* **Plane screens** (designer, *PLC tags* palette): **New tag** or **Existing tag**
   (same searchable list); the *Tag* property of an element also offers both.
 * Deleting a screen keeps its tags in the tag table.
 
@@ -697,7 +697,7 @@ Language file format (UTF-8):
 * placeholders such as `{0}` or `{name}` must stay in the translation (entries that lose or add a
   placeholder are ignored and reported on upload);
 * `direction` is `rtl` for Hebrew, Arabic…: the pages then switch to right-to-left
-  (Bootstrap RTL); drawings on Image screens and the designer canvas keep their layout.
+  (Bootstrap RTL); drawings on Plane screens and the designer canvas keep their layout.
 
 Uploaded files are stored in `instance/languages/` (`LANGUAGES_FOLDER`). Names you enter (screens,
 tags, PLCs, images, alarm texts) are data and are not translated. After changing texts in the
@@ -706,7 +706,7 @@ language is missing.
 
 ## 7d. Dialogs and notifications (SweetAlert2)
 
-Confirmations (delete, write a value to the PLC…), value entry on Image screens, alerts and
+Confirmations (delete, write a value to the PLC…), value entry on Plane screens, alerts and
 messages use [SweetAlert2](https://sweetalert2.github.io/) dialogs in the dark HMI style, in the
 user's language and direction. Messages after an action (*saved*, *deleted*, errors) appear as a
 toast in the corner: success and information close by themselves (hover to keep them), warnings
@@ -747,7 +747,7 @@ the chart title and time range on a dark background. Long ranges are reduced for
 the minimum and maximum of each time slot, so peaks remain visible. Chart.js and its date
 adapter are bundled in `app/static/vendor/chartjs` (no internet access needed).
 
-**On screens: right-click a value** (grid tile, or any element bound to a tag on an Image screen;
+**On screens: right-click a value** (grid tile, or any element bound to a tag on an Plane screen;
 a long press on touch screens) for a small menu:
 
 * **Show graph** – for tags with history (users with `view_history`): a window with the trend of
@@ -759,7 +759,7 @@ a long press on touch screens) for a small menu:
   PLC (name, protocol, connection address, live status); and the screens and alarms that use the
   tag. Visitors on public screens do not see the PLC's network address or the alarms.
 
-Both windows also work while an Image screen is in full-screen mode.
+Both windows also work while an Plane screen is in full-screen mode.
 
 ## 7f. Top bar, Settings and colour theme
 
@@ -784,7 +784,7 @@ Both windows also work while an Image screen is in full-screen mode.
   cheap: it runs `SELECT 1` and answers `503` when the database fails.
 * **Settings** (person icon): account details, **colour theme** – *Dark mode* (default),
   *Light mode* or *Automatic* (follows the operating system's light/dark setting) –, the
-  language and the password. Image screens keep the colours of their drawing in both themes.
+  language and the password. Plane screens keep the colours of their drawing in both themes.
 
 ## 7g. Information library and PLC files (*Library* in the menu)
 

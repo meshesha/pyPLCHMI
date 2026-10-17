@@ -131,7 +131,7 @@ waves for numbers, toggling bits, a clock string). IP addresses ending in
   stop a slow request that carries an *old* cookie (e.g. the value poll of a public screen in
   another tab, waiting for a PLC timeout) from overwriting a fresh login or logout cookie.
 
-## Image (graphic) screens
+## Plane (graphic) screens
 
 ```
 designer.html ── hmi-designer.js ──┐            hmi-mimic.js ── mimic_view.html
@@ -432,7 +432,7 @@ HistoryLogger thread (wakes every HISTORY_TICK s, just after each whole second)
   list (posted as JSON in the hidden `series` field, validated by `ChartForm`); `history.js`
   drives the tag pickers and quick ranges.
 * **Value menu on screens** – `static/js/hmi-tagmenu.js` (included by `dashboards/_tag_menu.html`
-  on grid and Image screens) handles `contextmenu` on `.hmi-tile[data-id]` and on Image screen
+  on grid and Plane screens) handles `contextmenu` on `.hmi-tile[data-id]` and on Plane screen
   elements bound to a tag. `dashboards.routes.tag_menu_data()` provides labels, a per-tag
   `history` flag (`history.data.tags_with_history`: logging on or samples saved) and URLs.
   *Show graph* loads Chart.js on demand and reads `/history/api/series` for the last *N* days;
@@ -458,7 +458,7 @@ HistoryLogger thread (wakes every HISTORY_TICK s, just after each whole second)
   (`/screens/go/<id>?embed=1` keeps the flag) navigate inside the frame, so the browser does not
   leave full screen – it always does when the top page is replaced. When full screen ends the
   page follows the frame's URL. `alarms.js` in the frame shows the alarm window (it works without the top bar); the
-  parent page does not pop up alarms while the overlay exists. Image screens use
+  parent page does not pop up alarms while the overlay exists. Plane screens use
   `{% block main_class %}p-0 hmi-page-mimic{% endblock %}` and an inline style from
   `dashboards.layout.page_style()` (canvas `pageBackground`, `pageBackgroundImage`, `pageBackgroundFit`).
 * Themes – `users.theme` (`dark` | `light` | `auto`, migration `f2c8a4e6b1d3`), saved by

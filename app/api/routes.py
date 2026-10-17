@@ -311,7 +311,7 @@ def dashboard_layout_save(dashboard_id: int):
     """
     dashboard = db.get_or_404(Dashboard, dashboard_id)
     if not dashboard.is_image:
-        return _json_error(gettext('not an Image screen'), 400)
+        return _json_error(gettext('not a Plane screen'), 400)
     data = request.get_json(silent=True)
     try:
         layout = sanitize_layout(

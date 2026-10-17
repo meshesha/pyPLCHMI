@@ -191,7 +191,7 @@ def designer(dashboard_id: int):
     """
     dashboard = _get_dashboard(dashboard_id)
     if not dashboard.is_image:
-        flash(gettext('The designer is only available for Image screens (change the type in the screen settings).'), "warning")
+        flash(gettext('The designer is only available for Plane screens (change the type in the screen settings).'), "warning")
         return redirect(url_for("dashboards.edit", dashboard_id=dashboard.id))
     data = _runtime_data(dashboard)
     data["can_write"] = True  # buttons are always clickable in the editor's live preview
