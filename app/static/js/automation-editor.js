@@ -92,6 +92,7 @@
       const v = block[f.key];
       if (v === undefined || v === null || v === "" || (Array.isArray(v) && !v.length)) return;
       if (f.kind === "conditions" || f.kind === "actions") { parts.push(f.label + ": " + v.length); return; }
+      if (f.kind === "calc") { const ls = String(v).split("\n").filter((x) => x.trim()); parts.push(ls[0] + (ls.length > 1 ? " (+" + (ls.length - 1) + ")" : "")); return; }
       if (["tag", "tag_writable", "alarm", "plc", "automation"].includes(f.kind)) { parts.push(refName(f.kind === "tag_writable" ? "tag" : f.kind, v)); return; }
       if (f.kind === "duration") { parts.push(f.label + " " + fmtDuration(v)); return; }
       if (f.kind === "select") { const o = (f.options || []).find((x) => x[0] === v); parts.push(o ? o[1] : v); return; }
@@ -256,6 +257,42 @@
         lb.htmlFor = id;
         sw.append(input, lb);
         wrap.append(sw);
+        return wrap;
+      }
+      case "calc": {
+        // Calculation text + "Insert tag" picker (inserts [Label], or [#id] for labels used twice).
+        wrap.className += " nested";
+        input = el("textarea", "form-control form-control-sm hmi-auto-calc");
+        input.rows = Math.max(3, String(block[f.key] || "").split("\n").length + 1);
+        input.dir = "ltr";
+        input.spellcheck = false;
+        input.placeholder = "tag_1 = tag_1 + 1\n[Flow total] = [Flow 1] * [Factor]";
+        input.value = block[f.key] || "";
+        input.addEventListener("input", () => set(input.value));
+        const pick = el("select", "form-select form-select-sm hmi-auto-calc-insert");
+        pick.setAttribute("aria-label", T("Insert tag"));
+        pick.append(new Option(T("Insert tag…"), ""));
+        const counts = {};
+        R.tags.forEach((t) => { counts[t.label] = (counts[t.label] || 0) + 1; });
+        R.tags.filter((t) => !t.local && (t.numeric || t.bool)).forEach((t) => {
+          const ref = counts[t.label] > 1 ? "[#" + t.id + "]" : "[" + t.label + "]";
+          pick.append(new Option(t.label + " · " + t.plc + " · " + t.type + (t.writable ? "" : " · " + T("read only")), ref));
+        });
+        pick.addEventListener("change", () => {
+          if (!pick.value) return;
+          const start = input.selectionStart ?? input.value.length;
+          const end = input.selectionEnd ?? start;
+          input.value = input.value.slice(0, start) + pick.value + input.value.slice(end);
+          input.focus();
+          input.selectionStart = input.selectionEnd = start + pick.value.length;
+          pick.value = "";
+          set(input.value);
+        });
+        input.id = id;
+        const bar = el("div", "d-flex flex-wrap gap-2 align-items-center mb-1");
+        bar.append(label, pick);
+        label.classList.add("mb-0", "me-auto");
+        wrap.append(bar, input);
         return wrap;
       }
       case "textarea":

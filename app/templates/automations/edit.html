@@ -60,7 +60,7 @@
               <input class="form-check-input" type="checkbox" role="switch" id="auto-allow-writes" {{ 'checked' if allow_writes }} {{ 'disabled' if not can_approve }}>
               <label class="form-check-label" for="auto-allow-writes"><i class="bi bi-shield-lock"></i> {{ _('Allowed to write PLC tags (administrator approval)') }}</label>
             </div>
-            <div class="form-text">{{ _('Write tag actions run only when an administrator has approved this automation, and only on writable tags. If someone else changes the Write tag actions, the approval is withdrawn.') if can_approve else _('Only an administrator can approve writing PLC tags. Changing the Write tag actions withdraws the approval.') }}</div>
+            <div class="form-text">{{ _('Write tag and Calculate actions run only when an administrator has approved this automation, and only on writable tags. If someone else changes these actions, the approval is withdrawn.') if can_approve else _('Only an administrator can approve writing PLC tags. Changing the Write tag or Calculate actions withdraws the approval.') }}</div>
           </div>
         </div>
       </div>

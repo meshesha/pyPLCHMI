@@ -446,3 +446,86 @@ def test_navigation_and_search(app, client, users, tags):
     assert 'id="nav-automations"' in client.get("/screens/").get_data(as_text=True)
     results = client.get("/api/search?q=autom").get_json()["results"]
     assert any(r["label"] == "Automations" for r in results)
+
+
+# ---------------------------------------------------------------------------- calculate
+def calc(expression, on_range="stop"):
+    """A Calculate action."""
+    return {"type": "calculate", "expression": expression, "on_range": on_range}
+
+
+def test_calc_parser_and_static_checks(app, tags):
+    """Syntax errors and problematic tags are reported per line when saving."""
+    from app.automations.calc import CalcError, check, parse  # noqa: PLC0415
+
+    assert [ln.target for ln in parse("Mode = Mode + 1\n# comment\n[Temp] = [Temp] * 2  # x")] == ["Mode", "Temp"]
+    for bad, msg in [("Mode = ", "a value is missing"), ("= 3", "must start with a tag"),
+                     ("Mode = Mode +* 2", "unexpected '*'"), ("Mode = foo(1)", "unknown function"),
+                     ("Mode = round()", "wrong number of values"), ("Mode = Mode $ 2", "unexpected character")]:
+        with pytest.raises(CalcError, match=msg):
+            parse(bad)
+    problems = check("Mode = Nope + 1\nReadonly = 1\nText = 1\nMode = Text * 2\nMode = Mode / (2 - 2)")
+    text = " | ".join(problems)
+    assert "line 1: tag 'Nope' does not exist" in text
+    assert "line 2: tag 'Readonly' is read-only" in text
+    assert "line 3: tag 'Text' cannot be calculated (data type STRING)" in text
+    assert "line 4: tag 'Text' is not a number" in text
+    assert "line 5: division by zero" in text
+    assert check("Mode = Mode + [Pump] * 2") == []          # BOOL sources count as 0/1
+    with pytest.raises(ConfigError) as exc:
+        validate({"actions": [calc("Mode = Nope + 1\nReadonly = 2")]})
+    assert len(exc.value.errors) == 2 and all(e.startswith("actions[1].expression: line") for e in exc.value.errors)
+
+
+def test_calc_runs_all_lines_in_order(app, db, tags):
+    """Lines see earlier results; values are written; the audit log has every write."""
+    setv(tags["mode"], 5)
+    setv(tags["temp"], 2.5)
+    setv(tags["pump"], True)
+    a = make(db, actions=[calc("Mode = Mode + 1\nTemp = Mode * Temp + [Pump]\nMode = round(Temp) % 4")])
+    engine.trigger(a, "t")
+    run = runs(a)[-1]
+    assert run.status == "finished", run.error
+    assert getv(tags["temp"]) == pytest.approx(16.0) and getv(tags["mode"]) == 0
+    assert sum(1 for s in run.trace if "/line" in s["path"]) == 3
+    assert AuditLog.query.filter_by(action="write", username="Automation: Auto").count() == 3
+
+
+def test_calc_safeguards_write_nothing(app, db, tags):
+    """Division by zero, overflow/underflow and unreadable tags stop the action before any write."""
+    setv(tags["mode"], 32760)
+    setv(tags["temp"], 0)
+    a = make(db, name="Div", actions=[calc("Mode = 1\nMode = 10 / Temp")])
+    engine.trigger(a, "t")
+    assert runs(a)[-1].status == "error" and "division by zero" in runs(a)[-1].error
+    assert getv(tags["mode"]) == 32760                      # line 1 was not written either
+    b = make(db, name="Over", actions=[calc("Mode = Mode + 10")])
+    engine.trigger(b, "t")
+    assert "outside the range of 'Mode' (-32768 … 32767)" in runs(b)[-1].error and getv(tags["mode"]) == 32760
+    setv(tags["mode"], -32760)
+    c = make(db, name="Under", actions=[calc("Mode = Mode - 100", on_range="clamp")])
+    engine.trigger(c, "t")
+    assert runs(c)[-1].status == "finished" and getv(tags["mode"]) == -32768
+    assert any("limited from -32860 to -32768" in s["text"] for s in runs(c)[-1].trace)
+    tags["temp"].min_value, tags["temp"].max_value = 0, 100      # the tag's own Min/Max are limits too
+    db.session.commit()
+    d = make(db, name="MinMax", actions=[calc("Temp = 150")])
+    engine.trigger(d, "t")
+    assert "outside the range of 'Temp' (0 … 100)" in runs(d)[-1].error
+    e = make(db, name="Huge", actions=[calc("Temp = 1e200 * 1e200")])
+    engine.trigger(e, "t")
+    assert "overflow" in runs(e)[-1].error
+
+
+def test_calc_needs_approval_and_counts_as_write(app, db, client, users, tags):
+    """Calculate writes tags: approval required; changing it withdraws the approval."""
+    a = make(db, actions=[calc("Mode = 3")], allow=False)
+    assert a.writes_tags()
+    engine.trigger(a, "t")
+    assert runs(a)[-1].status == "error" and "not approved" in runs(a)[-1].error
+    from app.automations.documents import write_signature  # noqa: PLC0415
+
+    assert write_signature({"actions": [calc("Mode = 3")]}) != write_signature({"actions": [calc("Mode = 4")]})
+    login(client, "admin")
+    bad = client.post("/automations/save", json={"doc": {"name": "C", "actions": [calc("Mode = Nope * 2")]}}).get_json()
+    assert not bad["ok"] and "line 1: tag 'Nope' does not exist" in " ".join(bad["errors"])

@@ -129,9 +129,10 @@ def check_document(doc, automation_id: int | None = None) -> dict:
 
 
 def write_signature(config: dict) -> str:
-    """Text identifying every *Write tag* action (tags and values), to notice changes."""
-    writes = [(a.get("tag"), a.get("value"), a.get("enabled", True))
-              for a in walk_actions(config.get("actions", [])) if a.get("type") == "write"]
+    """Text identifying every *Write tag* and *Calculate* action, to notice changes."""
+    writes = [(a.get("type"), a.get("tag"), a.get("value"), a.get("expression"), a.get("on_range"),
+               a.get("enabled", True))
+              for a in walk_actions(config.get("actions", [])) if a.get("type") in ("write", "calculate")]
     return json.dumps(writes)
 
 
@@ -164,10 +165,10 @@ def apply(automation: Automation, checked: dict, user, allow_writes=None) -> lis
         automation.allow_writes = bool(allow_writes)
     elif automation.allow_writes and old_writes != new_writes:
         automation.allow_writes = False
-        notes.append(gettext("The Write tag actions changed, so an administrator must approve writing again."))
+        notes.append(gettext("The Write tag / Calculate actions changed, so an administrator must approve writing again."))
     if automation.writes_tags() and not automation.allow_writes:
-        notes.append(gettext("This automation writes PLC tags but is not approved for writing: its Write tag "
-                             "actions will fail until an administrator allows it."))
+        notes.append(gettext("This automation writes PLC tags but is not approved for writing: its Write tag and "
+                             "Calculate actions will fail until an administrator allows it."))
     return notes
 
 

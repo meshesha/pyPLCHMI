@@ -499,6 +499,39 @@ class Script:
                username=f"Automation: {self.name}")
         self.steps.append(_step(path, "action", text, "ok", "" if result.get("quality") == "good" else result.get("error") or ""))
 
+    def do_calculate(self, a: dict, path: str, label: str) -> None:
+        """Calculate tags (see :mod:`app.automations.calc`): all lines first, then the writes."""
+        from app.audit.recorder import record  # noqa: PLC0415
+        from app.automations.calc import CalcError, _fmt, plan  # noqa: PLC0415
+        from app.plc.service import write_datapoint  # noqa: PLC0415
+
+        text = label or gettext("Calculate")
+        if not self.allow_writes:
+            self.steps.append(_step(path, "action", text, "error",
+                                    gettext("This automation is not approved for writing tags.")))
+            raise StopRun("error", gettext("This automation is not approved for writing tags (an administrator "
+                                           "must allow it in the automation's settings)."))
+        try:
+            writes = plan(a["expression"], lambda dp: read_values([dp]).get(dp.id),
+                          clamp=a.get("on_range") == "clamp")
+        except CalcError as exc:
+            self.steps.append(_step(path, "action", text, "error", str(exc)))
+            raise StopRun("error", gettext("Calculation not written: {0}", exc)) from None
+        for i, w in enumerate(writes):
+            dp, line = w["tag"], w["line"]
+            here = f"{path}/line{line.number}"
+            desc = f"{dp.label} = {_fmt(w['value'])}" + (f" ({w['note']})" if w["note"] else "")
+            try:
+                result = write_datapoint(dp, w["value"])
+            except Exception as exc:  # noqa: BLE001 - PLC error / value refused by the driver
+                self.steps.append(_step(here, "action", desc, "error", str(exc)))
+                done = gettext("{0} of {1} line(s) were written before the error.", i, len(writes)) if i else ""
+                raise StopRun("error", gettext("Writing '{0}' failed: {1}", dp.label, exc) + (" " + done if done else ""))
+            record("write", "Value", dp.id, f"{dp.label} ({dp.plc.name if dp.plc else ''} {dp.address})",
+                   [{"field": "value", "before": w["before"], "after": result.get("value", w["value"])}],
+                   username=f"Automation: {self.name}")
+            self.steps.append(_step(here, "action", f"{line.source}  →  {desc}", "ok"))
+
     def do_delay(self, a: dict, path: str, label: str) -> None:
         """Pause."""
         self.steps.append(_step(path, "action", label or gettext("Wait {0}", format_duration(a["duration"])), "started"))

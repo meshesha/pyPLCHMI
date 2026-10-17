@@ -587,4 +587,10 @@ AutomationEngine thread ── every AUTOMATION_TICK s ──► engine.tick()
 * **Writes** go through `write_datapoint` like operator writes, are refused unless
   `allow_writes` is set and the tag is writable, and are recorded with `audit.record(...,
   username="Automation: <name>")`. Engine bookkeeping runs under `audit.paused()`.
+* **Calculate** (`calc.py`): a small tokenizer and recursive-descent parser (never `eval`) turn
+  each line into a tree of numbers, tag references, `+ - * / %` and whitelisted functions.
+  `check()` validates the tags for saving (one message per line/tag); `plan()` evaluates all
+  lines in order against values read once per tag, guards division by zero, non-finite and huge
+  numbers, rounds integer targets and checks `tag_limits()` (data type range × scale + offset,
+  narrowed by Min/Max), and only then are the writes performed.
 * Only the newest `KEEP_RUNS` (30) runs per automation are kept.

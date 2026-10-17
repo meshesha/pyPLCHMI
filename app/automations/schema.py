@@ -108,6 +108,17 @@ ACTIONS: dict[str, dict] = {
               "help": "Writes a value to a writable PLC tag. The automation must be approved for writing "
                       "by an administrator.",
               "fields": [_f("tag", "tag_writable", "Tag", True), _f("value", "text", "Value", True)]},
+    "calculate": {"label": "Calculate (math on tags)", "icon": "calculator",
+                  "help": "One line per tag to write, e.g. tag_1 = tag_1 + 1 or [Flow total] = [Flow 1] * [Factor]. "
+                          "Operators + - * / % ( ); functions abs, min, max, round, floor, ceil, sqrt, "
+                          "limit(x, low, high). Tags with spaces in [brackets], [#12] = tag id 12. All lines are "
+                          "calculated first; nothing is written if any line fails (division by zero, a tag that "
+                          "cannot be read, a result outside the tag's range). The automation must be approved "
+                          "for writing.",
+                  "fields": [_f("expression", "calc", "Calculation", True),
+                             _f("on_range", "select", "If a result is outside the tag's range", True,
+                                default="stop", options=[["stop", "stop – write nothing"],
+                                                         ["clamp", "limit it to the nearest allowed value"]])]},
     "delay": {"label": "Wait for a time", "icon": "hourglass-split", "help": "Pauses the actions.",
               "fields": [_f("duration", "duration", "Duration", True)]},
     "wait": {"label": "Wait until", "icon": "pause-circle",
@@ -371,6 +382,17 @@ def _blocks(items, kind: str, path: str, depth: int, lookup: Lookup, errors: lis
             errors.append(f"{here}: " + gettext("unknown field '{0}'", extra))
         for field in spec["fields"]:
             value = item.get(field["key"])
+            if field["kind"] == "calc":
+                from app.automations.calc import check  # noqa: PLC0415
+
+                text = str(value or "")
+                if not text.strip():
+                    errors.append(f"{here}.{field['key']}: " + gettext("is required"))
+                    continue
+                for problem in check(text):
+                    errors.append(f"{here}.{field['key']}: {problem}")
+                block[field["key"]] = text[:4000]
+                continue
             try:
                 cleaned = _field(field, value, kind, f"{here}.{field['key']}", depth, lookup, errors, counter)
             except ValueError as exc:
@@ -457,6 +479,11 @@ def _cross_check(block: dict, path: str, errors: list) -> None:
 
 
 # --------------------------------------------------------------------------- helpers
+def writes(action: dict) -> bool:
+    """Whether an action writes PLC tags (Write tag, Calculate)."""
+    return action.get("type") in ("write", "calculate")
+
+
 def walk_actions(actions: list):
     """Yield every action, including those nested in if / repeat blocks."""
     for action in actions or []:

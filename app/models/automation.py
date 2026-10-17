@@ -83,10 +83,10 @@ class Automation(db.Model):
         return MODES.get(self.mode, self.mode).split(" – ")[0]
 
     def writes_tags(self) -> bool:
-        """Whether any action (also nested ones) writes a PLC tag."""
+        """Whether any action (also nested ones) writes a PLC tag (Write tag or Calculate)."""
         from app.automations.schema import walk_actions  # noqa: PLC0415
 
-        return any(a.get("type") == "write" for a in walk_actions(self.config["actions"]))
+        return any(a.get("type") in ("write", "calculate") for a in walk_actions(self.config["actions"]))
 
     def to_document(self) -> dict:
         """Export form (used for YAML export/import and the text editor).

@@ -866,11 +866,32 @@ of Home Assistant. Each automation has three parts:
 * **And if** (optional conditions – all must be true): *Tag value is*, *Tag above / below*,
   *Time window* (may pass midnight, week days), *Alarm is active*, and the building blocks
   *And*, *Or*, *Not*.
-* **Then do** (actions, in order): *Write tag*, *Wait for a time*, *Wait until* (with timeout),
+* **Then do** (actions, in order): *Write tag*, *Calculate* (math on tags, see below), *Wait for a time*, *Wait until* (with timeout),
   *Condition* (stop unless true), *If – then – else*, *Repeat*, *Notification* (shown to the
   operators in the alarm list/strip and closed when acknowledged, or only written to the run
   trace; `{trigger}` is replaced by what started the run), *Other automation* (run / enable /
   disable) and *Stop*.
+
+**Calculate** – one assignment per line, for example:
+
+```
+counter = counter + 1
+[Flow total] = [Flow 1] * [Factor] + [Flow 2]
+Setpoint = limit(Setpoint * 1.1, 0, 80)
+```
+
+Tags are written by label (in `[brackets]` when the label has spaces; `[#12]` is the tag with
+id 12; *Insert tag…* adds one at the cursor). Operators `+ - * / %` and parentheses; functions
+`abs`, `min`, `max`, `round`, `floor`, `ceil`, `sqrt`, `limit(x, low, high)`; `#` starts a comment.
+The text is checked when saving: every tag must exist, sources must be numbers (or BOOL = 0/1) and
+targets writable number tags – each problem is listed with its line. At run time all lines are
+calculated first (later lines use the results of earlier ones) and **nothing is written unless
+every line succeeds**: division by zero, a tag that cannot be read, a result that is not a finite
+number, or a result outside the target's range (its data type in engineering units, e.g. INT
+-32768 … 32767, and its Min/Max when both are set) stop the action. Choose *limit it to the
+nearest allowed value* to clamp out-of-range results instead (the run trace says so). Results
+for integer tags are rounded. Calculate writes tags, so it needs the administrator's approval
+like *Write tag*.
 
 Every block can be renamed, moved, duplicated, disabled or deleted (⋮ menu). **Edit in YAML**
 shows the same automation as text (tags, alarms, PLCs and automations by name); automations can
@@ -881,9 +902,9 @@ be **exported** and **imported** as YAML (one or a list; all or nothing).
 * **Runs** – the last 30 runs of each automation with a step-by-step trace: what triggered it,
   each condition (true/false) and each action (result, errors). *Run actions* starts the
   actions at once (triggers and conditions are skipped).
-* **Safety of PLC writes** – *Write tag* only works on writable tags, and only after an
+* **Safety of PLC writes** – *Write tag* and *Calculate* only work on writable tags, and only after an
   administrator has approved the automation (*Allowed to write PLC tags*). Whoever else changes
-  the *Write tag* actions withdraws the approval; imported automations are never approved. Every
+  these actions withdraws the approval; imported automations are never approved. Every
   write is in the audit log as **Automation: <name>**, with the value before and after.
 * Triggers follow Home Assistant: they fire on a **change**, so a tag that is already above its
   limit when the server starts does not fire until it has left the range and crossed it again.

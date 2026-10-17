@@ -667,6 +667,8 @@ body.hmi-bulk-open main { padding-bottom: 5rem !important; }
 .hmi-auto-days { display: flex; flex-wrap: wrap; gap: .25rem; }
 .hmi-auto-duration .form-control { max-width: 5rem; }
 .hmi-auto-approval { padding: .6rem .8rem; border: 1px solid var(--hmi-border); border-radius: .45rem; background: var(--hmi-raised); }
+.hmi-auto-calc { font-family: ui-monospace, Consolas, monospace; font-size: .9rem; }
+.hmi-auto-calc-insert { width: auto; max-width: 22rem; }
 .hmi-auto-yaml { font-family: ui-monospace, Consolas, monospace; font-size: .9rem; line-height: 1.45; tab-size: 2; }
 .hmi-auto-save { position: fixed; bottom: 1.25rem; inset-inline-end: 1.5rem; z-index: 1020; }
 .automation-run-status { font-weight: 600; }
