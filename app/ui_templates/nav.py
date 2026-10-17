@@ -66,6 +66,8 @@ def nav_items(user, home_overview: bool = False) -> list[NavItem]:
     if user.can(Perm.MANAGE_ROLES):
         items.append(NavItem("tags", gettext("Tag table"), "tags", url_for("tags.index"), ENGINEER, eng))
         items.append(NavItem("alarms", gettext("Alarms"), "bell", url_for("alarms.index"), ENGINEER, eng))
+    if user.can(Perm.MANAGE_AUTOMATIONS):
+        items.append(NavItem("automations", gettext("Automations"), "robot", url_for("automations.index"), ENGINEER, eng))
     if user.can(Perm.MANAGE_PLCS):
         items.append(NavItem("plcs", gettext("PLCs"), "hdd-network", url_for("admin.plcs"), ENGINEER, eng))
     if user.can(Perm.MANAGE_SCREENS):

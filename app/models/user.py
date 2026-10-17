@@ -43,6 +43,7 @@ class Perm:
     WRITE_VALUES = "write_values"
     VIEW_HISTORY = "view_history"
     VIEW_AUDIT = "view_audit"
+    MANAGE_AUTOMATIONS = "manage_automations"
 
     #: Human-readable description for each permission (shown in the admin UI).
     DESCRIPTIONS = {
@@ -55,6 +56,7 @@ class Perm:
         WRITE_VALUES: "Write values to writable tags",
         VIEW_HISTORY: "View tag history and trend charts, export history to Excel",
         VIEW_AUDIT: "View the audit log (who changed what and when)",
+        MANAGE_AUTOMATIONS: "Create, edit, run and delete automations",
     }
 
     @classmethod

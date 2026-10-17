@@ -7,14 +7,14 @@ from app.admin import bp
 from app.admin.forms import PLCForm, RoleForm, SettingsForm, UserForm
 from app.extensions import db
 from app.history.logger import RETENTION_SETTING, retention_days
-from app.models import PLC, Alarm, Dashboard, DataPoint, Perm, Permission, Role, User
+from app.models import PLC, Alarm, Automation, Dashboard, DataPoint, Perm, Permission, Role, User
 from app.models.setting import PUBLIC_HOME_SCREEN, get_setting, public_home_screen, set_setting
 from app.models.user import DEFAULT_ROLES
 from app.plc.driver import PLCError, get_manager
 from app.utils.decorators import admin_required, permission_required
 from app.i18n.catalog import gettext
 
-ADMIN_PERMS = (Perm.MANAGE_USERS, Perm.MANAGE_ROLES, Perm.MANAGE_PLCS)
+ADMIN_PERMS = (Perm.MANAGE_USERS, Perm.MANAGE_ROLES, Perm.MANAGE_PLCS, Perm.MANAGE_AUTOMATIONS)
 
 
 @bp.route("/")
@@ -32,6 +32,7 @@ def index():
         user_count=User.query.count(),
         role_count=Role.query.count(),
         plc_count=PLC.query.count(),
+        automation_count=Automation.query.count(),
         public_home=public_home_screen(),
     )
 

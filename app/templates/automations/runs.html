@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "_table.html" import local_time %}
+{% block title %}{{ _('Runs') }} · {{ automation.name }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+  <a class="btn btn-link text-reset px-1" href="{{ url_for('automations.edit', automation_id=automation.id) }}" aria-label="{{ _('Back to the automation') }}"><i class="bi bi-arrow-left fs-4"></i></a>
+  <div class="flex-grow-1">
+    <h1 class="h3 mb-0">{{ _('Runs') }} · {{ automation.name }}</h1>
+    <div class="small text-secondary">{{ _('The last {0} runs with every step: what triggered the run, which conditions were checked and what each action did.', 30) }}</div>
+  </div>
+  {% if running %}
+  <form method="post" action="{{ url_for('automations.stop', automation_id=automation.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-outline-danger" type="submit"><i class="bi bi-stop-fill"></i> {{ _('Stop ({0} running)', running) }}</button>
+  </form>
+  {% endif %}
+  <a class="btn btn-outline-secondary" href="{{ url_for('automations.runs', automation_id=automation.id) }}"><i class="bi bi-arrow-clockwise"></i> {{ _('Refresh') }}</a>
+</div>
+
+{% if runs %}
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="list-group" id="run-list">
+    {% for r in runs %}
+      <a class="list-group-item list-group-item-action hmi-run-item {{ 'active' if selected and r.id == selected.id }}"
+         href="{{ url_for('automations.runs', automation_id=automation.id, run=r.id) }}" data-run-id="{{ r.id }}">
+        <div class="d-flex justify-content-between gap-2">
+          <span class="automation-run-status status-{{ r.status }}">{{ _(r.status_label) }}</span>
+          <small>{{ local_time(r.started_at) }}</small>
+        </div>
+        <div class="small text-truncate">{{ r.trigger }}</div>
+      </a>
+    {% endfor %}
+    </div>
+  </div>
+  <div class="col-lg-7">
+    {% if selected %}
+    <div class="card hmi-panel" id="run-detail"><div class="card-body">
+      <h2 class="h5"><span class="automation-run-status status-{{ selected.status }}">{{ _(selected.status_label) }}</span></h2>
+      <dl class="row small mb-3">
+        <dt class="col-sm-3">{{ _('Triggered by') }}</dt><dd class="col-sm-9">{{ selected.trigger }}</dd>
+        <dt class="col-sm-3">{{ _('Started') }}</dt><dd class="col-sm-9">{{ local_time(selected.started_at) }}</dd>
+        <dt class="col-sm-3">{{ _('Duration') }}</dt><dd class="col-sm-9">{{ '%.2f s'|format(selected.duration) if selected.duration is not none else _('running') }}</dd>
+        {% if selected.error %}<dt class="col-sm-3">{{ _('Error') }}</dt><dd class="col-sm-9 text-danger">{{ selected.error }}</dd>{% endif %}
+      </dl>
+      <ol class="hmi-trace" id="run-trace">
+      {% for step in selected.trace %}
+        <li class="hmi-trace-step kind-{{ step.kind }} result-{{ step.result }}">
+          <div class="d-flex justify-content-between gap-2">
+            <span><span class="badge hmi-badge-neutral me-1">{{ _(step.kind) }}</span> {{ step.text }}</span>
+            <span class="hmi-trace-result">{{ _(step.result) }}</span>
+          </div>
+          <div class="small text-secondary"><code>{{ step.path }}</code> · <time class="js-local-time" datetime="{{ step.at }}">{{ step.at[11:19] }}</time></div>
+          {% if step.error %}<div class="small text-danger">{{ step.error }}</div>{% endif %}
+        </li>
+      {% endfor %}
+      </ol>
+    </div></div>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+<p class="text-secondary">{{ _('This automation has not run yet.') }}</p>
+{% endif %}
+{% endblock %}

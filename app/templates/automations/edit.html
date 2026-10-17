@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}{{ automation.name if automation else _('New automation') }}{% endblock %}
+{% block content %}
+{# Automation editor in the style of Home Assistant: When / And if / Then do.
+   automation-editor.js builds the cards from the block descriptions (schema) and saves as JSON;
+   the YAML view edits the same automation as text. #}
+<div id="automation-editor" class="hmi-auto-editor"
+     data-automation-id="{{ automation.id if automation else '' }}"
+     data-save-url="{{ url_for('automations.save') }}"
+     data-to-yaml-url="{{ url_for('automations.api_to_yaml') }}"
+     data-from-yaml-url="{{ url_for('automations.api_from_yaml') }}"
+     data-run-url="{{ url_for('automations.run', automation_id=0) }}"
+     data-runs-url="{{ url_for('automations.runs', automation_id=0) }}"
+     data-list-url="{{ url_for('automations.index') }}"
+     data-can-approve="{{ 1 if can_approve else 0 }}">
+
+  <div class="hmi-auto-head">
+    <a class="btn btn-link text-reset px-1" href="{{ url_for('automations.index') }}" aria-label="{{ _('Back to the automations') }}"><i class="bi bi-arrow-left fs-4"></i></a>
+    <h1 class="h3 mb-0 flex-grow-1" id="auto-title">{{ automation.name if automation else _('New automation') }}</h1>
+    <span class="badge text-bg-warning" id="auto-dirty" hidden>{{ _('Unsaved changes') }}</span>
+    <button type="button" class="btn btn-outline-success" id="auto-run" {{ 'disabled' if not automation }}><i class="bi bi-play-fill"></i> {{ _('Run actions') }}</button>
+    <a class="btn btn-outline-info {{ 'disabled' if not automation }}" id="auto-runs" href="{{ url_for('automations.runs', automation_id=automation.id) if automation else '#' }}"><i class="bi bi-list-check"></i> {{ _('Runs') }}</a>
+    <div class="dropdown">
+      <button class="btn btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-label="{{ _('More') }}" id="auto-menu"><i class="bi bi-three-dots-vertical"></i></button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><button class="dropdown-item" type="button" id="auto-mode-toggle"><i class="bi bi-code-slash"></i> <span>{{ _('Edit in YAML') }}</span></button></li>
+        {% if automation %}
+        <li><a class="dropdown-item" href="{{ url_for('automations.create', copy=automation.id) }}"><i class="bi bi-copy"></i> {{ _('Duplicate') }}</a></li>
+        <li><a class="dropdown-item" download href="{{ url_for('automations.export_one', automation_id=automation.id) }}"><i class="bi bi-download"></i> {{ _('Export YAML') }}</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><form method="post" action="{{ url_for('automations.delete', automation_id=automation.id) }}" data-confirm="{{ _('Delete automation {0}?', automation.name) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="dropdown-item text-danger" type="submit"><i class="bi bi-trash"></i> {{ _('Delete') }}</button></form></li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+
+  <div class="alert alert-danger" id="auto-errors" role="alert" hidden><strong>{{ _('Please fix:') }}</strong><ul class="mb-0" id="auto-error-list"></ul></div>
+
+  <section class="card hmi-panel mb-4" aria-labelledby="auto-settings-title">
+    <div class="card-body">
+      <h2 class="h5" id="auto-settings-title">{{ _('Settings') }}</h2>
+      <div class="row g-3">
+        <div class="col-md-6"><label class="form-label" for="auto-name">{{ _('Name') }}</label>
+          <input class="form-control" id="auto-name" maxlength="100" required></div>
+        <div class="col-md-3"><label class="form-label" for="auto-mode">{{ _('Mode') }}</label>
+          <select class="form-select" id="auto-mode">{% for code, label in modes %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-md-3" id="auto-max-wrap"><label class="form-label" for="auto-max">{{ _('Most runs at the same time / queued') }}</label>
+          <input class="form-control" id="auto-max" type="number" min="1" max="100"></div>
+        <div class="col-12"><label class="form-label" for="auto-desc">{{ _('Description') }}</label>
+          <input class="form-control" id="auto-desc" maxlength="500"></div>
+        <div class="col-md-6">
+          <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="auto-enabled">
+            <label class="form-check-label" for="auto-enabled">{{ _('Enabled – the triggers are watched') }}</label></div>
+        </div>
+        <div class="col-md-6">
+          <div class="hmi-auto-approval" id="auto-approval">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="auto-allow-writes" {{ 'checked' if allow_writes }} {{ 'disabled' if not can_approve }}>
+              <label class="form-check-label" for="auto-allow-writes"><i class="bi bi-shield-lock"></i> {{ _('Allowed to write PLC tags (administrator approval)') }}</label>
+            </div>
+            <div class="form-text">{{ _('Write tag actions run only when an administrator has approved this automation, and only on writable tags. If someone else changes the Write tag actions, the approval is withdrawn.') if can_approve else _('Only an administrator can approve writing PLC tags. Changing the Write tag actions withdraws the approval.') }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="auto-visual">
+    <section class="hmi-auto-section" data-kind="triggers" aria-labelledby="auto-when">
+      <h2 id="auto-when">{{ _('When') }}</h2>
+      <p class="hmi-auto-help">{{ _('A trigger is something that happens, for example: a tag goes above a limit, an alarm is raised or it is 06:00. Any trigger added here starts the automation.') }}</p>
+      <div class="hmi-auto-list" data-list="triggers"></div>
+    </section>
+    <section class="hmi-auto-section" data-kind="conditions" aria-labelledby="auto-andif">
+      <h2 id="auto-andif">{{ _('And if') }} <small>({{ _('optional') }})</small></h2>
+      <p class="hmi-auto-help">{{ _('All conditions added here must be true for the actions to run, for example: the pump is in automatic mode, or the time is between 06:00 and 22:00. Use And / Or / Not for more complex conditions.') }}</p>
+      <div class="hmi-auto-list" data-list="conditions"></div>
+    </section>
+    <section class="hmi-auto-section" data-kind="actions" aria-labelledby="auto-thendo">
+      <h2 id="auto-thendo">{{ _('Then do') }}</h2>
+      <p class="hmi-auto-help">{{ _('The actions run one after the other, for example: write a set-point, wait 10 seconds, send a notification. Use If, Repeat and Wait until for more complex sequences.') }}</p>
+      <div class="hmi-auto-list" data-list="actions"></div>
+    </section>
+  </div>
+
+  <section id="auto-yaml" hidden>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h2 class="h5 mb-0">{{ _('YAML') }}</h2>
+      <span class="small text-secondary">{{ _('Tags, alarms, PLCs and automations may be written by name or id.') }}</span>
+    </div>
+    <textarea class="form-control hmi-auto-yaml" id="auto-yaml-text" rows="24" spellcheck="false" dir="ltr" aria-label="YAML"></textarea>
+  </section>
+
+  <div class="hmi-auto-save">
+    <button type="button" class="btn btn-primary btn-lg shadow" id="auto-save"><i class="bi bi-floppy"></i> {{ _('Save') }}</button>
+  </div>
+</div>
+<script type="application/json" id="auto-data">{{ {'doc': doc, 'schema': schema, 'refs': refs}|tojson }}</script>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/automation-editor.js') }}"></script>
+{% endblock %}

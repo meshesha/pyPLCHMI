@@ -33,6 +33,11 @@ A web-based HMI for **Siemens S7 PLCs** (S7-300/400/1200/1500, LOGO! 8),
   full date and time, view and filter them by tag and time, export them to **Excel**, and
   draw **multi-tag trend charts** with a colour per tag (live mode, zoom, two axes) that can
   be saved as a **PNG image**.
+* **Automations** like Home Assistant: *When* (tag change or limit, time, interval, alarm,
+  PLC offline/online, server start) *And if* (tag values, time window, active alarms, And/Or/Not)
+  *Then do* (write tags, wait, wait until, if/else, repeat, notify operators, run other
+  automations) – visual editor or YAML, run history with step-by-step traces; PLC writes need an
+  administrator's approval.
 * **UI templates** switched by the administrator: Classic, High-performance (ISA-101),
   Alarm focus, Workspaces (sidebar, plant overview, Ctrl+K search) and Engineering
   (side-panel tag editing, bulk actions) – and developers can **upload their own**.
@@ -106,6 +111,7 @@ pyPLCHMI/
 │   ├── library/animations/  # built-in animated GIFs (<Category>/*.gif + manifest.json)
 │   ├── i18n/                # languages: catalog.py (_(), language choice), forms.py, routes.py (switcher, admin)
 │   │   └── languages/       #   built-in language files: en.json (all texts), he.json (Hebrew)
+│   ├── automations/         # automations: schema.py (blocks, validation), engine.py (triggers, runs), documents.py (YAML)
 │   ├── ui_templates/        # UI templates: registry.py (manifest, install/export), nav.py, routes.py
 │   │   └── builtin/         #   classic, high-performance, alarm-focus, workspace, engineering
 │   ├── utils/               # permission decorators, safe redirects, table helper, xlsx helper, time zones
@@ -142,6 +148,8 @@ Environment variables (put them in `.env`):
 | `BACNET_LOCAL_IP` / `_PORT` / `BACNET_DEVICE_ID` | auto / 47808 / 3056 | Local BACnet stack (see 5c) |
 | `UPLOAD_FOLDER` | `instance/uploads` | Where uploaded images are stored (back it up with the DB) |
 | `UI_TEMPLATES_FOLDER` | `instance/ui_templates` | Where uploaded UI templates are stored |
+| `AUTOMATIONS` | `1` | `0` = no automation engine thread (triggers are not watched) |
+| `AUTOMATION_TICK` | `1` | Seconds between two checks of the automation triggers |
 | `ASSET_MAX_BYTES` | `5242880` | Maximum size of one uploaded image |
 | `ALARM_SCANNER` | `1` | `0` = no background alarm thread (alarms are then evaluated when a browser polls) |
 | `ALARM_SCAN_INTERVAL` | `2` | Seconds between alarm evaluations |
@@ -165,6 +173,7 @@ Generate a secret key: `python -c "import secrets; print(secrets.token_hex(32))"
 | `write_values` – write to writable tags | ✔ | ✔ | | |
 | `view_history` – tag history, trend charts, history Excel export | ✔ | ✔ | ✔ | |
 | `view_audit` – audit log (who changed what and when) | ✔ | | | |
+| `manage_automations` – create, edit, run and delete automations | ✔ | | | |
 
 The four roles are **built-in**: they cannot be deleted, but their permissions can be
 changed at **Admin → Roles & permissions**, and custom roles can be added. Existing
@@ -843,6 +852,44 @@ all users; five are built in:
   [docs/UI_TEMPLATES.md](docs/UI_TEMPLATES.md).
 * The *Plant overview* (`/overview`) and the quick search work with every template; *Workspaces*
   only makes them the default.
+
+## 7j. Automations (*Admin → Automations*)
+
+Automations react to the plant without anybody watching a screen – like the automation editor
+of Home Assistant. Each automation has three parts:
+
+* **When** (triggers – any of them starts the automation): *Tag value changed* (optionally
+  from / to a value, held *for* a time), *Tag above / below a limit* (fires when the value
+  crosses into the range, optionally after it stayed there *for* a time), *Time of day* (with
+  week days), *Every …* (interval), *Alarm event* (raised / acknowledged / cleared, any or one
+  alarm or severity), *PLC communication* (offline / back online) and *Server started*.
+* **And if** (optional conditions – all must be true): *Tag value is*, *Tag above / below*,
+  *Time window* (may pass midnight, week days), *Alarm is active*, and the building blocks
+  *And*, *Or*, *Not*.
+* **Then do** (actions, in order): *Write tag*, *Wait for a time*, *Wait until* (with timeout),
+  *Condition* (stop unless true), *If – then – else*, *Repeat*, *Notification* (shown to the
+  operators in the alarm list/strip and closed when acknowledged, or only written to the run
+  trace; `{trigger}` is replaced by what started the run), *Other automation* (run / enable /
+  disable) and *Stop*.
+
+Every block can be renamed, moved, duplicated, disabled or deleted (⋮ menu). **Edit in YAML**
+shows the same automation as text (tags, alarms, PLCs and automations by name); automations can
+be **exported** and **imported** as YAML (one or a list; all or nothing).
+
+* **Modes** (when the automation is triggered while it still runs): *Single* (ignore),
+  *Restart*, *Queued*, *Parallel* (with a maximum).
+* **Runs** – the last 30 runs of each automation with a step-by-step trace: what triggered it,
+  each condition (true/false) and each action (result, errors). *Run actions* starts the
+  actions at once (triggers and conditions are skipped).
+* **Safety of PLC writes** – *Write tag* only works on writable tags, and only after an
+  administrator has approved the automation (*Allowed to write PLC tags*). Whoever else changes
+  the *Write tag* actions withdraws the approval; imported automations are never approved. Every
+  write is in the audit log as **Automation: <name>**, with the value before and after.
+* Triggers follow Home Assistant: they fire on a **change**, so a tag that is already above its
+  limit when the server starts does not fire until it has left the range and crossed it again.
+* The engine checks the triggers every second (`AUTOMATION_TICK`) in a background thread, also
+  when no browser is open. Times use `DISPLAY_TIMEZONE` (or the server's clock).
+* Permission: `manage_automations` (Admin by default).
 
 ## 8. Database migrations
 

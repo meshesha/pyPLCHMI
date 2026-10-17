@@ -310,6 +310,8 @@ class AlarmEvent(db.Model):
     condition = db.Column(db.String(200), nullable=False, default="")
     value = db.Column(db.String(100), nullable=False, default="")
     screen_id = db.Column(db.Integer, db.ForeignKey("dashboards.id", ondelete="SET NULL"), nullable=True)
+    #: ``alarm`` (raised by an alarm) or ``automation`` (a notification of an automation, closed when acknowledged).
+    source = db.Column(db.String(20), nullable=False, default="alarm", server_default="alarm")
 
     occurred_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow, index=True)
     acked_at = db.Column(db.DateTime(timezone=True), nullable=True)
@@ -327,6 +329,11 @@ class AlarmEvent(db.Model):
     def __repr__(self) -> str:
         """Return a debug representation, e.g. ``<AlarmEvent 5 High temp>``."""
         return f"<AlarmEvent {self.id} {self.name}>"
+
+    @property
+    def is_notification(self) -> bool:
+        """``True`` for a notification sent by an automation (it closes when acknowledged)."""
+        return self.source == "automation"
 
     @property
     def is_open(self) -> bool:
@@ -365,6 +372,8 @@ class AlarmEvent(db.Model):
             return False
         self.acked_at = utcnow()
         self.acked_by_id = getattr(user, "id", None)
+        if self.is_notification:  # an automation's notification is done once it has been seen
+            self.close("auto")
         return True
 
     def close(self, close_type: str, user=None) -> None:
@@ -397,6 +406,7 @@ class AlarmEvent(db.Model):
             "cleared_at": iso(self.cleared_at), "close_type": self.close_type, "close_text": self.close_text,
             "screen_url": screen_url,
             "tag_id": self.alarm.datapoint_id if self.alarm is not None else None,
+            "source": self.source,
         }
 
 

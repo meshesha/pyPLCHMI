@@ -46,6 +46,7 @@ def create_app(config_name: str | None = None) -> Flask:
 
     _init_alarm_scanner(app)
     _init_history_logger(app)
+    _init_automation_engine(app)
 
     from app.cli import register_cli  # noqa: PLC0415
 
@@ -109,6 +110,7 @@ def _register_blueprints(app: Flask) -> None:
     from app.documents import bp as documents_bp  # noqa: PLC0415
     from app.audit import bp as audit_bp  # noqa: PLC0415
     from app.ui_templates import bp as ui_templates_bp  # noqa: PLC0415
+    from app.automations import bp as automations_bp  # noqa: PLC0415
 
     app.register_blueprint(main_bp)
     app.register_blueprint(i18n_bp)
@@ -125,6 +127,7 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(documents_bp, url_prefix="/library")
     app.register_blueprint(audit_bp, url_prefix="/admin/audit")
     app.register_blueprint(ui_templates_bp)
+    app.register_blueprint(automations_bp, url_prefix="/automations")
 
 
 def _register_legacy_redirects(app: Flask) -> None:
@@ -327,6 +330,25 @@ def _init_alarm_scanner(app: Flask) -> None:
         from app.alarms.engine import AlarmScanner  # noqa: PLC0415
 
         AlarmScanner.start(app)
+
+
+def _init_automation_engine(app: Flask) -> None:
+    """Start the automation engine thread on the first web request.
+
+    Disabled with ``AUTOMATIONS=0`` (tests call :func:`app.automations.engine.tick` directly).
+
+    Args:
+        app: The application being created.
+    """
+    if not app.config.get("AUTOMATIONS", True):
+        return
+
+    @app.before_request
+    def start_automation_engine():
+        """Start the engine thread once (and again if it has stopped)."""
+        from app.automations.engine import AutomationEngine  # noqa: PLC0415
+
+        AutomationEngine.start(app)
 
 
 def _init_history_logger(app: Flask) -> None:

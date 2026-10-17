@@ -553,3 +553,38 @@ template.json + CSS/JS/images ──► registry.py ──► active_template()
   with an extension whitelist, `nosniff`, and a script-blocking CSP for SVG; links carry
   `?v=<version>-<mtime>` for cache busting.
 * The developer guide is [UI_TEMPLATES.md](UI_TEMPLATES.md).
+
+## Automations (`app/automations`)
+
+```
+Automation (config_json: triggers / conditions / actions)      AutomationRun (trace_json)
+        ▲ validate() – schema.py                                        ▲
+        │                                                               │
+editor (automation-editor.js) ──POST /automations/save──►  documents.check_document / apply
+YAML text ──/api/from-yaml──► from_yaml + check_document          (allow_writes: admins only)
+
+AutomationEngine thread ── every AUTOMATION_TICK s ──► engine.tick()
+   reads the tags of tag triggers (one request per PLC), alarm event changes,
+   PLC states, the clock  ──► trigger(automation, text) ──► mode single/restart/queued/parallel
+                                                         ──► _execute (own thread): conditions,
+                                                             Script actions, trace, prune
+```
+
+* **One description of the blocks** (`schema.TRIGGERS / CONDITIONS / ACTIONS`): the browser
+  editor builds its forms from it (`editor_schema()`, translated) and `validate()` checks
+  against it, so the two can never disagree. References are stored as ids; YAML may use names
+  (`Lookup`), and `documents.readable()` writes unique names back for export and the text view.
+* **Trigger memory** (`engine.STATE`) is keyed by automation, trigger index and the trigger's
+  JSON, so editing a trigger starts it fresh. Tag triggers remember the previous value; a value
+  already in range at start does not fire (Home Assistant semantics). Alarm triggers compare the
+  open events between ticks (by id, no time-zone arithmetic); notifications of automations
+  (`AlarmEvent.source == "automation"`) are ignored. PLC triggers use the connection manager's
+  state and probe PLCs that have no other watched tag.
+* **Runs** execute in their own thread with their own app context and session; `RunHandle.stop`
+  ends delays and waits early (restart mode, disabling, deleting). In the tests
+  `AUTOMATION_SYNC` runs them in the calling thread and `engine.utc_now` is replaced by a fixed
+  clock.
+* **Writes** go through `write_datapoint` like operator writes, are refused unless
+  `allow_writes` is set and the tag is writable, and are recorded with `audit.record(...,
+  username="Automation: <name>")`. Engine bookkeeping runs under `audit.paused()`.
+* Only the newest `KEEP_RUNS` (30) runs per automation are kept.

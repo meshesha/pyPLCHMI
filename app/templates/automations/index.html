@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% from "_macros.html" import post_button %}
+{% from "_table.html" import local_time %}
+{% block title %}{{ _('Automations') }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">{{ _('Automations') }}</h1>
+    <div class="small text-secondary">{{ _('When something happens (trigger), and if the conditions are true, then do the actions – automatically, also when no screen is open.') }}</div>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <div class="btn-group">
+      <a class="btn btn-outline-success" href="{{ url_for('automations.export_all') }}" id="automations-export"><i class="bi bi-download"></i> {{ _('Export') }}</a>
+      <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#automation-import" id="automations-import-btn"><i class="bi bi-upload"></i> {{ _('Import') }}</button>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('automations.create') }}" id="new-automation"><i class="bi bi-plus-lg"></i> {{ _('New automation') }}</a>
+  </div>
+</div>
+
+<form class="input-group mb-3" style="max-width: 28rem" method="get">
+  <span class="input-group-text"><i class="bi bi-search"></i></span>
+  <input class="form-control" type="search" name="q" value="{{ q }}" placeholder="{{ _('Search name or description…') }}" aria-label="{{ _('Search') }}">
+</form>
+
+{% if automations %}
+<div class="table-responsive">
+<table class="table align-middle hmi-table" id="automation-table">
+  <thead><tr>
+    <th style="width: 4rem">{{ _('On') }}</th><th>{{ _('Automation') }}</th><th>{{ _('Mode') }}</th>
+    <th>{{ _('Last triggered') }}</th><th>{{ _('Last run') }}</th><th class="text-end">{{ _('Actions') }}</th>
+  </tr></thead>
+  <tbody>
+  {% for a in automations %}
+    {% set run = last[a.id] %}
+    <tr data-automation-id="{{ a.id }}" class="{{ '' if a.enabled else 'text-secondary' }}">
+      <td>
+        <form method="post" action="{{ url_for('automations.toggle', automation_id=a.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="form-check form-switch m-0">
+            <input class="form-check-input automation-toggle" type="checkbox" role="switch" {{ 'checked' if a.enabled }}
+                   onchange="this.form.submit()" aria-label="{{ _('Enabled') }}">
+          </div>
+        </form>
+      </td>
+      <td>
+        <a class="fw-semibold text-reset" href="{{ url_for('automations.edit', automation_id=a.id) }}">{{ a.name }}</a>
+        {% if running[a.id] %}<span class="badge text-bg-info ms-1"><i class="bi bi-play-fill"></i> {{ _('running') }}</span>{% endif %}
+        {% if a.writes_tags() %}
+          {% if a.allow_writes %}<span class="badge hmi-badge-neutral ms-1" title="{{ _('Approved for writing PLC tags') }}"><i class="bi bi-pencil-square"></i> {{ _('writes tags') }}</span>
+          {% else %}<span class="badge text-bg-warning ms-1" title="{{ _('An administrator must approve writing PLC tags') }}"><i class="bi bi-shield-exclamation"></i> {{ _('needs approval') }}</span>{% endif %}
+        {% endif %}
+        {% if a.description %}<div class="small text-secondary">{{ a.description }}</div>{% endif %}
+      </td>
+      <td class="small">{{ _(a.mode_label) }}</td>
+      <td class="small">{{ local_time(a.last_triggered_at) }}</td>
+      <td class="small">{% if run %}<a href="{{ url_for('automations.runs', automation_id=a.id, run=run.id) }}" class="automation-run-status status-{{ run.status }}">{{ _(run.status_label) }}</a>{% else %}<span class="text-secondary">—</span>{% endif %}</td>
+      <td class="text-end text-nowrap">
+        {{ post_button(url_for('automations.run', automation_id=a.id), 'Run actions', 'play-fill', 'btn-outline-success') }}
+        <a class="btn btn-sm btn-outline-info" href="{{ url_for('automations.runs', automation_id=a.id) }}" title="{{ _('Runs (traces)') }}"><i class="bi bi-list-check"></i></a>
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('automations.edit', automation_id=a.id) }}" title="{{ _('Edit') }}"><i class="bi bi-pencil"></i></a>
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('automations.create', copy=a.id) }}" title="{{ _('Duplicate') }}"><i class="bi bi-copy"></i></a>
+        {{ post_button(url_for('automations.delete', automation_id=a.id), 'Delete', 'trash', confirm=_('Delete automation {0}?', a.name)) }}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="card hmi-panel"><div class="card-body text-center py-5">
+  <i class="bi bi-robot fs-1 text-secondary"></i>
+  <p class="mt-2 mb-3">{{ _('No automations match the search.') if q else _('No automations yet.') }}</p>
+  {% if not q %}<a class="btn btn-primary" href="{{ url_for('automations.create') }}"><i class="bi bi-plus-lg"></i> {{ _('New automation') }}</a>{% endif %}
+</div></div>
+{% endif %}
+
+<div class="modal fade" id="automation-import" tabindex="-1" aria-labelledby="automation-import-title" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{{ url_for('automations.import_file') }}" enctype="multipart/form-data" id="automation-import-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-header">
+        <h5 class="modal-title" id="automation-import-title"><i class="bi bi-upload"></i> {{ _('Import automations (YAML)') }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+      </div>
+      <div class="modal-body">
+        <input class="form-control mb-3" type="file" name="file" accept=".yaml,.yml,.txt" required>
+        <ul class="small text-secondary mb-0">
+          <li>{{ _('One automation or a list, as exported here. Tags, alarms and PLCs may be given by id or by name.') }}</li>
+          <li>{{ _('All or nothing: if any automation has an error, nothing is imported.') }}</li>
+          <li>{{ _('Names that already exist get a number. Imported automations are not approved for writing PLC tags.') }}</li>
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+        <button type="submit" class="btn btn-success"><i class="bi bi-upload"></i> {{ _('Import') }}</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

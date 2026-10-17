@@ -29,6 +29,7 @@ operator station is just a browser window, and the engineering tools are on the 
 | 🔐 **Security & audit** | Built-in Admin / Operator / Viewer / Guest roles plus your own, **per-tag write rights by role** (only the shift lead may change that set-point), bcrypt passwords, CSRF protection, full **audit log** (who changed what – before/after values) |
 | 📡 **Knows when it's blind** | A Web Worker heartbeat raises a red *Connection to the server lost* banner within seconds, greys out stale values, and shows when the server is back or was restarted. It also works in background tabs and full screen. |
 | 🌍 **Built for the floor** | Dark & light mode, full-screen kiosk mode, public wall-display screens, screen list as cards or a sortable/filterable table, English & Hebrew (RTL) + your own language files |
+| 🤖 **Automations** | Home-Assistant-style *When / And if / Then do*: tag changes and limits, schedules, alarms, PLC offline → conditions → write tags, wait, if/else, repeat, notify operators. Visual editor or YAML, run traces, and PLC writes only after an administrator approves the automation |
 | 🎨 **UI templates** | Switch the whole look with one click: Classic, **High-performance (ISA-101)** grey screens, **Alarm focus** strip that never blocks the page, **Workspaces** (sidebar, plant overview, Ctrl+K search), **Engineering** (side-panel tag editing, bulk actions). Build and upload your own – [developer guide](docs/UI_TEMPLATES.md) |
 | 🧪 **Simulator included** | `PLC_SIMULATION=1` – develop and demo without hardware |
 

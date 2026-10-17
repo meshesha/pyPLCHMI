@@ -116,6 +116,14 @@ class Config:
     #: Time zone for dates when the browser has not reported its own (empty = server's zone).
     DISPLAY_TIMEZONE = os.environ.get("DISPLAY_TIMEZONE", "")
 
+    # --- Automations ------------------------------------------------------
+    #: Run the automation engine thread (triggers are checked in the background).
+    AUTOMATIONS = _env_bool("AUTOMATIONS", True)
+    #: Seconds between two checks of the triggers.
+    AUTOMATION_TICK = float(os.environ.get("AUTOMATION_TICK", "1"))
+    #: Run the actions in the calling thread (tests only).
+    AUTOMATION_SYNC = False
+
     #: Lowest allowed dashboard refresh interval in milliseconds.
     DASHBOARD_MIN_REFRESH_MS = 250
 
@@ -148,6 +156,8 @@ class TestingConfig(Config):
     ALARM_SCANNER = False
     ALARM_SCAN_INTERVAL = 0
     HISTORY_LOGGER = False
+    AUTOMATIONS = False
+    AUTOMATION_SYNC = True
     SERVER_NAME = "localhost"
 
 

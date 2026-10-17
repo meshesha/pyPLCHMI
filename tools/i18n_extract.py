@@ -181,6 +181,21 @@ def from_runtime() -> set:
         keys.update(label for _seconds, label in RANGES.values())
         keys.add("no device")
         from app.ui_templates.registry import FEATURE_LABELS, FEATURE_VALUE_LABELS  # noqa: PLC0415
+        from app.automations import schema as auto_schema  # noqa: PLC0415
+        from app.automations.engine import TRACE_WORDS  # noqa: PLC0415
+        from app.models.automation import MODES as AUTO_MODES, RUN_STATUSES  # noqa: PLC0415
+
+        keys.update(TRACE_WORDS)
+        keys.update(AUTO_MODES.values())
+        keys.update(v.split(" – ")[0] for v in AUTO_MODES.values())
+        keys.update(RUN_STATUSES.values())
+        keys.update(auto_schema.WEEKDAY_LABELS.values())
+        for _kind, types in auto_schema.KINDS.items():
+            for spec in types.values():
+                keys.update([spec["label"], spec["help"]])
+                for f in spec["fields"]:
+                    keys.add(f["label"])
+                    keys.update(label for _v, label in f.get("options", []))
 
         keys.update(FEATURE_LABELS.values())
         keys.update(FEATURE_VALUE_LABELS.values())

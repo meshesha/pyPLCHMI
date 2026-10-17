@@ -635,3 +635,52 @@ body.hmi-bulk-open main { padding-bottom: 5rem !important; }
 .hmi-tpl-card.active { border-color: var(--hmi-good); box-shadow: 0 0 0 1px var(--hmi-good); }
 .hmi-tpl-preview { aspect-ratio: 16 / 9; object-fit: cover; border-bottom: 1px solid var(--hmi-border); background: var(--hmi-inset); }
 .hmi-tpl-features { padding-inline-start: 1.1rem; color: var(--hmi-subtle); }
+
+/* ======================================================================
+   Automations (When / And if / Then do)
+   ====================================================================== */
+.hmi-auto-editor { max-width: 72rem; margin: 0 auto; padding-bottom: 5rem; }
+.hmi-auto-head { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: 1rem; }
+.hmi-auto-section { margin-bottom: 2rem; }
+.hmi-auto-section > h2 { font-size: 1.6rem; font-weight: 500; margin-bottom: .35rem; }
+.hmi-auto-section > h2 small { font-size: .9rem; color: var(--hmi-muted); font-weight: 400; }
+.hmi-auto-help { color: var(--hmi-subtle); margin-bottom: .9rem; max-width: 60rem; }
+.hmi-auto-items { display: flex; flex-direction: column; gap: .6rem; }
+.hmi-auto-card { background: var(--hmi-panel); border: 1px solid var(--hmi-border); border-radius: .6rem; }
+.hmi-auto-card.disabled { opacity: .6; border-style: dashed; }
+.hmi-auto-card-head { display: flex; align-items: center; gap: .25rem; padding: .25rem .35rem .25rem .25rem; }
+.hmi-auto-card-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: .6rem; min-height: 2.6rem; padding: 0 .6rem;
+  border: 0; background: none; color: var(--hmi-text); text-align: start; border-radius: .4rem; }
+.hmi-auto-card-toggle:hover { background: var(--hmi-hover); }
+.hmi-auto-card-toggle > .bi { font-size: 1.15rem; color: var(--hmi-accent); }
+.hmi-auto-card-title { font-weight: 600; white-space: nowrap; }
+.hmi-auto-card-sum { color: var(--hmi-muted); font-size: .88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hmi-auto-card-body { padding: .25rem 1rem 1rem; border-top: 1px solid var(--hmi-border); }
+.hmi-auto-card-body > p { margin-top: .6rem; }
+.hmi-auto-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr)); gap: .75rem 1rem; }
+.hmi-auto-field.nested { grid-column: 1 / -1; padding: .6rem .75rem .75rem; border-inline-start: 3px solid var(--hmi-border-hover);
+  background: var(--hmi-raised); border-radius: .4rem; }
+.hmi-auto-nested-title { font-weight: 600; font-size: .9rem; margin-bottom: .5rem; color: var(--hmi-subtle); }
+.hmi-auto-add { align-self: flex-start; margin-top: .15rem; }
+.hmi-auto-type-menu { max-height: 70vh; overflow-y: auto; min-width: 22rem; }
+.hmi-auto-type-menu .dropdown-item { white-space: normal; padding-top: .45rem; padding-bottom: .45rem; }
+.hmi-auto-days { display: flex; flex-wrap: wrap; gap: .25rem; }
+.hmi-auto-duration .form-control { max-width: 5rem; }
+.hmi-auto-approval { padding: .6rem .8rem; border: 1px solid var(--hmi-border); border-radius: .45rem; background: var(--hmi-raised); }
+.hmi-auto-yaml { font-family: ui-monospace, Consolas, monospace; font-size: .9rem; line-height: 1.45; tab-size: 2; }
+.hmi-auto-save { position: fixed; bottom: 1.25rem; inset-inline-end: 1.5rem; z-index: 1020; }
+.automation-run-status { font-weight: 600; }
+.automation-run-status.status-finished { color: var(--hmi-good); }
+.automation-run-status.status-error { color: var(--hmi-bad); }
+.automation-run-status.status-condition, .automation-run-status.status-skipped { color: var(--hmi-muted); }
+.automation-run-status.status-stopped, .automation-run-status.status-running { color: var(--hmi-warn); }
+.list-group-item.active .automation-run-status { color: inherit; }
+.hmi-trace { list-style: none; padding: 0; margin: 0; border-inline-start: 2px solid var(--hmi-border-hover); }
+.hmi-trace-step { position: relative; padding: .35rem 0 .55rem 1rem; }
+[dir="rtl"] .hmi-trace-step { padding: .35rem 1rem .55rem 0; }
+.hmi-trace-step::before { content: ""; position: absolute; top: .7rem; inset-inline-start: -.42rem; width: .7rem; height: .7rem;
+  border-radius: 50%; background: var(--hmi-accent); border: 2px solid var(--hmi-panel); }
+.hmi-trace-step.result-false::before, .hmi-trace-step.result-timeout::before { background: var(--hmi-warn); }
+.hmi-trace-step.result-error::before { background: var(--hmi-bad); }
+.hmi-trace-step.result-disabled::before { background: var(--hmi-dimmed); }
+.hmi-trace-result { font-size: .8rem; color: var(--hmi-muted); white-space: nowrap; }
