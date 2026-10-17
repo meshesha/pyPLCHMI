@@ -1,0 +1,19 @@
+{
+  "pyplchmi_template": 1,
+  "id": "classic",
+  "name": "Classic",
+  "version": "1.0.0",
+  "author": "pyPLCHMI",
+  "description": "The original pyPLCHMI look: icon top bar, alarm window, grid tiles. Users choose dark or light in their settings.",
+  "color_mode": "user",
+  "features": {},
+  "css": [],
+  "js": [],
+  "preview": "preview.svg",
+  "i18n": {
+    "he": {
+      "name": "קלאסי",
+      "description": "המראה המקורי של pyPLCHMI: סרגל עליון עם סמלים, חלון התראה, אריחי רשת. כל משתמש בוחר כהה או בהיר בהגדרות."
+    }
+  }
+}

@@ -56,7 +56,7 @@ def _audited() -> dict:
 
 #: Object type names (for the filter of the audit page).
 OBJECT_TYPES = ["User", "Role", "PLC", "Screen", "Tag", "Screen tag", "Alarm", "Alarm event", "Image",
-                "Image folder", "Library file", "Setting", "Trend chart", "Value"]
+                "Image folder", "Library file", "Setting", "Trend chart", "UI template", "Value"]
 
 
 @contextmanager

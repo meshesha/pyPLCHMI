@@ -180,6 +180,10 @@ def from_runtime() -> set:
         keys.update(OBJECT_TYPES)
         keys.update(label for _seconds, label in RANGES.values())
         keys.add("no device")
+        from app.ui_templates.registry import FEATURE_LABELS, FEATURE_VALUE_LABELS  # noqa: PLC0415
+
+        keys.update(FEATURE_LABELS.values())
+        keys.update(FEATURE_VALUE_LABELS.values())
     return {k for k in keys if isinstance(k, str) and k.strip()}
 
 

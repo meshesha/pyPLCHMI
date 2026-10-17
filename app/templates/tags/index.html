@@ -5,6 +5,7 @@
 {% block title %}{{ _('Tags') }}{% endblock %}
 {% block container %}container-fluid{% endblock %}
 {% block content %}
+{% set panel = ui.feature('tags_ui') == 'panel' %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
   <div>
     <h1 class="h3 mb-0">{{ _('PLC tag table') }}</h1>
@@ -24,7 +25,7 @@
 {% endcall %}
 
 <div class="table-responsive mt-3">
-<table class="table table-hover table-sm align-middle hmi-table" id="tag-table"
+<table class="table table-hover table-sm align-middle hmi-table{{ ' hmi-tags-panel' if panel }}" id="tag-table"
        data-values-url="{{ url_for('api.tag_values') }}">
   <thead><tr>
     {{ select_all_th() }}
@@ -54,7 +55,8 @@
       <td>{% if n_alarms %}<a href="{{ url_for('alarms.index', q=t.label) }}" class="badge text-bg-info text-decoration-none">{{ n_alarms }}</a>{% else %}<span class="text-secondary">0</span>{% endif %}</td>
       <td class="text-end text-nowrap">
         <a class="btn btn-sm btn-outline-warning" href="{{ url_for('alarms.create', tag=t.id) }}" title="{{ _('Add alarm for this tag') }}"><i class="bi bi-bell"></i></a>
-        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('tags.edit', tag_id=t.id) }}" title="{{ _('Edit') }}"><i class="bi bi-pencil"></i></a>
+        <a class="btn btn-sm btn-outline-secondary tag-edit" href="{{ url_for('tags.edit', tag_id=t.id) }}" title="{{ _('Edit') }}"
+           data-panel-url="{{ url_for('tags.edit', tag_id=t.id, embed=1) }}"><i class="bi bi-pencil"></i></a>
         <a class="btn btn-sm btn-outline-info tag-copy" href="{{ url_for('tags.create', copy=t.id) }}" title="{{ _('Copy – new tag with these settings') }}"><i class="bi bi-copy"></i></a>
         {{ post_button(url_for('tags.delete', tag_id=t.id), 'Delete', 'trash', confirm=_('Delete tag {0}?', t.label)) }}
       </td>
@@ -66,9 +68,39 @@
 </table>
 </div>
 {{ pager(state, pagination) }}
+
+{% if panel %}
+{# Side-panel editing and the bulk bar (UI templates with "tags_ui": "panel"), see tags-panel.js. #}
+<aside class="offcanvas offcanvas-end hmi-tag-panel" id="tag-panel" tabindex="-1" aria-labelledby="tag-panel-title"
+       data-bs-scroll="true" data-index-path="{{ url_for('tags.index') }}">
+  <div class="offcanvas-header">
+    <h2 class="offcanvas-title h5" id="tag-panel-title"><i class="bi bi-pencil"></i> <span>{{ _('Edit tag') }}</span></h2>
+    <a class="btn btn-sm btn-outline-secondary ms-auto me-2" id="tag-panel-full" href="#" title="{{ _('Open as a full page') }}"><i class="bi bi-box-arrow-up-right"></i></a>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="{{ _('Close') }}"></button>
+  </div>
+  <div class="offcanvas-body p-0"><iframe id="tag-panel-frame" title="{{ _('Edit tag') }}" src="about:blank"></iframe></div>
+</aside>
+
+<form class="hmi-bulk-bar" id="bulk-bar" method="post" action="{{ url_for('tags.bulk') }}" hidden
+      data-confirm-delete="{{ _('Delete the selected tags? Tags used by alarms are kept.') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <span class="hmi-bulk-count"><b id="bulk-count">0</b> {{ _('selected') }}</span>
+  <button type="button" class="btn btn-sm btn-outline-success" id="bulk-export"><i class="bi bi-file-earmark-excel"></i> {{ _('Export') }}</button>
+  <div class="input-group input-group-sm w-auto">
+    <select class="form-select" name="screen_id" id="bulk-screen" aria-label="{{ _('Screen') }}">
+      <option value="">{{ _('Add to screen…') }}</option>
+      {% for value, label in screen_options if value != 'none' %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+    </select>
+    <button class="btn btn-outline-primary" type="submit" name="action" value="screen" id="bulk-add">{{ _('Add') }}</button>
+  </div>
+  <button class="btn btn-sm btn-outline-danger" type="submit" name="action" value="delete" id="bulk-delete"><i class="bi bi-trash"></i> {{ _('Delete') }}</button>
+  <button type="button" class="btn btn-sm btn-link" id="bulk-clear">{{ _('Clear selection') }}</button>
+</form>
+{% endif %}
 {% endblock %}
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/hmi-local.js') }}"></script>
 <script src="{{ url_for('static', filename='js/tags.js') }}"></script>
 <script src="{{ url_for('static', filename='js/table_select.js') }}"></script>
+{% if ui.feature('tags_ui') == 'panel' %}<script src="{{ url_for('static', filename='js/tags-panel.js') }}"></script>{% endif %}
 {% endblock %}

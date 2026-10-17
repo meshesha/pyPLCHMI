@@ -33,6 +33,9 @@ A web-based HMI for **Siemens S7 PLCs** (S7-300/400/1200/1500, LOGO! 8),
   full date and time, view and filter them by tag and time, export them to **Excel**, and
   draw **multi-tag trend charts** with a colour per tag (live mode, zoom, two axes) that can
   be saved as a **PNG image**.
+* **UI templates** switched by the administrator: Classic, High-performance (ISA-101),
+  Alarm focus, Workspaces (sidebar, plant overview, Ctrl+K search) and Engineering
+  (side-panel tag editing, bulk actions) – and developers can **upload their own**.
 * A built-in **PLC simulator** (`PLC_SIMULATION=1`) lets you develop and demo
   without hardware.
 * Bootstrap is bundled locally, so the HMI works on networks without internet.
@@ -103,11 +106,13 @@ pyPLCHMI/
 │   ├── library/animations/  # built-in animated GIFs (<Category>/*.gif + manifest.json)
 │   ├── i18n/                # languages: catalog.py (_(), language choice), forms.py, routes.py (switcher, admin)
 │   │   └── languages/       #   built-in language files: en.json (all texts), he.json (Hebrew)
+│   ├── ui_templates/        # UI templates: registry.py (manifest, install/export), nav.py, routes.py
+│   │   └── builtin/         #   classic, high-performance, alarm-focus, workspace, engineering
 │   ├── utils/               # permission decorators, safe redirects, table helper, xlsx helper, time zones
 │   ├── templates/           # Jinja2 templates (Bootstrap 5, dark theme)
 │   └── static/              # hmi.css, hmi-dialogs.js (T(), SweetAlert2), hmi-*.js, Bootstrap (+RTL), SweetAlert2, Chart.js
 ├── migrations/              # Flask-Migrate / Alembic scripts
-├── tests/                   # pytest suite (652 tests)
+├── tests/                   # pytest suite
 ├── tools/make_animations.py # generator of the built-in animated GIFs (Pillow)
 ├── tools/i18n_extract.py    # collects every UI text into app/i18n/languages/en.json
 ├── Dockerfile / docker-compose.yml / docker/entrypoint.sh   # container image (see docs/DOCKER.md)
@@ -136,6 +141,7 @@ Environment variables (put them in `.env`):
 | `SESSION_COOKIE_SECURE` | `0` | Set `1` when served over HTTPS |
 | `BACNET_LOCAL_IP` / `_PORT` / `BACNET_DEVICE_ID` | auto / 47808 / 3056 | Local BACnet stack (see 5c) |
 | `UPLOAD_FOLDER` | `instance/uploads` | Where uploaded images are stored (back it up with the DB) |
+| `UI_TEMPLATES_FOLDER` | `instance/ui_templates` | Where uploaded UI templates are stored |
 | `ASSET_MAX_BYTES` | `5242880` | Maximum size of one uploaded image |
 | `ALARM_SCANNER` | `1` | `0` = no background alarm thread (alarms are then evaluated when a browser polls) |
 | `ALARM_SCAN_INTERVAL` | `2` | Seconds between alarm evaluations |
@@ -813,6 +819,31 @@ The page has search, filters (user, action, object type, date range), sorting, p
 Admin role has by default – grant it to other roles in *Admin → Roles & permissions*. Background
 work (alarm scanner, history logger, CLI commands) is not recorded. Entries are kept forever.
 
+## 7i. UI templates (*Admin → UI templates*)
+
+The look and layout of the whole interface is a **UI template**. An administrator picks one for
+all users; five are built in:
+
+| Template | For | What changes |
+|---|---|---|
+| **Classic** (default) | everyone | The original look: icon top bar, alarm window, grid tiles; each user chooses dark/light |
+| **High-performance (ISA-101)** | control rooms | Calm grey screens, colour only for abnormal states; range bars with the limits, one-hour trend per logged tag, alarm frame on the tile, *Change…* button with a dialog; alarm strip instead of popups |
+| **Alarm focus** | shift work | Dark theme, permanent alarm strip under the top bar (counts per priority with shapes ▲ ■ ●, newest unacknowledged alarm, *Ack*) and a side alarm list that never blocks the page |
+| **Workspaces** | mixed teams | Sidebar with *Operate* / *Engineer* workspaces, screen list with alarm badges, **Plant overview** as home page (live card per screen, PLC communication chips), quick search **Ctrl+K** |
+| **Engineering** | commissioning | Tags are edited in a **side panel** next to the tag table, **bulk bar** for selected tags (export, add to a screen, delete), quick search **Ctrl+K** |
+
+* **Preview** shows a template to you only (in your session) with a purple bar *Activate for
+  everyone / End preview*; **Activate** switches all users. Changes are in the audit log.
+* **Upload** – developers can build their own templates: a ZIP with `template.json`, CSS and
+  optionally JavaScript, images and fonts. Templates change colours and shapes through the
+  `--hmi-*` CSS variables and switch the built-in interface variants with feature flags
+  (`nav`, `home`, `alarm_ui`, `tiles`, `tags_ui`, `command_palette`, `color_mode`). They
+  cannot contain server code. **Download** any template as a starting point. The developer
+  guide with the manifest schema, the CSS variables and a ready-made example is
+  [docs/UI_TEMPLATES.md](docs/UI_TEMPLATES.md).
+* The *Plant overview* (`/overview`) and the quick search work with every template; *Workspaces*
+  only makes them the default.
+
 ## 8. Database migrations
 
 The initial migration is included. After changing a model:
@@ -884,3 +915,9 @@ BACnet broadcasts, operation, security) is in [docs/DOCKER.md](DOCKER.md).
 * Language files can only be uploaded by administrators; they are parsed as JSON, limited to
   2 MB, and every translation is shown as escaped text (never as HTML), so a language file
   cannot inject markup or scripts.
+* UI templates can only be uploaded by administrators. A package is checked completely before
+  it is installed: ZIP size and file count limits, no absolute paths or `..`, only static file
+  types (CSS, JS, JSON, images, fonts, text) – no Python and no Jinja pages, so a template
+  cannot run code on the server. Files are served with `X-Content-Type-Options: nosniff`, SVG
+  files with a Content-Security-Policy that blocks scripts. A template's own JavaScript runs in
+  every page, so the page warns about it: install templates only from developers you trust.

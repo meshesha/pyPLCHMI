@@ -1,0 +1,24 @@
+{
+  "pyplchmi_template": 1,
+  "id": "engineering",
+  "name": "Engineering",
+  "version": "1.0.0",
+  "author": "pyPLCHMI",
+  "description": "For engineers: tags are edited in a side panel next to the table, bulk actions on selected tags, quick search (Ctrl+K).",
+  "color_mode": "user",
+  "features": {
+    "tags_ui": "panel",
+    "command_palette": true
+  },
+  "css": [
+    "theme.css"
+  ],
+  "js": [],
+  "preview": "preview.svg",
+  "i18n": {
+    "he": {
+      "name": "הנדסה",
+      "description": "למהנדסים: עריכת תגים בחלונית צד ליד הטבלה, פעולות על מספר תגים שנבחרו, חיפוש מהיר (Ctrl+K)."
+    }
+  }
+}

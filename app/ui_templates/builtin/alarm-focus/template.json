@@ -1,0 +1,23 @@
+{
+  "pyplchmi_template": 1,
+  "id": "alarm-focus",
+  "name": "Alarm focus",
+  "version": "1.0.0",
+  "author": "pyPLCHMI",
+  "description": "Dark theme with a permanent alarm strip and a side alarm list: alarms are always visible and never block the page.",
+  "color_mode": "dark",
+  "features": {
+    "alarm_ui": "banner"
+  },
+  "css": [
+    "theme.css"
+  ],
+  "js": [],
+  "preview": "preview.svg",
+  "i18n": {
+    "he": {
+      "name": "מיקוד בהתראות",
+      "description": "ערכה כהה עם פס התראות קבוע ורשימת התראות צדדית: ההתראות תמיד גלויות ולעולם אינן חוסמות את הדף."
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "pyplchmi_template": 1,
+  "id": "example-plant",
+  "name": "Example plant",
+  "version": "1.0.0",
+  "author": "Your company",
+  "description": "Example UI template: dark green theme, sidebar, plant overview, alarm strip and quick search.",
+  "color_mode": "dark",
+  "features": {
+    "nav": "sidebar",
+    "home": "overview",
+    "alarm_ui": "banner",
+    "tiles": "hp",
+    "command_palette": true
+  },
+  "css": ["theme.css"],
+  "js": ["theme.js"],
+  "preview": "preview.svg",
+  "i18n": {
+    "he": {
+      "name": "מתקן לדוגמה",
+      "description": "תבנית ממשק לדוגמה: ערכה ירוקה כהה, סרגל צד, סקירת מתקן, פס התראות וחיפוש מהיר."
+    }
+  }
+}

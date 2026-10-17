@@ -18,12 +18,13 @@
     </div></div>
     <div class="card hmi-panel mt-4"><div class="card-body">
       <h2 class="h5">{{ _('Colour theme') }}</h2>
+      {% if ui.color_mode != 'user' %}<p class="small text-warning" id="theme-forced"><i class="bi bi-info-circle"></i> {{ _('The UI template "{0}" always uses the {1} colours; your choice applies when another template is active.', ui.title(), {'light': _('light'), 'dark': _('dark')}[ui.color_mode]) }}</p>{% endif %}
       <form method="post" action="{{ url_for('auth.set_theme') }}" id="profile-theme">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="d-flex flex-wrap gap-2 mb-3" role="radiogroup" aria-label="{{ _('Colour theme') }}">
           {% for code, label in themes.items() %}
           <input type="radio" class="btn-check" name="theme" id="theme-{{ code }}" value="{{ code }}" autocomplete="off"
-                 {{ 'checked' if ui_theme == code }}>
+                 {{ 'checked' if (current_user.theme or 'dark') == code }}>
           <label class="btn btn-outline-primary" for="theme-{{ code }}">
             <i class="bi {{ {'dark': 'bi-moon-stars', 'light': 'bi-sun', 'auto': 'bi-circle-half'}[code] }}"></i> {{ _(label) }}</label>
           {% endfor %}

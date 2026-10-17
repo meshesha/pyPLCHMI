@@ -516,3 +516,40 @@ translated buttons and RTL. A capturing `submit` listener intercepts forms (or s
 with `data-confirm`, asks, then re-submits with `requestSubmit()`. Flash messages are rendered
 as Bootstrap alerts inside `#hmi-flashes` (visible without JavaScript) and converted into one
 toast (sticky when it contains a warning or error).
+
+## UI templates (`app/ui_templates`)
+
+```
+template.json + CSS/JS/images ──► registry.py ──► active_template()
+   built-in:  app/ui_templates/builtin/<id>/          │   (setting "ui_template",
+   uploaded:  UI_TEMPLATES_FOLDER/<id>/  (ZIP upload)  │    admin preview in the session)
+                                                       ▼
+            context processor: ui, ui_preview, ui_theme (color_mode wins)
+                                                       ▼
+ base.html: <html data-ui-template data-ui-nav data-ui-alarms data-ui-tiles data-ui-tags data-ui-home>
+            template CSS after hmi.css, template JS at the end of <body>
+```
+
+* **No server code in templates.** A template is static files plus a manifest. Its layout
+  power comes from *feature flags* that select variants already built into pyPLCHMI:
+  `nav` (top bar / sidebar: `_sidebar.html`, `hmi-sidebar.js`, `nav.py`), `home` (screen
+  list / plant overview: `main.overview`, `/api/overview`, `hmi-overview.js`), `alarm_ui`
+  (popup / strip + drawer: `alarms/_strip.html`, `alarms.js`), `tiles` (classic / hp:
+  `dashboards/view.html`, `dashboard.js`), `tags_ui` (classic / panel: `tags/index.html`,
+  `tags-panel.js`, `POST /tags/bulk`), `command_palette` (`_palette.html`, `hmi-palette.js`,
+  `/api/search`) and `color_mode`. Colours and shapes come from the template CSS through the
+  `--hmi-*` variables of `hmi.css`.
+* **Registry** (`registry.py`): validates manifests (`parse_manifest`), loads built-in and
+  uploaded folders (cached per folder by the manifest's modification time, and per request in
+  the WSGI environ), resolves the active template (preview → setting → `classic`), installs
+  ZIP packages in a temporary folder before moving them into place (`install_zip`), exports
+  (`export_zip`) and deletes uploaded templates. Uploaded ids can never shadow built-in ones.
+* **Navigation** (`nav.py`): one list of pages with permission checks feeds the sidebar and
+  the quick search, so both always offer the same pages.
+* **Events between scripts:** `alarms.js` fires `hmi:alarms` after every poll (sidebar alarm
+  badges, alarm frames on high-performance tiles); `table_select.js` fires `hmi:selection`
+  (bulk bar). In strip mode `alarms.js` never opens the alarm window by itself.
+* **Static files** are served by `ui_templates.asset` (public, so the login page is themed)
+  with an extension whitelist, `nosniff`, and a script-blocking CSP for SVG; links carry
+  `?v=<version>-<mtime>` for cache busting.
+* The developer guide is [UI_TEMPLATES.md](UI_TEMPLATES.md).

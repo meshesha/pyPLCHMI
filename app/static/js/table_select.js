@@ -5,7 +5,9 @@
  * #select-all ticks every row on the page.  "Export selected" posts the ids
  * (with the CSRF token) to the export URL, which answers with the .xlsx file.
  * The selection is remembered per page in sessionStorage so moving between
- * pages keeps it.
+ * pages keeps it.  Every change fires the document event "hmi:selection"
+ * ({detail: {ids}}); window.HMISelection offers ids() and clear() (used by
+ * the bulk bar of the side-panel tag table).
  */
 (function () {
   "use strict";
@@ -40,7 +42,17 @@
       all.indeterminate = ticked > 0 && ticked < boxes.length;
     }
     boxes.forEach((b) => b.closest("tr").classList.toggle("table-active", b.checked));
+    document.dispatchEvent(new CustomEvent("hmi:selection", { detail: { ids: Array.from(selected) } }));
   }
+
+  /** Forget the whole selection. */
+  function clearAll() {
+    selected.clear();
+    save(selected);
+    boxes.forEach((b) => { b.checked = false; });
+    sync();
+  }
+  window.HMISelection = { ids: () => Array.from(selected), clear: clearAll };
 
   boxes.forEach((b) => b.addEventListener("change", () => {
     if (b.checked) selected.add(b.value); else selected.delete(b.value);
@@ -79,12 +91,7 @@
 
   const clear = document.getElementById("clear-selection");
   if (clear) {
-    clear.addEventListener("click", () => {
-      selected.clear();
-      save(selected);
-      boxes.forEach((b) => { b.checked = false; });
-      sync();
-    });
+    clear.addEventListener("click", clearAll);
   }
   sync();
 })();

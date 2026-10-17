@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}{{ _('UI templates') }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">{{ _('UI templates') }}</h1>
+    <div class="small text-secondary">{{ _('Choose the look and layout of pyPLCHMI for all users. Preview a template first: only you see it until you activate it.') }}</div>
+  </div>
+  {% if ui_preview %}
+  <form method="post" action="{{ url_for('ui_templates.admin_preview_stop') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-eye-slash"></i> {{ _('End preview') }}</button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="hmi-tpl-grid" id="ui-template-list">
+    {% for t in templates %}
+      {% set is_active = t.id == active_id %}
+      <article class="card hmi-panel hmi-tpl-card{{ ' active' if is_active }}" data-template="{{ t.id }}">
+        {% if t.preview %}<img class="card-img-top hmi-tpl-preview" src="{{ url_for('ui_templates.asset', tid=t.id, filename=t.preview, v=t.stamp) }}" alt="" loading="lazy">{% endif %}
+        <div class="card-body d-flex flex-column gap-2">
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <h2 class="h5 mb-0 flex-grow-1">{{ t.title() }}</h2>
+            {% if is_active %}<span class="badge text-bg-success"><i class="bi bi-check2"></i> {{ _('active') }}</span>{% endif %}
+            {% if ui_preview and ui_preview.id == t.id %}<span class="badge text-bg-primary"><i class="bi bi-eye"></i> {{ _('previewing') }}</span>{% endif %}
+            {% if t.builtin %}<span class="badge text-bg-secondary">{{ _('built-in') }}</span>{% else %}<span class="badge text-bg-info">{{ _('uploaded') }}</span>{% endif %}
+          </div>
+          <div class="small text-secondary"><code>{{ t.id }}</code>{% if t.version %} · {{ _('version {0}', t.version) }}{% endif %}{% if t.author %} · {{ t.author }}{% endif %}</div>
+          {% if t.summary() %}<p class="small mb-0">{{ t.summary() }}</p>{% endif %}
+          <ul class="small mb-0 hmi-tpl-features">
+            <li>{{ _('Colours') }}: {{ {'user': _("each user's choice"), 'light': _('always light'), 'dark': _('always dark')}[t.color_mode] }}</li>
+            {% for name, value in t.changed_features().items() %}
+            <li>{{ _(feature_labels[name]) }}: {{ _(value_labels.get(value, value|string)) }}</li>
+            {% endfor %}
+            {% if t.js %}<li class="text-warning"><i class="bi bi-filetype-js"></i> {{ _('Contains JavaScript') }}</li>{% endif %}
+          </ul>
+          <div class="d-flex flex-wrap gap-2 mt-auto pt-2">
+            {% if not is_active %}
+            <form method="post" action="{{ url_for('ui_templates.admin_activate', tid=t.id) }}"
+                  data-confirm="{{ _('Activate {0} for all users?', t.title()) }}" data-confirm-button="{{ _('Activate') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-primary tpl-activate" type="submit"><i class="bi bi-check2-circle"></i> {{ _('Activate') }}</button>
+            </form>
+            <form method="post" action="{{ url_for('ui_templates.admin_preview', tid=t.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-primary tpl-preview" type="submit"><i class="bi bi-eye"></i> {{ _('Preview') }}</button>
+            </form>
+            {% endif %}
+            <a class="btn btn-sm btn-outline-secondary tpl-download" href="{{ url_for('ui_templates.admin_download', tid=t.id) }}"
+               title="{{ _('Download as a ZIP package – a starting point for your own template') }}"><i class="bi bi-download"></i> {{ _('Download') }}</a>
+            {% if not t.builtin %}
+            <form method="post" action="{{ url_for('ui_templates.admin_delete', tid=t.id) }}" data-confirm="{{ _('Delete the uploaded template {0}?', t.title()) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-danger tpl-delete" type="submit"><i class="bi bi-trash"></i> {{ _('Delete') }}</button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+    {% endfor %}
+    </div>
+  </div>
+
+  <div class="col-xl-4">
+    <div class="card hmi-panel"><div class="card-body">
+      <h2 class="h5">{{ _('Upload a template') }}</h2>
+      <form method="post" action="{{ url_for('ui_templates.admin_upload') }}" enctype="multipart/form-data" id="ui-template-upload">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input class="form-control mb-2" type="file" name="file" accept=".zip,application/zip" required aria-label="{{ _('Template package (.zip)') }}">
+        <div class="form-check mb-2">
+          <input class="form-check-input" type="checkbox" name="replace" value="1" id="tpl-replace">
+          <label class="form-check-label" for="tpl-replace">{{ _('Replace an uploaded template with the same id') }}</label>
+        </div>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-upload"></i> {{ _('Upload') }}</button>
+      </form>
+      <hr>
+      <h3 class="h6">{{ _('For developers') }}</h3>
+      <ol class="small mb-2">
+        <li>{{ _('Download a template above as a starting point.') }}</li>
+        <li>{{ _('Edit template.json (id, name, features) and the CSS. Colours are set with the --hmi-* variables.') }}</li>
+        <li>{{ _('Zip the folder and upload it here (at most {0} MB).', max_mb) }}</li>
+      </ol>
+      <p class="small text-secondary mb-2">{{ _('Allowed files: {0}. Templates cannot contain server code (Python or Jinja pages).', extensions|join(' ')) }}</p>
+<pre class="small mb-0 p-2 rounded hmi-code" dir="ltr">{
+  "pyplchmi_template": 1,
+  "id": "my-plant",
+  "name": "My plant",
+  "version": "1.0.0",
+  "color_mode": "user",
+  "features": {
+    "nav": "sidebar",
+    "alarm_ui": "banner",
+    "tiles": "hp",
+    "command_palette": true
+  },
+  "css": ["theme.css"]
+}</pre>
+      <p class="small mt-2 mb-0"><a href="https://github.com/meshesha/pyPLCHMI/blob/main/docs/UI_TEMPLATES.md" target="_blank" rel="noopener">{{ _('Developer guide (docs/UI_TEMPLATES.md)') }}</a></p>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

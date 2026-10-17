@@ -6,7 +6,11 @@
 {% endblock %}
 {% block content %}
 {% include "alarms/_banner.html" %}
-<div id="hmi-grid" class="hmi-grid"
+{# UI templates with "tiles": "hp" use high-performance tiles (ISA-101): no addresses, a range bar
+   with the normal band, the last hour as a small trend, alarm highlighting and a "Change…" button. #}
+{% set hp = ui.feature('tiles') == 'hp' %}
+<div id="hmi-grid" class="hmi-grid{{ ' hmi-grid-hp' if hp }}"
+     data-series-url="{{ url_for('history.api_series') if hp and current_user.can(Perm.VIEW_HISTORY) else '' }}"
      data-values-url="{{ url_for('api.dashboard_values', dashboard_id=dashboard.id) }}"
      data-write-url-template="{{ url_for('api.datapoint_write', point_id=0) }}"
      data-refresh-ms="{{ dashboard.refresh_ms }}">
@@ -18,6 +22,7 @@
        data-max="{{ dp.max_value if dp.max_value is not none else '' }}" data-writable="{{ 1 if writable else 0 }}">
     <div class="hmi-tile-head">
       <span class="hmi-label">{{ dp.label }}</span>
+      {% if hp %}<span class="hmi-hp-alarm" hidden></span>{% endif %}
       <span class="hmi-quality" title="{{ _('quality') }}"></span>
     </div>
     <div class="hmi-addr">{{ dp.plc.name }} · {{ dp.address }} · {{ dp.data_type }}{% if dp.is_local %} · <span title="{{ _('Local dummy tag: this browser window has its own value') }}">{{ _('local') }}</span>{% endif %}</div>
@@ -36,8 +41,18 @@
     {% else %}
       <div class="hmi-value hmi-big">—</div>
     {% endif %}
+    {% if hp and dp.is_numeric and dp.widget != 'gauge' and dp.min_value is not none and dp.max_value is not none and dp.max_value > dp.min_value %}
+      <div class="hmi-hp-range" aria-hidden="true"><div class="hmi-hp-pointer"></div></div>
+      <div class="hmi-hp-scale"><span>{{ dp.min_value }}</span><span>{{ dp.max_value }}</span></div>
+    {% endif %}
+    {% if hp and dp.is_logged and current_user.can(Perm.VIEW_HISTORY) %}
+      <svg class="hmi-spark" viewBox="0 0 100 24" preserveAspectRatio="none" role="img" aria-label="{{ _('Last hour') }}"><polyline points=""></polyline></svg>
+    {% endif %}
 
-    {% if writable and dp.widget != 'switch' %}
+    {% if hp and writable and dp.widget != 'switch' %}
+      <button type="button" class="btn hmi-change mt-2" data-input="{{ 'bool' if dp.is_bool else ('number' if dp.is_numeric else 'text') }}"
+              data-true="{{ dp.true_text }}" data-false="{{ dp.false_text }}" data-unit="{{ dp.unit }}">{{ _('Change…') }}</button>
+    {% elif writable and dp.widget != 'switch' %}
       <form class="hmi-write input-group input-group-sm mt-2">
         {% if dp.is_bool %}
           <select class="form-select"><option value="true">{{ dp.true_text }}</option><option value="false">{{ dp.false_text }}</option></select>

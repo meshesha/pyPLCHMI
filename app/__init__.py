@@ -108,6 +108,7 @@ def _register_blueprints(app: Flask) -> None:
     from app.history import bp as history_bp  # noqa: PLC0415
     from app.documents import bp as documents_bp  # noqa: PLC0415
     from app.audit import bp as audit_bp  # noqa: PLC0415
+    from app.ui_templates import bp as ui_templates_bp  # noqa: PLC0415
 
     app.register_blueprint(main_bp)
     app.register_blueprint(i18n_bp)
@@ -123,6 +124,7 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(history_bp, url_prefix="/history")
     app.register_blueprint(documents_bp, url_prefix="/library")
     app.register_blueprint(audit_bp, url_prefix="/admin/audit")
+    app.register_blueprint(ui_templates_bp)
 
 
 def _register_legacy_redirects(app: Flask) -> None:
@@ -213,18 +215,26 @@ def _register_template_helpers(app: Flask) -> None:
 
         Returns:
             Variables available in all templates: ``Perm``,
-            ``plc_simulation``, ``embed`` and ``ui_theme`` (the user's colour theme:
-            ``dark``, ``light`` or ``auto``; visitors get ``dark``).
+            ``plc_simulation``, ``embed``, ``ui_theme`` (colour theme:
+            ``dark``, ``light`` or ``auto`` – the user's choice, visitors get
+            ``dark``; a UI template with a fixed colour mode overrides it),
+            ``ui`` (the active :class:`~app.ui_templates.registry.UITemplate`)
+            and ``ui_preview`` (the template an administrator previews, or ``None``).
         """
         from flask_login import current_user  # noqa: PLC0415
 
         from app.models.user import THEMES  # noqa: PLC0415
+        from app.ui_templates.registry import active_template, previewing  # noqa: PLC0415
 
         theme = getattr(current_user, "theme", None) if current_user.is_authenticated else None
         from flask import has_request_context, request  # noqa: PLC0415
 
+        ui = active_template()
+        theme = theme if theme in THEMES else "dark"
+        if ui.color_mode in ("light", "dark"):
+            theme = ui.color_mode
         return {"Perm": Perm, "plc_simulation": app.config.get("PLC_SIMULATION", False),
-                "ui_theme": theme if theme in THEMES else "dark",
+                "ui_theme": theme, "ui": ui, "ui_preview": previewing(),
                 # ?embed=1: the screen alone (no top bar), shown in the full-screen frame
                 "embed": has_request_context() and request.args.get("embed") == "1"}
 
@@ -241,6 +251,36 @@ def _register_template_helpers(app: Flask) -> None:
     app.jinja_env.globals["current_language"] = current_language
     app.jinja_env.globals["available_languages"] = available_languages
     app.jinja_env.globals["default_language"] = default_language
+
+    @app.template_global()
+    def ui_nav() -> list:
+        """Pages for the sidebar layout of the UI templates, grouped.
+
+        Returns:
+            ``[(workspace, group label, [NavItem])]`` (see :mod:`app.ui_templates.nav`).
+        """
+        from flask_login import current_user  # noqa: PLC0415
+
+        from app.ui_templates.nav import grouped, nav_items  # noqa: PLC0415
+        from app.ui_templates.registry import active_template  # noqa: PLC0415
+
+        return grouped(nav_items(current_user, active_template().feature("home") == "overview"))
+
+    @app.template_global()
+    def nav_screens(limit: int = 40) -> list:
+        """Screens the current user may open (sidebar list), ordered by name.
+
+        Args:
+            limit: Most screens returned.
+
+        Returns:
+            List of :class:`Dashboard`.
+        """
+        from flask_login import current_user  # noqa: PLC0415
+
+        from app.models import Dashboard  # noqa: PLC0415
+
+        return [d for d in Dashboard.query.order_by(Dashboard.name) if current_user.can_view_dashboard(d)][:limit]
 
     @app.template_global()
     def nav_public_screens() -> list:

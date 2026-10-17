@@ -1,0 +1,31 @@
+{# Alarm strip of UI templates with "alarm_ui": "banner" (included by base.html under the top bar,
+   and at the top of full-screen frames).  New alarms never cover the page: the strip shows the
+   counts per priority and the newest unacknowledged alarm; "Alarm list" opens a side drawer
+   that does not block the page.  Filled by alarms.js. #}
+<div class="hmi-alarm-strip" id="alarm-strip" role="region" aria-label="{{ _('Alarm summary') }}" data-state="none">
+  <div class="hmi-strip-counts" aria-live="polite">
+    <span class="hmi-strip-count sev-critical" data-sev="critical" title="{{ _('Critical') }}"><span class="hmi-sev-shape" aria-hidden="true"></span>{{ _('Critical') }} <b>0</b></span>
+    <span class="hmi-strip-count sev-high" data-sev="high" title="{{ _('High') }}"><span class="hmi-sev-shape" aria-hidden="true"></span>{{ _('High') }} <b>0</b></span>
+    <span class="hmi-strip-count sev-low" data-sev="low" title="{{ _('Low') }}"><span class="hmi-sev-shape" aria-hidden="true"></span>{{ _('Low') }} <b>0</b></span>
+  </div>
+  <div class="hmi-strip-latest" id="alarm-strip-latest">{{ _('No active alarms.') }}</div>
+  <button type="button" class="btn btn-sm btn-warning" id="alarm-strip-ack" hidden><i class="bi bi-check2-circle"></i> {{ _('Ack') }}</button>
+  <button type="button" class="btn btn-sm btn-outline-secondary hmi-strip-list" id="alarm-strip-list"
+          data-bs-toggle="offcanvas" data-bs-target="#alarm-drawer" aria-controls="alarm-drawer">
+    <i class="bi bi-list-ul"></i> {{ _('Alarm list') }} <span class="badge text-bg-secondary" id="alarm-strip-total">0</span></button>
+</div>
+<aside class="offcanvas offcanvas-end hmi-alarm-drawer" id="alarm-drawer" tabindex="-1" aria-labelledby="alarm-drawer-title"
+       data-bs-backdrop="false" data-bs-scroll="true">
+  <div class="offcanvas-header">
+    <h2 class="offcanvas-title h5" id="alarm-drawer-title"><i class="bi bi-bell"></i> {{ _('Active alarms') }}</h2>
+    <a class="btn btn-sm btn-outline-info ms-auto me-2" href="{{ url_for('alarms.history') }}"><i class="bi bi-clock-history"></i> {{ _('Event History') }}</a>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="{{ _('Close') }}"></button>
+  </div>
+  <div class="offcanvas-body">
+    <div class="btn-group btn-group-sm mb-3" role="group" aria-label="{{ _('Filter') }}" id="alarm-drawer-filter">
+      <button type="button" class="btn btn-outline-secondary active" data-filter="all" aria-pressed="true">{{ _('All') }} <span data-n="all">0</span></button>
+      <button type="button" class="btn btn-outline-secondary" data-filter="unacked" aria-pressed="false">{{ _('Unacknowledged') }} <span data-n="unacked">0</span></button>
+    </div>
+    <div id="alarm-drawer-list" class="d-flex flex-column gap-2"></div>
+  </div>
+</aside>

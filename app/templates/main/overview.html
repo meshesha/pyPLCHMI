@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Plant overview') }}{% endblock %}
+{% block container %}container-fluid{% endblock %}
+{% block content %}
+{# Plant overview: one live card per screen.  hmi-overview.js polls /api/overview and fills
+   the PLC chips, the alarm badges and the key values. #}
+<div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+  <h1 class="h3 mb-0 flex-grow-1">{{ _('Plant overview') }}</h1>
+  <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('main.screens') }}"><i class="bi bi-list"></i> {{ _('All screens') }}</a>
+</div>
+<section class="hmi-ov-plcs mb-3" id="ov-plcs" aria-label="{{ _('Communication') }}" aria-live="polite"></section>
+<div class="hmi-ov-grid" id="hmi-overview" data-url="{{ url_for('api.overview') }}" data-refresh-ms="5000">
+  {% for s in screens %}
+  <a class="hmi-ov-card" href="{{ url_for('dashboards.view', slug=s.slug) }}" data-screen="{{ s.id }}">
+    <div class="hmi-ov-head">
+      <h2 class="hmi-ov-name">{{ s.name }}</h2>
+      <span class="hmi-ov-status" data-role="status">{{ _('Loading…') }}</span>
+    </div>
+    {% if s.description %}<p class="hmi-ov-desc">{{ s.description }}</p>{% endif %}
+    <dl class="hmi-ov-values" data-role="values"></dl>
+  </a>
+  {% else %}
+  <p class="text-secondary">{{ _('No screens yet.') }}</p>
+  {% endfor %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/hmi-overview.js') }}"></script>
+{% endblock %}

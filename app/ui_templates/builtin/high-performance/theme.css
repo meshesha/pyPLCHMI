@@ -1,0 +1,40 @@
+/* pyPLCHMI UI template "high-performance" – ISA-101 style operator screens.
+   Grey, low-contrast surroundings so that only abnormal states draw the eye:
+   red is kept for alarms, amber for communication problems. */
+:root[data-bs-theme] {
+  --hmi-bg: #c9cdd2;
+  --hmi-panel: #e4e6e9;
+  --hmi-border: #a7adb5;
+  --hmi-border-hover: #8a919b;
+  --hmi-nav-bg: #e4e6e9;
+  --hmi-inset: #f2f3f5;
+  --hmi-raised: #dcdfe3;
+  --hmi-hover: #d2d6db;
+  --hmi-stage: #c9cdd2;
+  --hmi-text: #15191e;
+  --hmi-text-strong: #0b0d10;
+  --hmi-subtle: #2c333b;
+  --hmi-muted: #3a424c;
+  --hmi-dimmed: #6b737d;
+  --hmi-section: #1f3b63;
+  --hmi-accent: #1f3b63;
+  --hmi-good: #4a5260;          /* "normal" is not a colour */
+  --hmi-bad: #c8102e;
+  --hmi-warn: #b35c00;
+  --hmi-lamp-off: #c9cdd2;
+  --hmi-chart-bg: #e4e6e9;
+  --hmi-chart-text: #2c333b;
+  --hmi-chart-grid: rgba(0, 0, 0, .1);
+  --hmi-chart-title: #0b0d10;
+  --bs-body-bg: #c9cdd2;
+  --bs-body-color: #15191e;
+  --bs-link-color-rgb: 31, 59, 99;
+  --bs-body-font-family: "Segoe UI", system-ui, -apple-system, "Noto Sans", Arial, sans-serif;
+}
+.hmi-big { font-size: 2.1rem; letter-spacing: -.01em; }
+.hmi-tile { box-shadow: none; }
+.hmi-label { font-weight: 600; }
+.btn-primary { --bs-btn-bg: #1f3b63; --bs-btn-border-color: #1f3b63; --bs-btn-hover-bg: #142a49; --bs-btn-hover-border-color: #142a49; }
+/* No glow, no gradients */
+.hmi-lamp.on { box-shadow: none; }
+.hmi-bar-fill { background: #4a5260; }

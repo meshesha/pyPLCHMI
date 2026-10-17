@@ -9,7 +9,14 @@
  *    "Ack" acknowledges the event and closes the window);
  *  - fills the Events window (active events; "Details" and, for
  *    administrators, "Remove");
- *  - keeps the alarm banner of a screen opened from an alarm up to date.
+ *  - keeps the alarm banner of a screen opened from an alarm up to date;
+ *  - with a UI template using "alarm_ui": "banner" (<html data-ui-alarms="banner">)
+ *    no window pops up: the alarm strip under the top bar shows the counts and
+ *    the newest unacknowledged alarm, and the alarm drawer lists all of them
+ *    without blocking the page.
+ *
+ * After every poll it fires the document event "hmi:alarms" with
+ * {detail: {events}} (used by the sidebar and the high-performance tiles).
  *
  * On every page it also converts <time class="js-local-time"> elements
  * (rendered in UTC by the server) to the browser's local time.
@@ -68,7 +75,16 @@
     closeBtn: document.getElementById("alarm-modal-close"),
     closeX: document.getElementById("alarm-modal-x"),
     banner: document.getElementById("alarm-banner"),
+    strip: document.getElementById("alarm-strip"),
+    stripLatest: document.getElementById("alarm-strip-latest"),
+    stripAck: document.getElementById("alarm-strip-ack"),
+    stripTotal: document.getElementById("alarm-strip-total"),
+    drawerList: document.getElementById("alarm-drawer-list"),
+    drawerFilter: document.getElementById("alarm-drawer-filter"),
   };
+  /** Alarm strip mode: alarms are shown in the strip and drawer, never as a popup. */
+  const STRIP = document.documentElement.dataset.uiAlarms === "banner";
+  let drawerFilter = "all";
 
   let active = [];              // events from the last poll
   let canRemove = false;
@@ -172,7 +188,7 @@
    * @param {MouseEvent} ev Click on "Open Screen".
    */
   function openScreen(ev) {
-    const href = els.open.getAttribute("href");
+    const href = (ev.currentTarget && ev.currentTarget.getAttribute("href")) || els.open.getAttribute("href");
     if (!href || href === "#") return;
     ev.preventDefault();
     const withEmbed = (url) => url + (url.includes("embed=1") ? "" : (url.includes("?") ? "&" : "?") + "embed=1");
@@ -227,6 +243,7 @@
 
   /** Pop up the alarm window for the next unacknowledged event, or close a stale one. */
   function maybePopup() {
+    if (STRIP) return;                 // alarm strip mode: never pop up
     const pending = unacked();
     if (popup && document.querySelector(".hmi-fs-overlay")) {
       closeWindow();                   // the full-screen frame shows its own alarm window
@@ -356,6 +373,128 @@
     document.getElementById("alarm-banner-close").addEventListener("click", () => { els.banner.hidden = true; });
   }
 
+  // ------------------------------------------------------------------ alarm strip + drawer
+  /**
+   * Acknowledge an event and update the views.
+   * @param {number} id Event id.
+   * @param {HTMLButtonElement} [btn] Button to disable meanwhile.
+   */
+  async function ackEvent(id, btn) {
+    if (btn) btn.disabled = true;
+    try {
+      const ev = await post(cfg.dataset.ackUrl, id);
+      active = active.map((x) => (x.id === id ? ev : x));
+      render();
+    } catch (err) {
+      if (window.HMIDialog) window.HMIDialog.toast(T("Ack failed: {0}", err.message), { icon: "error" });
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  /** Newest unacknowledged event (most severe first), or null. */
+  function newestUnacked() {
+    const list = active.filter((e) => !e.acked_at)
+      .sort((a, b) => (RANK[b.severity] || 0) - (RANK[a.severity] || 0) || b.occurred_at.localeCompare(a.occurred_at));
+    return list[0] || null;
+  }
+
+  /** Update the alarm strip: counts per priority and the newest unacknowledged alarm. */
+  function renderStrip() {
+    if (!els.strip) return;
+    const counts = { critical: 0, high: 0, low: 0 };
+    active.forEach((e) => { if (e.severity in counts) counts[e.severity] += 1; });
+    els.strip.querySelectorAll("[data-sev]").forEach((n) => {
+      const c = counts[n.dataset.sev] || 0;
+      n.querySelector("b").textContent = c;
+      n.classList.toggle("zero", c === 0);
+    });
+    const top = newestUnacked();
+    els.strip.dataset.state = top ? top.severity : (active.length ? "acked" : "none");
+    els.stripTotal.textContent = active.length;
+    els.stripLatest.replaceChildren();
+    if (top) {
+      const link = el("button", "hmi-strip-event", "");
+      link.type = "button";
+      link.append(el("strong", "", new Date(top.occurred_at).toLocaleTimeString() + " · " + top.name));
+      const detail = [top.description, top.value ? T("value {0}", top.value) : ""].filter(Boolean).join(" · ");
+      if (detail) link.append(el("span", "hmi-strip-detail", " " + detail));
+      link.title = T("Details");
+      link.addEventListener("click", () => showEvent(top.id));
+      els.stripLatest.append(link);
+      els.stripAck.hidden = false;
+      els.stripAck.dataset.eventId = top.id;
+    } else {
+      els.stripLatest.textContent = active.length ? T("All alarms acknowledged · {0} still active", active.length) : T("No active alarms.");
+      els.stripAck.hidden = true;
+    }
+  }
+
+  /** Fill the alarm drawer with one card per active event. */
+  function renderDrawer() {
+    if (!els.drawerList) return;
+    const unackedCount = active.filter((e) => !e.acked_at).length;
+    els.drawerFilter.querySelector('[data-n="all"]').textContent = active.length;
+    els.drawerFilter.querySelector('[data-n="unacked"]').textContent = unackedCount;
+    const list = active.filter((e) => drawerFilter === "all" || !e.acked_at)
+      .sort((a, b) => (RANK[b.severity] || 0) - (RANK[a.severity] || 0) || b.occurred_at.localeCompare(a.occurred_at));
+    els.drawerList.replaceChildren();
+    if (!list.length) {
+      els.drawerList.append(el("p", "text-secondary small", T("No active alarms.")));
+      return;
+    }
+    list.forEach((ev) => {
+      const card = el("article", "hmi-drawer-card" + (ev.acked_at ? " acked" : ""));
+      card.style.setProperty("--sev", ev.color);
+      card.dataset.eventId = ev.id;
+      const head = el("div", "hmi-drawer-head");
+      const badge = el("span", "badge severity-badge", T(ev.severity_label));
+      badge.style.background = ev.color;
+      head.append(badge, el("strong", "flex-grow-1", ev.name), el("span", "small font-monospace", new Date(ev.occurred_at).toLocaleTimeString()));
+      card.append(head);
+      const info = [ev.description, ev.condition, ev.value ? T("value {0}", ev.value) : ""].filter(Boolean).join(" · ");
+      if (info) card.append(el("div", "small hmi-drawer-info", info));
+      const actions = el("div", "d-flex flex-wrap gap-2");
+      if (!ev.acked_at) {
+        const ack = el("button", "btn btn-sm btn-warning", T("Ack"));
+        ack.type = "button";
+        ack.addEventListener("click", () => ackEvent(ev.id, ack));
+        actions.append(ack);
+      } else {
+        actions.append(el("span", "small text-secondary align-self-center",
+          T("Acknowledged") + (ev.acked_by ? " · " + ev.acked_by : "")));
+      }
+      if (ev.screen_url) {
+        const open = el("a", "btn btn-sm btn-outline-secondary", T("Open Screen"));
+        open.href = ev.screen_url;
+        open.addEventListener("click", openScreen);
+        actions.append(open);
+      }
+      const details = el("button", "btn btn-sm btn-outline-info", T("Details"));
+      details.type = "button";
+      details.addEventListener("click", () => showEvent(ev.id));
+      actions.append(details);
+      card.append(actions);
+      els.drawerList.append(card);
+    });
+  }
+
+  if (els.stripAck) {
+    els.stripAck.addEventListener("click", () => ackEvent(parseInt(els.stripAck.dataset.eventId, 10), els.stripAck));
+  }
+  if (els.drawerFilter) {
+    els.drawerFilter.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-filter]");
+      if (!b) return;
+      drawerFilter = b.dataset.filter;
+      els.drawerFilter.querySelectorAll("[data-filter]").forEach((x) => {
+        x.classList.toggle("active", x === b);
+        x.setAttribute("aria-pressed", x === b ? "true" : "false");
+      });
+      renderDrawer();
+    });
+  }
+
   // ------------------------------------------------------------------ polling
   /**
    * Update the navbar button, the Events window and the banner.
@@ -363,6 +502,9 @@
    */
   function render(data) {
     const pending = active.filter((e) => !e.acked_at).length;
+    renderStrip();
+    renderDrawer();
+    document.dispatchEvent(new CustomEvent("hmi:alarms", { detail: { events: active } }));
     if (!els.count || !els.btn) {  // screen in the full-screen frame: no top bar (no Events button)
       renderBanner();
       return;

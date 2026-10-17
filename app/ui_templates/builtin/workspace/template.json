@@ -1,0 +1,25 @@
+{
+  "pyplchmi_template": 1,
+  "id": "workspace",
+  "name": "Workspaces",
+  "version": "1.0.0",
+  "author": "pyPLCHMI",
+  "description": "Sidebar with Operate / Engineer workspaces, plant overview as home page with live status per screen, quick search (Ctrl+K).",
+  "color_mode": "user",
+  "features": {
+    "nav": "sidebar",
+    "home": "overview",
+    "command_palette": true
+  },
+  "css": [
+    "theme.css"
+  ],
+  "js": [],
+  "preview": "preview.svg",
+  "i18n": {
+    "he": {
+      "name": "סביבות עבודה",
+      "description": "סרגל צד עם סביבות הפעלה / הנדסה, סקירת מתקן כדף הבית עם מצב חי לכל מסך, חיפוש מהיר (Ctrl+K)."
+    }
+  }
+}

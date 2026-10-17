@@ -21,7 +21,7 @@ PASSWORD = "secret-pass-123"
 def app(tmp_path):
     """Create an application with a fresh database and default roles.
 
-    Uploaded images go to a per-test temporary folder.
+    Uploaded images, language files and UI templates go to per-test temporary folders.
 
     Args:
         tmp_path: pytest temporary directory.
@@ -35,6 +35,7 @@ def app(tmp_path):
     app = create_app("testing")
     app.config["UPLOAD_FOLDER"] = str(tmp_path / "uploads")
     app.config["LANGUAGES_FOLDER"] = str(tmp_path / "languages")
+    app.config["UI_TEMPLATES_FOLDER"] = str(tmp_path / "ui_templates")
     with app.app_context():
         _db.create_all()
         Role.insert_defaults()

@@ -396,6 +396,7 @@ class AlarmEvent(db.Model):
             "acked_by": self.acked_by.username if self.acked_by else None,
             "cleared_at": iso(self.cleared_at), "close_type": self.close_type, "close_text": self.close_text,
             "screen_url": screen_url,
+            "tag_id": self.alarm.datapoint_id if self.alarm is not None else None,
         }
 
 

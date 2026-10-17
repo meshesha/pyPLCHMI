@@ -1,0 +1,32 @@
+/* Example pyPLCHMI UI template – "example-plant".
+ *
+ * 1. Colours: override the --hmi-* variables (see docs/UI_TEMPLATES.md for the full list).
+ *    ":root[data-bs-theme]" is more specific than the defaults in hmi.css, so it always wins.
+ * 2. Shapes: style the documented classes (.hmi-tile, .hmi-ov-card, .hmi-sidebar …).
+ * 3. Keep alarm colours strong and everything else calm.
+ */
+:root[data-bs-theme] {
+  --hmi-bg: #0d1512;
+  --hmi-panel: #13201b;
+  --hmi-border: #24372f;
+  --hmi-border-hover: #35503f;
+  --hmi-nav-bg: #101b16;
+  --hmi-inset: #0a110e;
+  --hmi-raised: #182a22;
+  --hmi-hover: #1d3329;
+  --hmi-text: #e3efe8;
+  --hmi-text-strong: #ffffff;
+  --hmi-subtle: #c2d6ca;
+  --hmi-muted: #8fa99a;
+  --hmi-accent: #2e8b57;
+  --hmi-section: #8fd3a8;
+  --bs-link-color-rgb: 143, 211, 168;
+  --bs-link-hover-color-rgb: 190, 234, 205;
+}
+
+.hmi-tile, .hmi-ov-card { border-radius: .75rem; }
+.hmi-sidebar-brand { letter-spacing: .02em; }
+.btn-primary { --bs-btn-bg: #2e8b57; --bs-btn-border-color: #2e8b57; --bs-btn-hover-bg: #256f46; --bs-btn-hover-border-color: #256f46; }
+
+/* The element added by theme.js */
+.example-plant-name { font-size: .8rem; color: var(--hmi-muted); padding: 0 1rem .5rem; }

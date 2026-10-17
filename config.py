@@ -81,6 +81,8 @@ class Config:
     ASSET_MAX_BYTES = int(os.environ.get("ASSET_MAX_BYTES", str(5 * 1024 * 1024)))
     #: Folder for language files uploaded by administrators (default: ``instance/languages``).
     LANGUAGES_FOLDER = os.environ.get("LANGUAGES_FOLDER") or os.path.join(BASE_DIR, "instance", "languages")
+    #: Folder for UI templates uploaded by administrators (default: ``instance/ui_templates``).
+    UI_TEMPLATES_FOLDER = os.environ.get("UI_TEMPLATES_FOLDER") or os.path.join(BASE_DIR, "instance", "ui_templates")
     #: Upper bound for any request body (several images per upload).
     MAX_CONTENT_LENGTH = 32 * 1024 * 1024
     #: Largest file of the information library (PDF / image attached to PLCs).

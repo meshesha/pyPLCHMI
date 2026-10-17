@@ -202,6 +202,50 @@ def delete(tag_id: int):
     return redirect(request.referrer or url_for("tags.index"))
 
 
+@bp.route("/bulk", methods=["POST"])
+@admin_required
+def bulk():
+    """Act on the selected tags (bulk bar of the side-panel tag table).
+
+    Form fields: ``ids`` (repeatable) and ``action``:
+
+    * ``delete`` – delete the tags (tags used by alarms are kept and listed);
+    * ``screen`` – show the tags on the screen ``screen_id``.
+
+    Returns:
+        Redirect back to the tag table.
+    """
+    ids = [int(v) for v in request.form.getlist("ids") if str(v).isdigit()]
+    tags = DataPoint.query.filter(DataPoint.id.in_(ids)).order_by(DataPoint.label).all() if ids else []
+    action = request.form.get("action")
+    back = redirect(request.referrer or url_for("tags.index"))
+    if not tags:
+        flash(gettext("Select one or more tags first."), "warning")
+        return back
+    if action == "delete":
+        kept = [dp.label for dp in tags if dp.alarms.count()]
+        removed = [dp for dp in tags if not dp.alarms.count()]
+        for dp in removed:
+            db.session.delete(dp)
+        db.session.commit()
+        if removed:
+            flash(gettext("{0} tag(s) deleted.", len(removed)), "success")
+        if kept:
+            flash(gettext("Kept because alarms use them: {0}.", ", ".join(kept)), "warning")
+    elif action == "screen":
+        screen = db.session.get(Dashboard, request.form.get("screen_id", type=int) or 0)
+        if screen is None:
+            flash(gettext("Choose a screen."), "warning")
+            return back
+        for dp in tags:
+            screen.add_tag(dp)
+        db.session.commit()
+        flash(gettext("{0} tag(s) added to screen '{1}'.", len(tags), screen.name), "success")
+    else:
+        flash(gettext("Unknown action."), "danger")
+    return back
+
+
 # ---------------------------------------------------------------------------
 # Excel export / import
 # ---------------------------------------------------------------------------

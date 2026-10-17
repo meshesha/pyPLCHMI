@@ -1,0 +1,24 @@
+{
+  "pyplchmi_template": 1,
+  "id": "high-performance",
+  "name": "High-performance (ISA-101)",
+  "version": "1.0.0",
+  "author": "pyPLCHMI",
+  "description": "Calm grey operator screens: colour only for abnormal states, range bars with the normal band, one-hour trends, alarm strip instead of popups.",
+  "color_mode": "light",
+  "features": {
+    "tiles": "hp",
+    "alarm_ui": "banner"
+  },
+  "css": [
+    "theme.css"
+  ],
+  "js": [],
+  "preview": "preview.svg",
+  "i18n": {
+    "he": {
+      "name": "ביצועים גבוהים (ISA-101)",
+      "description": "מסכי מפעיל אפורים ורגועים: צבע רק למצבים חריגים, פסי טווח עם התחום התקין, מגמה של שעה אחרונה, פס התראות במקום חלונות קופצים."
+    }
+  }
+}

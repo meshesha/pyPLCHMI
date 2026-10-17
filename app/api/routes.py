@@ -600,3 +600,101 @@ def tag_values():
     points = DataPoint.query.filter(DataPoint.id.in_(ids)).all() if ids else []
     values, _ = read_datapoints(points)
     return jsonify(values={str(k): v for k, v in values.items()})
+
+
+# ---------------------------------------------------------------------------
+# UI templates: plant overview and quick search (Ctrl+K)
+# ---------------------------------------------------------------------------
+#: Values shown per screen card on the plant overview.
+OVERVIEW_VALUES = 3
+
+
+@bp.route("/overview")
+def overview():
+    """Live status of every screen the user may open (plant overview page).
+
+    For each screen: open alarms (count, unacknowledged, highest severity),
+    communication state of its PLCs and the first few tag values.  Local
+    dummy tags are skipped.
+
+    Returns:
+        JSON ``{"timestamp", "screens": [...], "plcs": {id: {...}}}``.
+    """
+    if not current_user.is_authenticated:
+        return _json_error(gettext('authentication required'), 401)
+    screens = [s for s in Dashboard.query.order_by(Dashboard.name) if current_user.can_view_dashboard(s)]
+    shown = {s.id: [dp for dp in s.datapoints if not dp.is_local][:OVERVIEW_VALUES] for s in screens}
+    unique = {dp.id: dp for points in shown.values() for dp in points}
+    values, plcs = read_datapoints(unique.values())
+    rank = {k: v[2] for k, v in SEVERITIES.items()}
+    events = AlarmEvent.query.filter(AlarmEvent.cleared_at.is_(None)).all()
+    out = []
+    for screen in screens:
+        mine = [e for e in events if e.screen_id == screen.id]
+        highest = max((e.severity for e in mine), key=lambda s: rank.get(s, 0), default=None)
+        screen_plcs = [p for p in screen.plcs if p.enabled]
+        for plc in screen_plcs:
+            if plc.id not in plcs:
+                plcs[plc.id] = {"name": plc.name, **{k: v for k, v in get_manager().status(plc).items()
+                                                     if k in ("state", "connected", "error", "down_for")}}
+        out.append({
+            "id": screen.id, "name": screen.name, "description": screen.description or "",
+            "url": url_for("dashboards.view", slug=screen.slug), "kind": screen.kind,
+            "alarms": len(mine), "unacked": sum(1 for e in mine if e.acked_at is None),
+            "severity": highest, "color": SEVERITIES[highest][1] if highest in SEVERITIES else None,
+            "plcs": [p.id for p in screen_plcs],
+            "values": [{"id": dp.id, "label": dp.label, "unit": dp.unit or "", **{
+                k: values.get(dp.id, {}).get(k) for k in ("display", "quality", "stale")}} for dp in shown[screen.id]],
+        })
+    return jsonify(timestamp=datetime_now_iso(), screens=out, plcs={str(k): v for k, v in plcs.items()})
+
+
+def datetime_now_iso() -> str:
+    """Current UTC time as ISO 8601 text."""
+    from datetime import datetime, timezone  # noqa: PLC0415
+
+    return datetime.now(timezone.utc).isoformat()
+
+
+@bp.route("/search")
+def search():
+    """Quick search for the command palette (Ctrl+K): pages, screens, tags, PLCs.
+
+    Query: ``q`` (case-insensitive text; empty = pages and screens only).
+    Only items the user may open are returned.
+
+    Returns:
+        JSON ``{"results": [{"kind", "label", "detail", "url", "icon"}]}`` (at most 30).
+    """
+    if not current_user.is_authenticated:
+        return _json_error(gettext('authentication required'), 401)
+    from app.ui_templates.nav import nav_items  # noqa: PLC0415
+    from app.ui_templates.registry import active_template  # noqa: PLC0415
+
+    q = (request.args.get("q") or "").strip().lower()
+    results: list = []
+
+    def hit(*texts) -> bool:
+        """Whether the search text occurs in any of the texts."""
+        return not q or any(q in (t or "").lower() for t in texts)
+
+    for item in nav_items(current_user, active_template().feature("home") == "overview"):
+        if hit(item.label, item.group):
+            results.append({"kind": "page", "label": item.label, "detail": item.group, "url": item.url,
+                            "icon": item.icon})
+    for screen in Dashboard.query.order_by(Dashboard.name):
+        if current_user.can_view_dashboard(screen) and hit(screen.name, screen.description, screen.slug):
+            results.append({"kind": "screen", "label": screen.name, "detail": gettext("Screen"),
+                            "url": url_for("dashboards.view", slug=screen.slug), "icon": "grid-1x2"})
+    if q and current_user.can(Perm.MANAGE_ROLES):
+        like = f"%{q}%"
+        tags = DataPoint.query.filter(db.or_(DataPoint.label.ilike(like), DataPoint.address_text.ilike(like))
+                                      ).order_by(DataPoint.label).limit(15)
+        for dp in tags:
+            results.append({"kind": "tag", "label": dp.label, "detail": f"{dp.plc.name} · {dp.address_text or dp.address}",
+                            "url": url_for("tags.edit", tag_id=dp.id), "icon": "tag"})
+    if q and current_user.can(Perm.MANAGE_PLCS):
+        for plc in PLC.query.filter(PLC.name.ilike(f"%{q}%")).order_by(PLC.name).limit(10):
+            results.append({"kind": "plc", "label": plc.name, "detail": gettext("PLC"),
+                            "url": url_for("admin.plc_edit", plc_id=plc.id), "icon": "hdd-network"})
+    return jsonify(results=results[:30])

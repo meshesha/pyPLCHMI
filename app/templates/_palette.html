@@ -1,0 +1,24 @@
+{# Quick search ("command palette", Ctrl+K) of UI templates with "command_palette": true.
+   hmi-palette.js asks /api/search and opens the chosen page. #}
+<div class="modal fade hmi-palette" id="hmi-palette" tabindex="-1" aria-labelledby="hmi-palette-label" aria-hidden="true"
+     data-search-url="{{ url_for('api.search') }}">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header gap-2">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <label class="visually-hidden" for="hmi-palette-input" id="hmi-palette-label">{{ _('Go to screen, tag, PLC or page') }}</label>
+        <input class="form-control border-0 shadow-none" id="hmi-palette-input" type="search" autocomplete="off"
+               role="combobox" aria-expanded="true" aria-controls="hmi-palette-list" aria-autocomplete="list"
+               placeholder="{{ _('Go to screen, tag, PLC or page…') }}">
+        <kbd class="d-none d-sm-inline">Esc</kbd>
+      </div>
+      <div class="modal-body p-0">
+        <ul class="list-unstyled mb-0" id="hmi-palette-list" role="listbox" aria-label="{{ _('Results') }}"></ul>
+        <p class="text-secondary small p-3 mb-0" id="hmi-palette-empty" hidden>{{ _('Nothing found.') }}</p>
+      </div>
+      <div class="modal-footer small text-secondary justify-content-start">
+        <span><kbd>↑</kbd> <kbd>↓</kbd> {{ _('choose') }}</span><span><kbd>Enter</kbd> {{ _('open') }}</span>
+      </div>
+    </div>
+  </div>
+</div>

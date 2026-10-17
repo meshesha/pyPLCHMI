@@ -1,0 +1,13 @@
+{# Shown while an administrator previews a UI template (only this session sees it). #}
+<div class="hmi-preview-bar" role="status" id="ui-preview-bar">
+  <i class="bi bi-eye"></i>
+  <span>{{ _("Preview of the UI template '{0}' – only you see it.", ui_preview.title()) }}</span>
+  <form method="post" action="{{ url_for('ui_templates.admin_activate', tid=ui_preview.id) }}" class="d-inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-sm btn-light" type="submit">{{ _('Activate for everyone') }}</button>
+  </form>
+  <form method="post" action="{{ url_for('ui_templates.admin_preview_stop') }}" class="d-inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-sm btn-outline-light" type="submit" id="ui-preview-stop">{{ _('End preview') }}</button>
+  </form>
+</div>

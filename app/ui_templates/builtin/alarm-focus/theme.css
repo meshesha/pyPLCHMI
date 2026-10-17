@@ -1,0 +1,26 @@
+/* pyPLCHMI UI template "alarm-focus" – dark, calm background with strong alarm colours.
+   Alarms appear in the strip under the top bar and in the side list (never as a window). */
+:root[data-bs-theme] {
+  --hmi-bg: #0f1318;
+  --hmi-panel: #151a21;
+  --hmi-border: #2a323d;
+  --hmi-border-hover: #3a4554;
+  --hmi-nav-bg: #151a21;
+  --hmi-inset: #0b0e12;
+  --hmi-raised: #1b222b;
+  --hmi-hover: #222a35;
+  --hmi-text: #e6eaf0;
+  --hmi-text-strong: #ffffff;
+  --hmi-subtle: #c5ceda;
+  --hmi-muted: #a9b4c2;
+  --hmi-accent: #2f7dd9;
+  --hmi-good: #3fb68b;
+  --hmi-bad: #b3122b;
+  --hmi-warn: #f59f00;
+  --bs-body-font-family: "Segoe UI", system-ui, -apple-system, "Noto Sans", Arial, sans-serif;
+}
+.hmi-alarm-strip { border-bottom-width: 2px; }
+.hmi-alarm-strip[data-state="critical"] { background: #3a1218; }
+.hmi-alarm-strip[data-state="high"] { background: #33260b; }
+.hmi-strip-count.sev-critical:not(.zero) { background: #b3122b; }
+.btn-primary { --bs-btn-bg: #2f7dd9; --bs-btn-border-color: #2f7dd9; --bs-btn-hover-bg: #2368bb; --bs-btn-hover-border-color: #2368bb; }

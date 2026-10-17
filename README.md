@@ -29,6 +29,7 @@ operator station is just a browser window, and the engineering tools are on the 
 | 🔐 **Security & audit** | Built-in Admin / Operator / Viewer / Guest roles plus your own, **per-tag write rights by role** (only the shift lead may change that set-point), bcrypt passwords, CSRF protection, full **audit log** (who changed what – before/after values) |
 | 📡 **Knows when it's blind** | A Web Worker heartbeat raises a red *Connection to the server lost* banner within seconds, greys out stale values, and shows when the server is back or was restarted. It also works in background tabs and full screen. |
 | 🌍 **Built for the floor** | Dark & light mode, full-screen kiosk mode, public wall-display screens, screen list as cards or a sortable/filterable table, English & Hebrew (RTL) + your own language files |
+| 🎨 **UI templates** | Switch the whole look with one click: Classic, **High-performance (ISA-101)** grey screens, **Alarm focus** strip that never blocks the page, **Workspaces** (sidebar, plant overview, Ctrl+K search), **Engineering** (side-panel tag editing, bulk actions). Build and upload your own – [developer guide](docs/UI_TEMPLATES.md) |
 | 🧪 **Simulator included** | `PLC_SIMULATION=1` – develop and demo without hardware |
 
 ## Screenshots
@@ -38,6 +39,10 @@ operator station is just a browser window, and the engineering tools are on the 
 | ![Alarm](docs/screenshots/alarm.png) | ![Trends](docs/screenshots/trends.png) |
 | **SVG screen designer** | **Right-click → Show graph** |
 | ![Designer](docs/screenshots/designer.png) | ![Value graph](docs/screenshots/value-graph.png) |
+| **Template: High-performance (ISA-101)** | **Template: Workspaces – plant overview** |
+| ![High-performance](docs/screenshots/template-high-performance.png) | ![Workspaces](docs/screenshots/template-workspace.png) |
+| **Template: Alarm focus – alarm list** | **Template: Engineering – bulk actions** |
+| ![Alarm focus](docs/screenshots/template-alarm-focus.png) | ![Engineering](docs/screenshots/template-engineering.png) |
 
 ## Quick start
 

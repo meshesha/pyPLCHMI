@@ -1,0 +1,38 @@
+{# Sidebar navigation of UI templates with "nav": "sidebar" (included by base.html).
+   Operate / Engineer switch the visible groups (remembered in the browser, hmi-sidebar.js).
+   Below lg the sidebar is an off-canvas panel opened by the menu button of the top bar. #}
+<aside class="hmi-sidebar offcanvas-lg offcanvas-start" id="hmi-sidebar" tabindex="-1" aria-label="{{ _('Main menu') }}" data-workspace="operate">
+  <div class="hmi-sidebar-head">
+    <a class="hmi-sidebar-brand" href="{{ url_for('main.index') }}"><i class="bi bi-cpu"></i> <span>pyPLC<strong>HMI</strong></span></a>
+    <button type="button" class="btn-close d-lg-none" data-bs-dismiss="offcanvas" data-bs-target="#hmi-sidebar" aria-label="{{ _('Close') }}"></button>
+  </div>
+  {% set groups = ui_nav() %}
+  {% set has_engineer = groups|selectattr(0, 'equalto', 'engineer')|list|length > 0 %}
+  {% if has_engineer %}
+  <div class="hmi-ws-switch" role="group" aria-label="{{ _('Workspace') }}">
+    <button type="button" data-ws="operate" aria-pressed="true" id="ws-operate"><i class="bi bi-display"></i> {{ _('Operate') }}</button>
+    <button type="button" data-ws="engineer" aria-pressed="false" id="ws-engineer"><i class="bi bi-wrench-adjustable"></i> {{ _('Engineer') }}</button>
+  </div>
+  {% endif %}
+  <nav class="hmi-sidebar-nav">
+    {% for ws, label, items in groups %}
+      <div class="hmi-side-group" data-ws="{{ ws }}">{{ label }}</div>
+      {% for item in items %}
+      <a class="hmi-side-link" data-ws="{{ ws }}" id="side-{{ item.key }}" href="{{ item.url }}"><i class="bi bi-{{ item.icon }}"></i><span>{{ item.label }}</span></a>
+      {% endfor %}
+      {% if loop.first %}
+      {% set screens = nav_screens() %}
+      {% if screens %}
+      <div class="hmi-side-group" data-ws="operate">{{ _('Screens') }}</div>
+      {% for s in screens %}
+      <a class="hmi-side-link hmi-side-screen" data-ws="operate" href="{{ url_for('dashboards.view', slug=s.slug) }}" data-screen-path="{{ url_for('dashboards.view', slug=s.slug) }}">
+        <i class="bi bi-{{ 'image' if s.kind == 'image' else 'grid' }}"></i><span>{{ s.name }}</span><span class="hmi-side-badge" hidden></span></a>
+      {% endfor %}
+      {% endif %}
+      {% endif %}
+    {% endfor %}
+  </nav>
+  <div class="hmi-sidebar-user">
+    <i class="bi bi-person-circle"></i> <span>{{ current_user.username }} · {{ _(current_user.role.name) }}</span>
+  </div>
+</aside>

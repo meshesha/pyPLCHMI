@@ -1,0 +1,13 @@
+/* pyPLCHMI UI template "engineering" – dense tables, blue accent, side-panel editing.
+   Follows the user's dark / light choice. */
+:root[data-bs-theme] {
+  --hmi-accent: #2f6fd0;
+  --bs-body-font-family: "Segoe UI", system-ui, -apple-system, "Noto Sans", Arial, sans-serif;
+}
+:root[data-bs-theme="dark"] { --hmi-section: #8ab4ff; }
+:root[data-bs-theme="light"] { --hmi-section: #2f6fd0; }
+.btn-primary { --bs-btn-bg: #2f6fd0; --bs-btn-border-color: #2f6fd0; --bs-btn-hover-bg: #2459ab; --bs-btn-hover-border-color: #2459ab; }
+/* Denser tables for engineering work */
+.hmi-table.table-sm > :not(caption) > * > * { padding-top: .3rem; padding-bottom: .3rem; }
+.hmi-table thead th { position: sticky; top: 0; z-index: 2; background: var(--hmi-bg); }
+#tag-table code { font-size: .85rem; }

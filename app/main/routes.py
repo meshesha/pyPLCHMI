@@ -1,7 +1,7 @@
 """Home page views: screen list, landing redirect and the Restricted Area page."""
 
 from flask import make_response, redirect, render_template, request, url_for
-from flask_login import current_user
+from flask_login import current_user, login_required
 
 from app.main import bp
 from app.models import PLC, Dashboard, Perm
@@ -27,7 +27,7 @@ def landing_url() -> str:
     """URL where the current visitor should land.
 
     * Logged-in users: their home screen (if set and accessible), else the
-      screen list.
+      screen list (the plant overview when the active UI template uses it).
     * Visitors: the public home screen (if configured), else the login page.
 
     Returns:
@@ -37,6 +37,10 @@ def landing_url() -> str:
     if screen is not None:
         return url_for("dashboards.view", slug=screen.slug)
     if current_user.is_authenticated:
+        from app.ui_templates.registry import active_template  # noqa: PLC0415
+
+        if active_template().feature("home") == "overview":
+            return url_for("main.overview")
         return url_for("main.screens")
     return url_for("auth.login")
 
@@ -121,6 +125,22 @@ def screens():
     if request.args.get("view") in VIEWS:
         response.set_cookie(VIEW_COOKIE, view, max_age=365 * 24 * 3600, samesite="Lax", httponly=True)
     return response
+
+
+@bp.route("/overview")
+@login_required
+def overview():
+    """Plant overview: one live card per screen (alarms, PLC state, key values).
+
+    The cards are filled and refreshed by ``static/js/hmi-overview.js`` from
+    ``/api/overview``.  Available with every UI template; the *workspace*
+    template uses it as the home page.
+
+    Returns:
+        The rendered page.
+    """
+    screens = [s for s in Dashboard.query.order_by(Dashboard.name) if current_user.can_view_dashboard(s)]
+    return render_template("main/overview.html", screens=screens)
 
 
 @bp.route("/restricted")

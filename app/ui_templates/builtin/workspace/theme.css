@@ -1,0 +1,28 @@
+/* pyPLCHMI UI template "workspace" – sidebar with Operate / Engineer workspaces and a teal accent.
+   Follows the user's dark / light choice. */
+:root[data-bs-theme="dark"], :root:not([data-bs-theme]) {
+  --hmi-bg: #0e1216;
+  --hmi-panel: #141a20;
+  --hmi-border: #263039;
+  --hmi-border-hover: #3a4652;
+  --hmi-nav-bg: #141a20;
+  --hmi-raised: #1c252d;
+  --hmi-hover: #1c252d;
+  --hmi-text: #e5eaef;
+  --hmi-subtle: #d4dce4;
+  --hmi-muted: #9da9b5;
+  --hmi-accent: #1f6f66;
+  --hmi-section: #7fd6c9;
+  --bs-link-color-rgb: 127, 214, 201;
+  --bs-link-hover-color-rgb: 179, 234, 226;
+}
+:root[data-bs-theme="light"] {
+  --hmi-accent: #1f6f66;
+  --hmi-section: #1f6f66;
+  --bs-link-color-rgb: 23, 94, 86;
+  --bs-link-hover-color-rgb: 15, 64, 58;
+}
+:root[data-bs-theme] { --bs-body-font-family: "Segoe UI", system-ui, -apple-system, "Noto Sans", Arial, sans-serif; }
+.btn-primary { --bs-btn-bg: #1f6f66; --bs-btn-border-color: #1f6f66; --bs-btn-hover-bg: #175851; --bs-btn-hover-border-color: #175851;
+  --bs-btn-active-bg: #124741; --bs-btn-active-border-color: #124741; }
+.hmi-ov-card { border-radius: .6rem; }
