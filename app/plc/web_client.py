@@ -7,7 +7,8 @@ style: the body only, then the connection is closed).  Python's
 ``http.client`` (and therefore ``requests``/``urllib``) rejects such answers,
 so this module talks to the socket directly:
 
-* :func:`http_get` – one ``GET`` request over HTTP or HTTPS.  The answer may
+* :func:`http_get` – one ``GET`` or ``POST`` request over HTTP or HTTPS
+  (``POST`` with a body and content type, for devices that expect parameters).  The answer may
   be a normal HTTP/1.x response (``Content-Length``, ``chunked`` or "until
   the connection closes") **or** a header-less HTTP/0.9 body.  In the
   ``http09`` request mode only the classic one-line request ``GET /path``
@@ -26,6 +27,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import os
+import re
 import socket
 import ssl
 import struct
@@ -236,19 +238,87 @@ def decode_bytes(data: bytes, charset: str = "utf-8") -> str:
         return data.decode("utf-8", errors="replace")
 
 
-def _request_bytes(target: Target, mode: str) -> bytes:
+#: HTTP methods a device can be asked with.
+METHODS = ("GET", "POST")
+#: Headers the client writes itself; they cannot be set as extra headers.
+RESERVED_HEADERS = {"host", "content-length", "connection", "transfer-encoding", "upgrade", "te", "trailer",
+                    "sec-websocket-key", "sec-websocket-version", "sec-websocket-accept", "sec-websocket-extensions"}
+#: Most extra headers per device.
+MAX_HEADERS = 20
+_HEADER_NAME = re.compile(r"^[!#$%&'*+.^_`|~0-9A-Za-z-]+$")
+
+
+def parse_headers(text: str) -> list[tuple[str, str]]:
+    """Read the extra request headers typed by the user (one ``Name: value`` per line).
+
+    Empty lines and lines starting with ``#`` are ignored.
+
+    Args:
+        text: The headers text, e.g. ``X-API-Key: 1234``.
+
+    Returns:
+        ``[(name, value), …]``.
+
+    Raises:
+        WebError: With the line number for an invalid or reserved header.
+    """
+    out = []
+    for number, line in enumerate((text or "").splitlines(), start=1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        name, sep, value = line.partition(":")
+        name, value = name.strip(), value.strip()
+        if not sep or not _HEADER_NAME.match(name):
+            raise WebError(gettext("Header line {0}: write it as Name: value (e.g. X-API-Key: 1234).", number))
+        if name.lower() in RESERVED_HEADERS:
+            raise WebError(gettext("Header line {0}: {1} is set automatically and cannot be changed.", number, name))
+        if any(ord(ch) < 32 and ch != "\t" for ch in value):
+            raise WebError(gettext("Header line {0}: the value contains control characters.", number))
+        try:
+            value.encode("latin-1")
+        except UnicodeEncodeError:
+            raise WebError(gettext("Header line {0}: use only Latin characters in header values.", number)) from None
+        out.append((name, value))
+    if len(out) > MAX_HEADERS:
+        raise WebError(gettext("At most {0} extra headers.", MAX_HEADERS))
+    return out
+
+
+def _header_block(target: Target, defaults: list[tuple[str, str]], extra: list[tuple[str, str]]) -> str:
+    """Header lines: the defaults (unless overridden by an extra header), Basic auth, then the extra headers."""
+    names = {name.lower() for name, _ in extra}
+    lines = [f"{name}: {value}\r\n" for name, value in defaults if name.lower() not in names]
+    if "authorization" not in names:
+        lines.append(target.auth_header())
+    lines += [f"{name}: {value}\r\n" for name, value in extra]
+    return "".join(lines)
+
+
+def _request_bytes(target: Target, mode: str, method: str = "GET", body: bytes = b"", content_type: str = "",
+                   headers: list[tuple[str, str]] | None = None) -> bytes:
     """The request sent to the device.
 
     Args:
         target: The parsed URL.
         mode: ``auto`` (HTTP/1.1 request, any answer accepted) or ``http09``
             (only the one-line request ``GET /path``).
+        method: ``GET`` or ``POST``.
+        body: Request body (``POST`` only).
+        content_type: ``Content-Type`` of the body (``POST`` only).
+        headers: Extra headers (see :func:`parse_headers`).
     """
     if mode == "http09":
         return f"GET {target.path}\r\n".encode("latin-1")
-    return (f"GET {target.path} HTTP/1.1\r\nHost: {target.host_header}\r\nUser-Agent: {USER_AGENT}\r\n"
-            f"Accept: application/json, application/xml, text/xml, */*\r\n{target.auth_header()}"
-            f"Connection: close\r\n\r\n").encode("latin-1")
+    defaults = [("User-Agent", USER_AGENT), ("Accept", "application/json, application/xml, text/xml, */*")]
+    if method == "POST" and content_type:
+        defaults.append(("Content-Type", content_type))
+    head = f"{method} {target.path} HTTP/1.1\r\nHost: {target.host_header}\r\n" + \
+        _header_block(target, defaults, headers or [])
+    if method == "POST":
+        head += f"Content-Length: {len(body)}\r\n"
+    head += "Connection: close\r\n\r\n"
+    return head.encode("latin-1") + (body if method == "POST" else b"")
 
 
 def _split_head(data: bytes):
@@ -311,8 +381,10 @@ def _dechunk(data: bytes) -> tuple[bytes, bool]:
         pos = start + size + 2
 
 
-def http_get(url: str | Target, timeout: float = 3.0, mode: str = "auto", verify_tls: bool = True) -> HttpResponse:
-    """Send one ``GET`` request and return the answer (HTTP/1.x or header-less HTTP/0.9).
+def http_get(url: str | Target, timeout: float = 3.0, mode: str = "auto", verify_tls: bool = True,
+             method: str = "GET", body: bytes | str = b"", content_type: str = "",
+             headers: list[tuple[str, str]] | None = None) -> HttpResponse:
+    """Send one request (``GET`` or ``POST``) and return the answer (HTTP/1.x or header-less HTTP/0.9).
 
     The whole exchange must finish within ``timeout`` seconds.  A device that
     sends its data and then keeps the connection open is accepted too: when
@@ -324,6 +396,10 @@ def http_get(url: str | Target, timeout: float = 3.0, mode: str = "auto", verify
         timeout: Time limit in seconds.
         mode: ``auto`` or ``http09`` (see :func:`_request_bytes`).
         verify_tls: Check the HTTPS certificate.
+        method: ``GET`` or ``POST`` (``http09`` mode: ``GET`` only).
+        body: ``POST`` body (``str`` is sent as UTF-8), e.g. ``{"cmd": "read"}`` or ``id=3&page=1``.
+        content_type: ``Content-Type`` of the body (e.g. ``application/json``).
+        headers: Extra headers, e.g. ``[("X-API-Key", "1234")]``.
 
     Returns:
         The :class:`HttpResponse`.
@@ -333,13 +409,19 @@ def http_get(url: str | Target, timeout: float = 3.0, mode: str = "auto", verify
             (status 300 and above) or answers larger than :data:`MAX_BYTES`.
     """
     target = url if isinstance(url, Target) else parse_url(url, "http")
+    method = (method or "GET").upper()
+    if method not in METHODS:
+        raise WebError(gettext("Unsupported HTTP method {0} (use GET or POST).", method))
+    if method != "GET" and mode == "http09":
+        raise WebError(gettext("The HTTP/0.9 request mode can only send GET – choose the automatic mode for POST."))
+    payload = body.encode("utf-8") if isinstance(body, str) else (body or b"")
     started = time.monotonic()
     deadline = started + max(0.1, float(timeout))
     sock = _open_socket(target, timeout, verify_tls)
     data = bytearray()
     head_info = None   # (version, status, reason, headers, body_start)
     try:
-        sock.sendall(_request_bytes(target, mode))
+        sock.sendall(_request_bytes(target, mode, method, payload, content_type, headers))
         while True:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
@@ -428,14 +510,17 @@ class WebSocketClient:
         ws.close()
     """
 
-    def __init__(self, url: str | Target, timeout: float = 3.0, verify_tls: bool = True):
+    def __init__(self, url: str | Target, timeout: float = 3.0, verify_tls: bool = True,
+                 headers: list[tuple[str, str]] | None = None):
         """Prepare a client (no network activity yet).
 
         Args:
             url: ``ws://`` / ``wss://`` URL or a parsed :class:`Target`.
             timeout: Seconds for connecting and the handshake.
             verify_tls: Check the certificate for ``wss://``.
+            headers: Extra handshake headers (e.g. an API key or a cookie).
         """
+        self.headers = list(headers or [])
         self.target = url if isinstance(url, Target) else parse_url(url, "websocket")
         self.timeout = max(0.1, float(timeout))
         self.verify_tls = verify_tls
@@ -456,7 +541,7 @@ class WebSocketClient:
         key = base64.b64encode(os.urandom(16)).decode("ascii")
         request = (f"GET {target.path} HTTP/1.1\r\nHost: {target.host_header}\r\nUpgrade: websocket\r\n"
                    f"Connection: Upgrade\r\nSec-WebSocket-Key: {key}\r\nSec-WebSocket-Version: 13\r\n"
-                   f"User-Agent: {USER_AGENT}\r\n{target.auth_header()}\r\n")
+                   + _header_block(target, [("User-Agent", USER_AGENT)], self.headers) + "\r\n")
         deadline = time.monotonic() + self.timeout
         try:
             self.sock.sendall(request.encode("latin-1"))

@@ -1,7 +1,8 @@
 /**
  * "Add device" wizard for web devices (HTTP / HTTPS / HTTP/0.9 and WebSocket, JSON or XML).
  *
- * 1. Device settings → "Test" posts them to /admin/plcs/web/api/test and
+ * 1. Device settings (for HTTP also GET or POST with a body, and extra
+ *    headers) → "Test" posts them to /admin/plcs/web/api/test and
  *    shows the received data (formatted) or the error.
  * 2. "Process" (shown after a successful test) fills a table with every key
  *    of the data: checkbox, key, suggested tag name (editable, checked live
@@ -44,13 +45,20 @@
       http_mode: $("wd-mode").value,
       verify_tls: $("wd-verify").checked,
       ws_message: $("wd-message").value,
+      http_method: $("wd-method").value,
+      http_content_type: $("wd-ctype").value.trim(),
+      http_body: $("wd-body").value,
+      http_headers: $("wd-headers").value,
     };
   }
 
   /** Show the fields and help of the selected protocol. */
   function syncProtocol() {
     const proto = $("wd-protocol").value;
-    document.querySelectorAll(".wd-only").forEach((el) => { el.hidden = el.dataset.protocol !== proto; });
+    const post = $("wd-method").value === "POST";
+    document.querySelectorAll(".wd-only").forEach((el) => {
+      el.hidden = el.dataset.protocol !== proto || (el.classList.contains("wd-post") && !post);
+    });
     $("wd-url").placeholder = examples[proto] || "";
     $("wd-url-help").textContent = proto === "websocket"
       ? T("ws:// or wss:// (TLS), e.g. {0}", examples.websocket)
@@ -317,6 +325,7 @@
   /* ---------- events ---------- */
 
   $("wd-protocol").addEventListener("change", syncProtocol);
+  $("wd-method").addEventListener("change", syncProtocol);
   $("wd-test").addEventListener("click", test);
   $("wd-url").addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); test(); } });
   $("wd-process-btn").addEventListener("click", process);

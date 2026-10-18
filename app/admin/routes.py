@@ -11,6 +11,7 @@ from app.models import PLC, Alarm, Automation, Dashboard, DataPoint, Perm, Permi
 from app.models.setting import PUBLIC_HOME_SCREEN, get_setting, public_home_screen, set_setting
 from app.models.user import DEFAULT_ROLES
 from app.plc.driver import PLCError, get_manager
+from app.plc.web import CONTENT_TYPES
 from app.utils.decorators import admin_required, permission_required
 from app.i18n.catalog import gettext
 
@@ -280,7 +281,7 @@ def plc_create():
         db.session.commit()
         flash(gettext("PLC '{0}' added.", plc.name), "success")
         return redirect(url_for("admin.plcs"))
-    return render_template("admin/plc_form.html", form=form, plc=None)
+    return render_template("admin/plc_form.html", form=form, plc=None, content_types=CONTENT_TYPES)
 
 
 @bp.route("/plcs/<int:plc_id>/edit", methods=["GET", "POST"])
@@ -302,7 +303,7 @@ def plc_edit(plc_id: int):
         get_manager().disconnect(plc.id)
         flash(gettext("PLC '{0}' updated.", plc.name), "success")
         return redirect(url_for("admin.plcs"))
-    return render_template("admin/plc_form.html", form=form, plc=plc)
+    return render_template("admin/plc_form.html", form=form, plc=plc, content_types=CONTENT_TYPES)
 
 
 @bp.route("/plcs/<int:plc_id>/delete", methods=["POST"])

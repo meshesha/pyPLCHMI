@@ -21,7 +21,7 @@ operator station is just a browser window, and the engineering tools are on the 
 | | |
 |---|---|
 | 🔌 **Talks to your field devices** | Siemens **S7-300/400/1200/1500 & LOGO!** (snap7), **Modbus TCP / RTU** (PyModbus, pyModbusTCP), **BACnet/IP** (BAC0, Who-Is & object browser) |
-| 🌐 **Web devices in a minute** | Energy meters, gateways, IoT sensors that send **JSON or XML** over **HTTP / HTTPS – even header-less HTTP/0.9 –** or **WebSocket (WS / WSS)**: *Add device* → **Test** shows the data → **Process** lists every key with a suggested tag name → **Save Selected / Save All** |
+| 🌐 **Web devices in a minute** | Energy meters, gateways, IoT sensors that send **JSON or XML** over **HTTP / HTTPS – even header-less HTTP/0.9 –** or **WebSocket (WS / WSS)** – GET or **POST with parameters**, API-key / token headers: *Add device* → **Test** shows the data → **Process** lists every key with a suggested tag name → **Save Selected / Save All** |
 | 🖌️ **Graphic screens** | Drag-and-drop SVG designer: pumps, valves, tanks, motors, pipes with animated flow, live values, lamps, bars, buttons, ~5,200 icons, your own images & animated GIFs |
 | 🚨 **Alarms** | Tag conditions (`>`, `≥`, `=`, `≠`…) with Critical/High/Low severity, pop-up with *Ack* / *Open Screen*, event history, PLC communication-loss alarms |
 | 📈 **Historian & trends** | Per-tag sampling interval, multi-pen trend charts, zoom, live mode, Excel export, save charts as PNG |

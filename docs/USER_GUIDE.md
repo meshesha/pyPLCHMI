@@ -395,6 +395,12 @@ a wizard:
    self-signed HTTPS/WSS certificates, and a **message sent after connecting** (WebSocket
    devices that send data only on request, e.g. `{"subscribe": "all"}`).
    `user:password@` in the URL sends HTTP *Basic* authentication.
+   For HTTP, the **HTTP method** is *GET* or *POST*: devices that expect parameters in the
+   request get a **request body** (`id=3&page=1`, `{"cmd": "read", "id": 3}`, an XML command…)
+   and a **content type** (`application/x-www-form-urlencoded` by default, `application/json`,
+   `application/xml`, `text/plain` or any other). **Extra headers** (*Advanced*, one
+   `Name: value` per line, e.g. `X-API-Key: 1234` or `Authorization: Bearer …`) are sent with
+   every HTTP request and with the WebSocket handshake.
 2. **Test** – one exchange with the device; the received data is shown formatted, or the
    exact error (no answer, HTTP 404, invalid JSON, TLS certificate…).
 3. **Process** – a table with one row per value found: a checkbox, the **key**, a suggested
@@ -409,7 +415,7 @@ For a saved device, the table icon in the PLC list (*Test and add tags*) opens t
 wizard: keys that already have a tag are marked, the others can be added. The device's
 settings are changed with *Edit* like any PLC.
 
-**HTTP.** Every request interval the HMI sends `GET` (only when someone needs the values:
+**HTTP.** Every request interval the HMI sends the `GET` or `POST` request (only when someone needs the values:
 screens, alarms, history, automations). It accepts normal HTTP/1.x answers
 (`Content-Length`, `chunked`, or "until the connection closes") **and answers without any
 HTTP headers (HTTP/0.9)** – which `requests`/`urllib` refuse. For very old devices that do

@@ -27,8 +27,15 @@
         <div class="proto-group" data-protocols="http websocket">
           {{ render_field(form.url) }}
           <div class="row">{{ render_field(form.data_format, 'col-md-4') }}{{ render_field(form.poll_interval, 'col-md-8') }}</div>
-          <div class="proto-group" data-protocols="http">{{ render_field(form.http_mode) }}</div>
+          <div class="proto-group" data-protocols="http">
+            <div class="row">{{ render_field(form.http_method, 'col-md-5') }}{{ render_field(form.http_mode, 'col-md-7') }}</div>
+            <div id="post-fields">
+              {{ render_field(form.http_content_type) }}
+              {{ render_field(form.http_body) }}
+            </div>
+          </div>
           <div class="proto-group" data-protocols="websocket">{{ render_field(form.ws_message) }}</div>
+          {{ render_field(form.http_headers) }}
           {{ render_field(form.verify_tls) }}
           {% if plc and plc.is_web %}
           <p><a class="btn btn-sm btn-outline-success" href="{{ url_for('admin.web_device_tags', plc_id=plc.id) }}"><i class="bi bi-table"></i> {{ _('Test and add tags') }}</a></p>
@@ -110,7 +117,7 @@
     <div class="card hmi-panel proto-group" data-protocols="http websocket"><div class="card-body small">
       <h2 class="h6">{{ _('Web devices (HTTP / WebSocket)') }}</h2>
       <ul class="mb-2">
-        <li>{{ _('HTTP: the HMI sends a GET request every request interval. Answers with HTTP headers and header-less answers (HTTP/0.9) are both accepted; for very old devices choose the HTTP/0.9 request mode.') }}</li>
+        <li>{{ _('HTTP: the HMI sends a GET request – or a POST with a body, for devices that expect parameters – every request interval. Answers with HTTP headers and header-less answers (HTTP/0.9) are both accepted; for very old devices choose the HTTP/0.9 request mode.') }}</li>
         <li>{{ _('WebSocket: the HMI keeps the connection open and uses the latest message. Keys missing from a message keep the value of an earlier message.') }}</li>
         <li>{{ _('Tags of web devices are read only.') }}</li>
         <li>{{ _('Easiest: use Add device in the PLC list – test the device and pick the keys from a table.') }}</li>
@@ -209,6 +216,17 @@
     }
     proto.addEventListener("change", sync);
     sync();
+
+    /* Web devices: body and content type only for POST. */
+    const method = document.getElementById("http_method");
+    const postFields = document.getElementById("post-fields");
+    const ctype = document.getElementById("http_content_type");
+    if (ctype) {
+      ctype.setAttribute("list", "content-types");
+      ctype.insertAdjacentHTML("afterend", '<datalist id="content-types">{% for c in content_types %}<option value="{{ c }}">{% endfor %}</datalist>');
+    }
+    function syncMethod() { if (method && postFields) postFields.hidden = method.value !== "POST"; }
+    if (method) { method.addEventListener("change", syncMethod); syncMethod(); }
 
     /* BACnet Who-Is: list devices that answer; clicking one fills IP, port and instance. */
     const whoisBtn = document.getElementById("whois-btn");

@@ -64,8 +64,28 @@
           <div class="form-text">{{ _('Longest wait for one answer.') }}</div>
           <div class="invalid-feedback" data-error-for="timeout"></div>
         </div>
+        <div class="col-md-4 wd-only" data-protocol="http">
+          <label class="form-label" for="wd-method">{{ _('HTTP method') }}</label>
+          <select class="form-select" id="wd-method">
+            <option value="GET" {% if settings.http_method != 'POST' %}selected{% endif %}>GET</option>
+            <option value="POST" {% if settings.http_method == 'POST' %}selected{% endif %}>{{ _('POST – send parameters in the body') }}</option>
+          </select>
+          <div class="invalid-feedback" data-error-for="http_method"></div>
+        </div>
+        <div class="col-md-8 wd-only wd-post" data-protocol="http">
+          <label class="form-label" for="wd-ctype">{{ _('Content type') }}</label>
+          <input class="form-control font-monospace" id="wd-ctype" list="wd-ctypes" maxlength="100" value="{{ settings.http_content_type }}" dir="ltr" spellcheck="false" autocomplete="off">
+          <datalist id="wd-ctypes">{% for c in content_types %}<option value="{{ c }}">{% endfor %}</datalist>
+          <div class="invalid-feedback" data-error-for="http_content_type"></div>
+        </div>
+        <div class="col-12 wd-only wd-post" data-protocol="http">
+          <label class="form-label" for="wd-body">{{ _('Request body (POST)') }}</label>
+          <textarea class="form-control font-monospace" id="wd-body" rows="3" maxlength="{{ limits.body }}" dir="ltr" spellcheck="false">{{ settings.http_body }}</textarea>
+          <div class="form-text">{{ _('Sent with every request, e.g. id=3&page=1 or {"cmd": "read", "id": 3}.') }}</div>
+          <div class="invalid-feedback" data-error-for="http_body"></div>
+        </div>
       </div>
-      <details class="mt-3" id="wd-advanced" {% if settings.http_mode != 'auto' or not settings.verify_tls or settings.ws_message %}open{% endif %}>
+      <details class="mt-3" id="wd-advanced" {% if settings.http_mode != 'auto' or not settings.verify_tls or settings.ws_message or settings.http_headers %}open{% endif %}>
         <summary class="small">{{ _('Advanced') }}</summary>
         <div class="row g-3 mt-1">
           <div class="col-md-7 wd-only" data-protocol="http">
@@ -87,6 +107,12 @@
             <textarea class="form-control font-monospace" id="wd-message" rows="2" maxlength="{{ limits.message }}" dir="ltr" spellcheck="false">{{ settings.ws_message }}</textarea>
             <div class="form-text">{{ _('For devices that send data only on request, e.g. {"subscribe": "all"}. It is sent again every request interval.') }}</div>
             <div class="invalid-feedback" data-error-for="ws_message"></div>
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="wd-headers">{{ _('Extra headers (optional)') }}</label>
+            <textarea class="form-control font-monospace" id="wd-headers" rows="2" maxlength="{{ limits.headers }}" dir="ltr" spellcheck="false" placeholder="X-API-Key: 1234">{{ settings.http_headers }}</textarea>
+            <div class="form-text">{{ _('One per line: Name: value – e.g. X-API-Key: 1234 or Authorization: Bearer … (HTTP requests and the WebSocket handshake).') }}</div>
+            <div class="invalid-feedback" data-error-for="http_headers"></div>
           </div>
           {% if not plc %}
           <div class="col-12">

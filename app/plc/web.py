@@ -2,7 +2,8 @@
 
 Two protocols use this module:
 
-* ``http`` – the HMI asks the device with a ``GET`` request every *poll
+* ``http`` – the HMI asks the device with a ``GET`` request – or a ``POST``
+  with a body (parameters, a JSON / XML command) – every *poll
   interval* (HTTP or HTTPS; answers with headers or header-less HTTP/0.9,
   see :mod:`app.plc.web_client`);
 * ``websocket`` – the HMI keeps a WebSocket (``ws://`` / ``wss://``) open
@@ -34,7 +35,8 @@ from dataclasses import dataclass
 
 from app.i18n.catalog import gettext
 from app.plc.errors import ConnectionLostError, DeviceError
-from app.plc.web_client import WebError, WebSocketClient, decode_bytes, http_get, parse_url
+from app.plc.web_client import (METHODS, WebError, WebSocketClient, decode_bytes, http_get, parse_headers,
+                                parse_url)
 from app.plc.web_data import (FORMATS, MAX_KEYS, MAX_PATH, WEB_TYPES, Missing, WebDataError, check_path, convert,
                               display, flatten, parse_document, pretty, resolve, suggest_type)
 
@@ -56,6 +58,15 @@ MIN_INTERVAL, MAX_INTERVAL = 0.1, 3600.0
 MIN_TIMEOUT, MAX_TIMEOUT = 0.1, 60.0
 #: Longest message sent to a WebSocket device.
 MAX_MESSAGE = 1000
+#: Longest POST body.
+MAX_BODY = 10000
+#: Longest text of the extra headers.
+MAX_HEADERS_TEXT = 4000
+#: Content type used for a POST body when none is given.
+DEFAULT_CONTENT_TYPE = "application/x-www-form-urlencoded"
+#: Content types offered in the forms (any other may be typed).
+CONTENT_TYPES = ("application/x-www-form-urlencoded", "application/json", "application/xml", "text/xml",
+                 "text/plain")
 
 _TYPE_SUFFIX = re.compile(r"^(.*):([A-Za-z]+)$", re.DOTALL)
 
@@ -172,6 +183,11 @@ class WebSettings:
         http_mode: ``auto`` or ``http09`` (HTTP only).
         verify_tls: Check HTTPS / WSS certificates.
         ws_message: Text sent after connecting (WebSocket only; ``""`` = none).
+        http_method: ``GET`` or ``POST`` (HTTP only).
+        http_body: Body sent with ``POST`` (parameters, a JSON or XML command…).
+        http_content_type: ``Content-Type`` of the body.
+        http_headers: Extra request headers, one ``Name: value`` per line
+            (HTTP requests and the WebSocket handshake).
     """
 
     protocol: str = "http"
@@ -182,6 +198,24 @@ class WebSettings:
     http_mode: str = "auto"
     verify_tls: bool = True
     ws_message: str = ""
+    http_method: str = "GET"
+    http_body: str = ""
+    http_content_type: str = DEFAULT_CONTENT_TYPE
+    http_headers: str = ""
+
+    @property
+    def headers(self) -> list[tuple[str, str]]:
+        """The extra headers as ``[(name, value), …]`` (invalid text → none; it is checked when saved)."""
+        try:
+            return parse_headers(self.http_headers)
+        except WebError:
+            return []
+
+    def request_options(self) -> dict:
+        """Keyword arguments for :func:`~app.plc.web_client.http_get`."""
+        return {"timeout": self.timeout, "mode": self.http_mode, "verify_tls": self.verify_tls,
+                "method": self.http_method, "body": self.http_body if self.http_method == "POST" else b"",
+                "content_type": self.http_content_type, "headers": self.headers}
 
     @classmethod
     def from_plc(cls, plc) -> "WebSettings":
@@ -189,7 +223,9 @@ class WebSettings:
         return cls(protocol=plc.protocol, url=plc.url or "", data_format=plc.data_format or "json",
                    poll_interval=float(plc.poll_interval or 1.0), timeout=float(plc.timeout or 3.0),
                    http_mode=plc.http_mode or "auto", verify_tls=bool(plc.verify_tls),
-                   ws_message=plc.ws_message or "")
+                   ws_message=plc.ws_message or "", http_method=plc.http_method or "GET",
+                   http_body=plc.http_body or "", http_content_type=plc.http_content_type or "",
+                   http_headers=plc.http_headers or "")
 
     @classmethod
     def from_dict(cls, data: dict) -> tuple["WebSettings", dict]:
@@ -197,7 +233,8 @@ class WebSettings:
 
         Args:
             data: ``protocol``, ``url``, ``data_format``, ``poll_interval``,
-                ``timeout``, ``http_mode``, ``verify_tls``, ``ws_message``.
+                ``timeout``, ``http_mode``, ``verify_tls``, ``ws_message``,
+                ``http_method``, ``http_body``, ``http_content_type``, ``http_headers``.
 
         Returns:
             ``(settings, errors)`` – ``errors`` maps field names to messages.
@@ -240,9 +277,30 @@ class WebSettings:
             errors["ws_message"] = gettext("The message is too long (at most {0} characters).", MAX_MESSAGE)
         verify = data.get("verify_tls", True)
         verify = verify if isinstance(verify, bool) else str(verify).lower() in ("1", "true", "on", "yes", "y")
+        method = str(data.get("http_method") or "GET").upper()
+        if method not in METHODS:
+            errors["http_method"] = gettext("Choose GET or POST.")
+            method = "GET"
+        elif protocol == "http" and method == "POST" and mode == "http09":
+            errors["http_method"] = gettext("The HTTP/0.9 request mode can only send GET – choose the automatic "
+                                            "mode for POST.")
+        body = str(data.get("http_body") or "")
+        if len(body) > MAX_BODY:
+            errors["http_body"] = gettext("The body is too long (at most {0} characters).", MAX_BODY)
+        ctype = str(data.get("http_content_type") or "").strip()
+        if len(ctype) > 100 or any(ord(ch) < 32 for ch in ctype):
+            errors["http_content_type"] = gettext("Enter a content type such as {0}.", "application/json")
+        headers = str(data.get("http_headers") or "")
+        try:
+            if len(headers) > MAX_HEADERS_TEXT:
+                raise WebError(gettext("The headers are too long (at most {0} characters).", MAX_HEADERS_TEXT))
+            parse_headers(headers)
+        except WebError as exc:
+            errors["http_headers"] = str(exc)
         return cls(protocol=protocol, url=url, data_format=fmt if fmt in FORMATS else "json",
                    poll_interval=interval, timeout=timeout, http_mode=mode, verify_tls=verify,
-                   ws_message=message), errors
+                   ws_message=message, http_method=method, http_body=body,
+                   http_content_type=ctype or DEFAULT_CONTENT_TYPE, http_headers=headers.strip()), errors
 
     def apply(self, plc) -> None:
         """Copy the settings into a PLC row (host and port are filled from the URL)."""
@@ -257,6 +315,10 @@ class WebSettings:
         plc.http_mode = self.http_mode
         plc.verify_tls = self.verify_tls
         plc.ws_message = self.ws_message
+        plc.http_method = self.http_method
+        plc.http_body = self.http_body
+        plc.http_content_type = self.http_content_type
+        plc.http_headers = self.http_headers
 
 
 # ---------------------------------------------------------------------------
@@ -341,7 +403,7 @@ class WebConnection:
         """
         s = self.settings
         self._fetched = time.monotonic()
-        response = http_get(self.target, timeout=s.timeout, mode=s.http_mode, verify_tls=s.verify_tls)
+        response = http_get(self.target, **s.request_options())
         doc = parse_document(response.text(), s.data_format)
         with self._lock:
             self._doc, self._summary = doc, response.summary()
@@ -403,7 +465,7 @@ class WebConnection:
                 self._fetch()
             else:
                 client = WebSocketClient(self.target, timeout=self.settings.timeout,
-                                         verify_tls=self.settings.verify_tls)
+                                         verify_tls=self.settings.verify_tls, headers=self.settings.headers)
                 client.connect()
                 if self.settings.ws_message:
                     client.send_text(self.settings.ws_message)
@@ -520,7 +582,8 @@ def probe(settings: WebSettings, extra_wait: float = 0.5) -> dict:
         target = parse_url(settings.url, settings.protocol)
         started = time.monotonic()
         if settings.protocol == "websocket":
-            client = WebSocketClient(target, timeout=settings.timeout, verify_tls=settings.verify_tls)
+            client = WebSocketClient(target, timeout=settings.timeout, verify_tls=settings.verify_tls,
+                                     headers=settings.headers)
             client.connect()
             texts = []
             try:
@@ -545,8 +608,7 @@ def probe(settings: WebSettings, extra_wait: float = 0.5) -> dict:
             summary = gettext("WebSocket · {0} message(s) · first after {1} ms", len(texts), round(first_ms))
             docs = [parse_document(t, fmt) for t in texts]
         else:
-            response = http_get(target, timeout=settings.timeout, mode=settings.http_mode,
-                                verify_tls=settings.verify_tls)
+            response = http_get(target, **settings.request_options())
             raw, summary = response.text(), response.summary()
             docs = [parse_document(raw, fmt)]
     except (WebError, WebDataError) as exc:

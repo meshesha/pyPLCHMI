@@ -30,8 +30,8 @@ from app.extensions import db
 from app.i18n.catalog import gettext
 from app.models import PLC, Alarm, DataPoint, Perm
 from app.plc.driver import get_manager
-from app.plc.web import HTTP_MODES, MAX_INTERVAL, MAX_MESSAGE, MAX_TIMEOUT, MIN_INTERVAL, MIN_TIMEOUT, \
-    WebSettings, parse_web_address, probe
+from app.plc.web import (CONTENT_TYPES, HTTP_MODES, MAX_BODY, MAX_HEADERS_TEXT, MAX_INTERVAL, MAX_MESSAGE,
+                         MAX_TIMEOUT, MIN_INTERVAL, MIN_TIMEOUT, WebSettings, parse_web_address, probe)
 from app.plc.web_client import example_url
 from app.plc.web_data import FORMATS, MAX_KEYS, MAX_STRING, WEB_TYPES, WebDataError, check_path
 from app.tags import naming
@@ -141,9 +141,10 @@ def web_device_tags(plc_id: int):
 
 def _choices() -> dict:
     """Choices and limits used by the wizard template."""
-    return {"formats": FORMATS, "http_modes": HTTP_MODES, "web_types": WEB_TYPES,
+    return {"formats": FORMATS, "http_modes": HTTP_MODES, "web_types": WEB_TYPES, "content_types": CONTENT_TYPES,
             "limits": {"interval": (MIN_INTERVAL, MAX_INTERVAL), "timeout": (MIN_TIMEOUT, MAX_TIMEOUT),
-                       "message": MAX_MESSAGE, "string": MAX_STRING},
+                       "message": MAX_MESSAGE, "string": MAX_STRING, "body": MAX_BODY,
+                       "headers": MAX_HEADERS_TEXT},
             "examples": {"http": example_url("http"), "websocket": example_url("websocket")}}
 
 
@@ -154,7 +155,8 @@ def web_device_test():
 
     JSON body: the device settings (``protocol``, ``url``, ``data_format``,
     ``poll_interval``, ``timeout``, ``http_mode``, ``verify_tls``,
-    ``ws_message``) and ``name`` – or ``plc_id`` of a saved device (its saved
+    ``ws_message``, ``http_method``, ``http_body``, ``http_content_type``,
+    ``http_headers``) and ``name`` – or ``plc_id`` of a saved device (its saved
     settings are used).
 
     Returns:

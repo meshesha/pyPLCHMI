@@ -86,6 +86,15 @@ class PLC(db.Model):
     verify_tls = db.Column(db.Boolean, nullable=False, default=True, server_default=sa_true())
     #: Text sent to a WebSocket device after connecting and every poll interval (``""`` = none).
     ws_message = db.Column(db.Text, nullable=False, default="", server_default="")
+    #: HTTP method: ``GET`` or ``POST`` (devices that expect parameters in the request body).
+    http_method = db.Column(db.String(6), nullable=False, default="GET", server_default="GET")
+    #: Body sent with ``POST`` (form parameters, a JSON or XML command…).
+    http_body = db.Column(db.Text, nullable=False, default="", server_default="")
+    #: ``Content-Type`` of the body.
+    http_content_type = db.Column(db.String(100), nullable=False, default="application/x-www-form-urlencoded",
+                                  server_default="application/x-www-form-urlencoded")
+    #: Extra request headers, one ``Name: value`` per line (HTTP requests and the WebSocket handshake).
+    http_headers = db.Column(db.Text, nullable=False, default="", server_default="")
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
 
     datapoints = db.relationship("DataPoint", back_populates="plc", cascade="all, delete-orphan", lazy="dynamic")
@@ -156,7 +165,8 @@ class PLC(db.Model):
             return ("dummy",)
         if self.is_web:
             return (self.protocol, self.url, self.data_format, float(self.poll_interval or 1.0), self.timeout,
-                    self.http_mode, bool(self.verify_tls), self.ws_message or "")
+                    self.http_mode, bool(self.verify_tls), self.ws_message or "", self.http_method or "GET",
+                    self.http_body or "", self.http_content_type or "", self.http_headers or "")
         if self.is_bacnet:
             return base + (self.bacnet_device_id, self.bacnet_priority, self.timeout)
         if not self.is_modbus:

@@ -17,7 +17,8 @@ from app.models.user import screen_visible
 from app.plc.modbus import ORDER_PRESETS
 from app.models.alarm import SEVERITIES
 from app.plc.protocols import DEFAULT_PORTS, MODBUS_LIBRARIES, PROTOCOLS
-from app.plc.web import HTTP_MODES, MAX_INTERVAL, MAX_MESSAGE, MIN_INTERVAL, WebSettings, is_web
+from app.plc.web import (DEFAULT_CONTENT_TYPE, HTTP_MODES, MAX_BODY, MAX_HEADERS_TEXT, MAX_INTERVAL, MAX_MESSAGE,
+                         MIN_INTERVAL, WebSettings, is_web)
 from app.plc.web_data import FORMATS
 
 _HOST_RE = re.compile(
@@ -239,6 +240,17 @@ class PLCForm(FlaskForm):
     ws_message = TextAreaField("Message sent after connecting (optional)",
                                validators=[Optional(), Length(max=MAX_MESSAGE)],
                                description='For devices that send data only on request, e.g. {"subscribe": "all"}.')
+    http_method = SelectField("HTTP method", choices=[("GET", "GET"), ("POST", "POST – send parameters in the body")],
+                              default="GET")
+    http_content_type = StringField("Content type", default=DEFAULT_CONTENT_TYPE,
+                                    validators=[Optional(), Length(max=100)],
+                                    description="application/x-www-form-urlencoded (id=3&page=1), application/json, "
+                                                "application/xml, text/plain …")
+    http_body = TextAreaField("Request body (POST)", validators=[Optional(), Length(max=MAX_BODY)],
+                              description='Sent with every request, e.g. id=3&page=1 or {"cmd": "read", "id": 3}.')
+    http_headers = TextAreaField("Extra headers (optional)", validators=[Optional(), Length(max=MAX_HEADERS_TEXT)],
+                                 description="One per line: Name: value – e.g. X-API-Key: 1234 or Authorization: "
+                                             "Bearer … (HTTP requests and the WebSocket handshake).")
     serial_port = StringField("Serial port", validators=[Optional(), Length(max=64)],
                               description="Windows: COM3 · Linux: /dev/ttyUSB0")
     baudrate = SelectField("Baud rate", coerce=int, default=9600,
@@ -333,7 +345,9 @@ class PLCForm(FlaskForm):
         return {"protocol": self.protocol.data, "url": self.url.data, "data_format": self.data_format.data,
                 "poll_interval": self.poll_interval.data if self.poll_interval.data is not None else 1.0,
                 "timeout": self.timeout.data or 3.0, "http_mode": self.http_mode.data,
-                "verify_tls": bool(self.verify_tls.data), "ws_message": self.ws_message.data or ""}
+                "verify_tls": bool(self.verify_tls.data), "ws_message": self.ws_message.data or "",
+                "http_method": self.http_method.data, "http_body": self.http_body.data or "",
+                "http_content_type": self.http_content_type.data or "", "http_headers": self.http_headers.data or ""}
 
     def populate_plc(self, plc: PLC) -> None:
         """Copy validated data into a PLC model.

@@ -334,7 +334,13 @@ accepts both key syntaxes (`DataPointForm` additionally checks the device's own 
   writes the request on a socket (optionally TLS, `verify_tls=False` for self-signed
   certificates) and reads until the body is complete: `Content-Length`, the last `chunked`
   chunk, connection close, or – for devices that keep the socket open – the time limit
-  with data already received. Request mode `http09` sends only `GET /path\r\n`. The
+  with data already received. Request mode `http09` sends only `GET /path\r\n`.
+  `POST` (migration `b8e4f1a3d6c9`: `http_method`, `http_body`, `http_content_type`,
+  `http_headers`) sends the body as UTF-8 with `Content-Length`; extra headers are parsed
+  by `parse_headers` (one `Name: value` per line, token names, no control or non-Latin-1
+  characters, at most 20) and cannot replace headers the client manages (`Host`,
+  `Content-Length`, `Connection`, `Transfer-Encoding`, the WebSocket handshake headers);
+  they may replace `User-Agent`, `Accept`, `Content-Type` and the URL's Basic `Authorization`. The
   WebSocket client does the opening handshake (checks `Sec-WebSocket-Accept`), masks
   client frames, joins fragments, answers pings and caps messages at 4 MB.
 * **`WebConnection`** plugs into `PLCConnectionManager` like Modbus/BACnet (`connect`,

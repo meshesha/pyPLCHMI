@@ -516,3 +516,106 @@ def test_tag_form_accepts_key_path(client, login_as, db, http_server):
     assert dp.path == "meter.phases[1]" and dp.address == "meter.phases[1]"
     resp = client.post("/tags/new", data=dict(form, label="Power_2", writable="y"))
     assert resp.status_code == 200 and "cannot be written" in resp.get_data(as_text=True)
+
+
+# ---------------------------------------------------------------------------
+# POST requests and extra headers
+# ---------------------------------------------------------------------------
+def post_echo(conn, request):
+    """Handler: reads the POST body (Content-Length) and answers with what it received."""
+    head, _, body = request.partition(b"\r\n\r\n")
+    length = 0
+    for line in head.split(b"\r\n"):
+        if line.lower().startswith(b"content-length:"):
+            length = int(line.split(b":")[1])
+    while len(body) < length:
+        body += conn.recv(4096)
+    first = head.split(b"\r\n")[0].decode()
+    headers = {k.strip().lower(): v.strip() for k, _, v in
+               (line.decode().partition(":") for line in head.split(b"\r\n")[1:])}
+    answer = json.dumps({"line": first, "body": body.decode(), "ctype": headers.get("content-type", ""),
+                         "key": headers.get("x-api-key", ""), "temp": 21.5}).encode()
+    conn.sendall(answer)    # header-less answer to a POST also works
+
+
+def test_post_with_body_and_headers(raw_server):
+    from app.plc.web_client import parse_headers  # noqa: PLC0415
+
+    server = raw_server(post_echo)
+    resp = http_get(server.url("/api"), timeout=2, method="POST", body='{"cmd": "read"}',
+                    content_type="application/json", headers=parse_headers("X-API-Key: 1234"))
+    echo = json.loads(resp.text())
+    assert echo == {"line": "POST /api HTTP/1.1", "body": '{"cmd": "read"}', "ctype": "application/json",
+                    "key": "1234", "temp": 21.5}
+    with pytest.raises(WebError, match="HTTP/0.9"):
+        http_get(server.url(), timeout=1, mode="http09", method="POST")
+
+
+def test_header_rules():
+    from app.plc.web_client import parse_headers  # noqa: PLC0415
+
+    assert parse_headers("# comment\n\nX-A: 1\nAuthorization: Bearer x y") == [("X-A", "1"),
+                                                                             ("Authorization", "Bearer x y")]
+    for bad, match in (("no colon", "line 1"), ("Host: x", "automatically"), ("Bad Name: 1", "line 1"),
+                       ("X-A: \x01", "control"), ("X-A: שלום", "Latin")):
+        with pytest.raises(WebError, match=match):
+            parse_headers(bad)
+
+
+def test_settings_validate_post(db):
+    settings, errors = WebSettings.from_dict(settings_body("http://h/x", http_method="POST", http_body="a=1",
+                                                           http_content_type="", http_headers="X-K: 1"))
+    assert not errors and settings.http_content_type == "application/x-www-form-urlencoded"
+    assert settings.request_options()["body"] == "a=1" and settings.request_options()["headers"] == [("X-K", "1")]
+    get = WebSettings(http_method="GET", http_body="a=1")
+    assert get.request_options()["body"] == b""                           # the body is sent with POST only
+    _s, errors = WebSettings.from_dict(settings_body("http://h/x", http_method="POST", http_mode="http09",
+                                                     http_headers="Host: x"))
+    assert set(errors) == {"http_method", "http_headers"}
+    _s, errors = WebSettings.from_dict(settings_body("http://h/x", http_method="PUT"))
+    assert "http_method" in errors
+
+
+def test_post_device_through_wizard_and_manager(client, login_as, db, raw_server):
+    server = raw_server(post_echo)
+    login_as("admin")
+    body = settings_body(server.url("/api"), http_method="POST", http_body="id=3&page=1",
+                         http_headers="X-API-Key: k1")
+    data = client.post("/admin/plcs/web/api/test", json=body).json
+    rows = {r["path"]: r for r in data["rows"]}
+    assert data["ok"] and rows["body"]["value"] == "id=3&page=1" and rows["key"]["value"] == "k1"
+    assert rows["ctype"]["value"] == "application/x-www-form-urlencoded"
+    resp = client.post("/admin/plcs/web/api/save", json=dict(body, rows=[
+        {"path": "temp", "name": "Post_temp", "data_type": "REAL"}]))
+    assert resp.json["ok"]
+    plc = PLC.query.filter_by(name="Meter 1").one()
+    assert (plc.http_method, plc.http_body, plc.http_headers) == ("POST", "id=3&page=1", "X-API-Key: k1")
+    dp = DataPoint.query.filter_by(label="Post_temp").one()
+    assert get_manager().read(plc, {1: dp.tag_address})[1].value == pytest.approx(21.5)
+    assert all(r.startswith(b"POST /api HTTP/1.1") for r in server.requests)
+
+
+def test_websocket_handshake_sends_extra_headers(ws_server):
+    from app.plc.web_client import parse_headers  # noqa: PLC0415
+
+    server = ws_server(lambda conn, server: time.sleep(0.3))
+    ws = WebSocketClient(server.url(), timeout=2, headers=parse_headers("Authorization: Bearer T"))
+    ws.connect()
+    ws.close()
+    assert b"Authorization: Bearer T\r\n" in server.requests[0]
+
+
+def test_plc_form_post_fields(client, login_as, db):
+    login_as("admin")
+    data = {"name": "Post1", "protocol": "http", "url": "http://10.0.0.5/api", "data_format": "json",
+            "poll_interval": "2", "timeout": "3", "offline_delay": "10", "http_mode": "auto",
+            "comm_severity": "high", "verify_tls": "y", "enabled": "y", "http_method": "POST",
+            "http_content_type": "application/json", "http_body": '{"read": 1}', "http_headers": "Host: x"}
+    resp = client.post("/admin/plcs/new", data=data)
+    assert resp.status_code == 200 and "set automatically" in resp.get_data(as_text=True)
+    resp = client.post("/admin/plcs/new", data=dict(data, http_headers="X-Token: abc"))
+    assert resp.status_code == 302
+    plc = PLC.query.filter_by(name="Post1").one()
+    assert (plc.http_method, plc.http_content_type, plc.http_body, plc.http_headers) == \
+        ("POST", "application/json", '{"read": 1}', "X-Token: abc")
+    assert 'id="post-fields"' in client.get(f"/admin/plcs/{plc.id}/edit").get_data(as_text=True)
