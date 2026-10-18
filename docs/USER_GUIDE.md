@@ -590,8 +590,17 @@ appear on any number of screens, and changing a tag changes it everywhere.
   still be used by alarms). Ticked screens show the tag at the end; unticking removes
   it from that screen only.
 * Row buttons: 🔔 new alarm for the tag · ✎ edit · **⧉ Copy** – opens *Add tag* filled
-  with the tag's settings (label “… (copy)”); change the address and save · 🗑 delete
+  with the tag's settings (name “…_copy”); change the address and save · 🗑 delete
   (refused while alarms use the tag).
+* **Tag names** work like identifiers (they are used in automation calculations such as
+  `Tank_1.level = Tank_1.level + 1`): a name must be **unique** (upper/lower case is ignored),
+  may contain only **letters** (any language), **digits**, `_` and `.` – **no spaces** and no
+  mathematical or other symbols (`+ - * / % = ( ) [ ] ,` …) – and must **not start with a digit**;
+  a dot must stand between two parts, as in an e-mail address. The form explains every problem
+  while you type and refuses to save an invalid name (also the designer's *New tag* dialog and
+  the Excel import). Names saved before these rules keep working; the tag table marks them with
+  **rename**, and they must follow the rules once they are changed. SVG imports turn invalid
+  names into valid ones (`Door open` → `Door_open`) and say so.
 
 ### Tags on screens
 

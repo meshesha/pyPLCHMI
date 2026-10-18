@@ -218,11 +218,14 @@ def _resolve_tag(old_id: str, info: dict, screen: Dashboard, report: ImportRepor
     """
     label, plc_name = str(info.get("label") or "")[:100], str(info.get("plc") or "")
     dp = db.session.get(DataPoint, int(old_id)) if str(old_id).isdigit() else None
-    if dp is not None and (dp.label != label or (dp.plc and dp.plc.name != plc_name)):
+    from app.tags.naming import normalize  # noqa: PLC0415
+
+    names = [label] + ([normalize(label)] if label and normalize(label) != label else [])
+    if dp is not None and (dp.label not in names or (dp.plc and dp.plc.name != plc_name)):
         dp = None
-    if dp is None and label:
+    if dp is None and label:   # the exact label, or the valid name it was created with
         dp = (DataPoint.query.join(PLC, DataPoint.plc_id == PLC.id)
-              .filter(DataPoint.label == label, PLC.name == plc_name).order_by(DataPoint.id).first())
+              .filter(DataPoint.label.in_(names), PLC.name == plc_name).order_by(DataPoint.id).first())
     if dp is None:
         plc = PLC.query.filter_by(name=plc_name).first() if plc_name else None
         if plc is None:
@@ -234,7 +237,13 @@ def _resolve_tag(old_id: str, info: dict, screen: Dashboard, report: ImportRepor
         except AddressError as exc:
             report.notes.append(("warning", gettext("Tag '{0}' could not be created ({1}) – its bindings were removed.", label, exc)))
             return None
-        dp = DataPoint(plc=plc, label=label or "Imported tag", unit=str(info.get("unit") or "")[:20],
+        from app.tags.naming import problems as name_problems, suggest  # noqa: PLC0415
+
+        new_label = label if label and not name_problems(label) else suggest(label or "Imported_tag")
+        if new_label != label:
+            report.notes.append(("info", gettext("Tag '{0}' was created as '{1}' (tag names may not contain spaces "
+                                                 "or symbols).", label, new_label)))
+        dp = DataPoint(plc=plc, label=new_label, unit=str(info.get("unit") or "")[:20],
                        writable=bool(info.get("writable")), min_value=info.get("min"), max_value=info.get("max"),
                        true_text=str(info.get("true_text") or "ON")[:30], false_text=str(info.get("false_text") or "OFF")[:30])
         for attr in ("scale", "offset", "decimals"):

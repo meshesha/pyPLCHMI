@@ -13,6 +13,10 @@
     <div class="col-lg-6">
       <div class="card hmi-panel"><div class="card-body">
         <h2 class="h5">{{ _('Source') }}</h2>
+        {% if tag and tag.name_issues and request.method == 'GET' %}
+        <div class="alert alert-warning small py-2" id="tag-name-legacy"><i class="bi bi-exclamation-triangle"></i>
+          {{ _('This name was saved before the tag name rules. It still works, but please rename it:') }} {{ tag.name_issues|join(' ') }}</div>
+        {% endif %}
         {{ render_field(form.label) }}
         {{ render_field(form.plc_id) }}
         <div class="row">
@@ -72,4 +76,5 @@
 <script type="application/json" id="plc-protocols">{{ plc_protocols|tojson }}</script>
 <script src="{{ url_for('static', filename='js/point_form.js') }}"></script>
 <script src="{{ url_for('static', filename='js/write_access.js') }}"></script>
+<script src="{{ url_for('static', filename='js/tag-name-check.js') }}" data-url="{{ url_for('api.tag_name_check') }}" data-input="#label" data-tag-id="{{ tag.id if tag else '' }}"></script>
 {% endblock %}

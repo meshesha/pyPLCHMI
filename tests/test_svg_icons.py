@@ -191,26 +191,26 @@ def test_import_restores_exported_screen(client, login_as, db, exported):
     resp = _upload(client, [(_export_svg(exported["meta"]), "boiler.svg")])
     html = resp.get_data(as_text=True)
     assert "Screen &#39;Boiler room&#39; imported: 4 element(s), 2 tag(s), 1 image(s)" in html
-    assert "Tag &#39;Ghost&#39; (Nowhere) not found" in html and "Tag &#39;Door open&#39; created on PLC1" in html
+    assert "Tag &#39;Ghost&#39; (Nowhere) not found" in html and "Tag &#39;Door_open&#39; created on PLC1" in html and "was created as &#39;Door_open&#39;" in html
     screen = Dashboard.query.filter_by(name="Boiler room").one()
     assert resp.request.path == f"/screens/{screen.id}/designer"
     assert screen.kind == "image" and screen.refresh_ms == 2000 and not screen.is_public
     layout = screen.layout_data
     els = {e["id"]: e for e in layout["elements"]}
-    door = DataPoint.query.filter_by(label="Door open").one()
+    door = DataPoint.query.filter_by(label="Door_open").one()
     assert els["v1"]["point"] == exported["temp"].id
     assert els["r1"]["visPoint"] == door.id and els["r1"]["vis"] == "tag" and els["r1"]["link"] == exported["public"].id
     assert els["l1"]["point"] is None
     asset = Asset.query.filter_by(name="floor plan").one()
     assert els["im"]["asset"] == asset.id and layout["canvas"]["backgroundImage"] == asset.id
-    assert {dp.label for dp in screen.datapoints} == {"Temp", "Door open"}
+    assert {dp.label for dp in screen.datapoints} == {"Temp", "Door_open"}
     assert door.writable and door.address == "M5.0"
 
     # Importing the same file again: new screen name, the identical image is reused.
     html = _upload(client, [(_export_svg(exported["meta"]), "boiler.svg")]).get_data(as_text=True)
     assert "Boiler room (imported)" in html
     assert Asset.query.filter_by(name="floor plan").count() == 1
-    assert DataPoint.query.filter_by(label="Door open").count() == 1
+    assert DataPoint.query.filter_by(label="Door_open").count() == 1
 
 
 def test_import_plain_drawing_as_background(client, login_as, db):

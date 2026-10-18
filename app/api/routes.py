@@ -698,3 +698,23 @@ def search():
             results.append({"kind": "plc", "label": plc.name, "detail": gettext("PLC"),
                             "url": url_for("admin.plc_edit", plc_id=plc.id), "icon": "hdd-network"})
     return jsonify(results=results[:30])
+
+
+@bp.route("/tags/check-name")
+def tag_name_check():
+    """Check a tag name while it is typed (tag forms and the designer's *New tag* dialog).
+
+    Query: ``name`` and, when editing, ``id`` (the tag being edited).
+
+    Returns:
+        JSON ``{"ok": bool, "problems": [messages]}`` – the same rules as when saving.
+    """
+    from app.tags.naming import check  # noqa: PLC0415
+
+    if not (current_user.can(Perm.MANAGE_SCREENS) or current_user.can(Perm.MANAGE_ROLES)):
+        if not current_user.is_authenticated:
+            return _json_error(gettext('authentication required'), 401)
+        abort(403)
+    current = db.session.get(DataPoint, request.args.get("id", type=int) or 0)
+    problems = check(request.args.get("name", ""), current)
+    return jsonify(ok=not problems, problems=problems)

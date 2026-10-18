@@ -335,6 +335,13 @@ class DataPoint(db.Model):
         return self.protocol == "dummy" and self.dummy_scope == "local"
 
     @property
+    def name_issues(self) -> list[str]:
+        """Problems of the tag name under the naming rules (names saved before the rules may have some)."""
+        from app.tags.naming import problems  # noqa: PLC0415
+
+        return problems(self.label)
+
+    @property
     def is_logged(self) -> bool:
         """``True`` when samples of this tag are saved in the history (never for local dummy tags)."""
         return bool(self.log_enabled) and not self.is_local

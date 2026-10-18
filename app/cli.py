@@ -96,14 +96,14 @@ def demo_command() -> None:
                      description="Example screen created by `flask demo`.")
     db.session.add(dash)
     specs = [
-        ("Tank temperature", "DB1.DBD0:REAL", "gauge", dict(unit="°C", min_value=0, max_value=100, decimals=1)),
+        ("Tank_temperature", "DB1.DBD0:REAL", "gauge", dict(unit="°C", min_value=0, max_value=100, decimals=1)),
         ("Pressure", "DB1.DBD4:REAL", "value", dict(unit="bar", decimals=2)),
-        ("Motor speed", "DB1.DBW8:INT", "gauge", dict(unit="rpm", min_value=0, max_value=1000, decimals=0)),
-        ("Pump running", "DB1.DBX10.0", "indicator", dict(true_text="RUNNING", false_text="STOPPED")),
-        ("Pump enable", "M0.0", "switch", dict(writable=True)),
+        ("Motor_speed", "DB1.DBW8:INT", "gauge", dict(unit="rpm", min_value=0, max_value=1000, decimals=0)),
+        ("Pump_running", "DB1.DBX10.0", "indicator", dict(true_text="RUNNING", false_text="STOPPED")),
+        ("Pump_enable", "M0.0", "switch", dict(writable=True)),
         ("Setpoint", "DB1.DBD12:REAL", "value", dict(unit="°C", writable=True, decimals=1)),
-        ("Batch name", "DB1.DBB20:STRING[20]", "value", dict(writable=True)),
-        ("Input I0.0", "I0.0", "indicator", {}),
+        ("Batch_name", "DB1.DBB20:STRING[20]", "value", dict(writable=True)),
+        ("Input_I0_0", "I0.0", "indicator", {}),
     ]
     for pos, (label, addr, widget, extra) in enumerate(specs):
         dp = DataPoint(plc=plc, label=label, widget=widget, **extra)

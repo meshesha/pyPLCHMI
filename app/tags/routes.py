@@ -142,7 +142,9 @@ def create():
     form = TagForm(current_plc_id=source.plc_id if source else None)
     if request.method == "GET" and source is not None:
         form.load_datapoint(source)
-        form.label.data = f"{source.label} (copy)"[:100]
+        from app.tags.naming import suggest  # noqa: PLC0415
+
+        form.label.data = suggest(f"{source.label}_copy")
     if not form.plc_id.choices:
         flash(gettext('No enabled PLC – add a PLC or enable one first (Admin → PLCs).'), "warning")
         return redirect(url_for("tags.index"))

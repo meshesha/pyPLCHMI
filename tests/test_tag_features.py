@@ -29,7 +29,7 @@ def tag_form(plc, **over):
     Returns:
         Dict for POST.
     """
-    data = {"label": "New tag", "plc_id": plc.id, "address": "DB9.DBW0", "data_type": "INT", "widget": "value",
+    data = {"label": "New_tag", "plc_id": plc.id, "address": "DB9.DBW0", "data_type": "INT", "widget": "value",
             "width": 1, "scale": 1, "offset": 0, "decimals": 0, "true_text": "ON", "false_text": "OFF",
             "string_length": 20}
     data.update(over)
@@ -167,12 +167,12 @@ def test_copy_button_prefills_form(client, login_as, db, dashboards):
     html = client.get("/tags/").get_data(as_text=True)
     assert f'/tags/new?copy={speed.id}' in html
     html = client.get(f"/tags/new?copy={speed.id}").get_data(as_text=True)
-    assert 'value="Speed (copy)"' in html and 'value="DB1.DBW8"' in html and "Copy tag" in html
+    assert 'value="Speed_copy"' in html and 'value="DB1.DBW8"' in html and "Copy tag" in html
     assert re.search(r'<option selected value="INT">|<option value="INT" selected', html)
     assert 'value="0.1"' in html                      # scale copied
-    client.post(f"/tags/new?copy={speed.id}", data=tag_form(speed.plc, label="Speed 2", address="DB1.DBW10",
+    client.post(f"/tags/new?copy={speed.id}", data=tag_form(speed.plc, label="Speed_2", address="DB1.DBW10",
                                                              scale=0.1, decimals=1, writable="y"))
-    copy = DataPoint.query.filter_by(label="Speed 2").one()
+    copy = DataPoint.query.filter_by(label="Speed_2").one()
     assert copy.id != speed.id and copy.address == "DB1.DBW10" and copy.scale == 0.1
     assert db.session.get(DataPoint, speed.id).label == "Speed"
 
@@ -206,9 +206,9 @@ def test_dummy_tags_without_address(client, login_as, db, dummy):
     html = client.post("/tags/new", data=tag_form(dummy, label="T", address="", data_type="TIME")).get_data(as_text=True)
     assert "not available for dummy tags" in html
     # editing keeps the slot
-    client.post(f"/tags/{mode.id}/edit", data=tag_form(dummy, label="Mode 2", address="", writable="y"))
+    client.post(f"/tags/{mode.id}/edit", data=tag_form(dummy, label="Mode_2", address="", writable="y"))
     db.session.refresh(mode)
-    assert mode.address == "D1" and mode.label == "Mode 2"
+    assert mode.address == "D1" and mode.label == "Mode_2"
     edit_html = client.get(f"/tags/{mode.id}/edit").get_data(as_text=True)
     assert re.search(r'id="address"[^>]*value=""|value=""[^>]*id="address"', edit_html)
 

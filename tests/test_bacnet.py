@@ -346,12 +346,12 @@ def test_bacnet_datapoint_end_to_end(client, login_as, dashboards):
     client.post("/admin/plcs/new", data=bacnet_form())
     dev = PLC.query.filter_by(name="AHU-1").one()
     url = f"/screens/{dashboards['private'].id}/points/new"
-    base = {"label": "Room SP", "plc_id": dev.id, "data_type": "INT", "string_length": 20, "widget": "value",
+    base = {"label": "Room_SP", "plc_id": dev.id, "data_type": "INT", "string_length": 20, "widget": "value",
             "scale": 1, "offset": 0, "decimals": 1, "true_text": "ON", "false_text": "OFF", "width": 1, "position": 0}
     assert b"Unknown BACnet object type" in client.post(url, data={**base, "address": "HR1"}).data
     assert b"cannot be written" in client.post(url, data={**base, "address": "AI1", "writable": "y"}).data
     assert client.post(url, data={**base, "address": "AV7@12", "writable": "y"}).status_code == 302
-    dp = DataPoint.query.filter_by(label="Room SP").one()
+    dp = DataPoint.query.filter_by(label="Room_SP").one()
     assert (dp.area, dp.start, dp.priority, dp.data_type, dp.address) == ("AV", 7, 12, "REAL", "AV7@12")
     r = client.post(f"/api/datapoints/{dp.id}/write", json={"value": 22.5}).get_json()
     assert r["value"] == 22.5

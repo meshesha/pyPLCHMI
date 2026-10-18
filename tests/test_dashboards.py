@@ -78,8 +78,8 @@ def test_edit_point(client, login_as, dashboards, plc):
     dp = dashboards["points"]["temp"]
     url = f"/screens/{dashboards['private'].id}/points/{dp.id}/edit"
     assert b"DB1.DBD0" in client.get(url).data
-    client.post(url, data=point_data(plc, label="Temp 2", address="DB1.DBD0:REAL"))
-    assert DataPoint.query.get(dp.id).label == "Temp 2"
+    client.post(url, data=point_data(plc, label="Temp_2", address="DB1.DBD0:REAL"))
+    assert DataPoint.query.get(dp.id).label == "Temp_2"
 
 
 def test_point_of_other_dashboard_404(client, login_as, dashboards):

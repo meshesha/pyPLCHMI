@@ -72,7 +72,9 @@ class DataPointForm(FlaskForm):
     ``form.parsed_address``.
     """
 
-    label = StringField("Label", validators=[DataRequired(), Length(max=100)])
+    label = StringField("Tag name", validators=[DataRequired(), Length(max=100)],
+                        description="Unique; letters, digits, _ and . only – no spaces or symbols, not starting "
+                                    "with a digit (e.g. Tank_1.level).")
     plc_id = SelectField("PLC", coerce=int, validators=[DataRequired()])
     address = StringField(
         "Address",
@@ -130,6 +132,22 @@ class DataPointForm(FlaskForm):
         if self.write_access.data not in WRITE_ACCESS:
             self.write_access.data = "all"
         self.parsed_address = None
+
+    def validate_label(self, field) -> None:
+        """Check the tag name (see :mod:`app.tags.naming`): unique, no spaces or symbols, not starting with a digit.
+
+        Args:
+            field: The label field.
+
+        Raises:
+            ValidationError: With instructions for every problem.
+        """
+        from app.tags.naming import check  # noqa: PLC0415
+
+        field.data = (field.data or "").strip()
+        issues = check(field.data, self.datapoint)
+        if issues:
+            raise ValidationError(" ".join(issues))
 
     def validate_address(self, field) -> None:
         """Parse the address with the syntax of the selected PLC's protocol.

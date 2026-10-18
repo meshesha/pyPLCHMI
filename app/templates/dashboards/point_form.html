@@ -52,4 +52,5 @@
 <script type="application/json" id="plc-protocols">{{ plc_protocols|tojson }}</script>
 <script src="{{ url_for('static', filename='js/point_form.js') }}"></script>
 <script src="{{ url_for('static', filename='js/write_access.js') }}"></script>
+<script src="{{ url_for('static', filename='js/tag-name-check.js') }}" data-url="{{ url_for('api.tag_name_check') }}" data-input="#label" data-tag-id="{{ point.id if point else '' }}"></script>
 {% endblock %}

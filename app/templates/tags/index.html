@@ -44,7 +44,7 @@
     {% set n_alarms = t.alarms.count() %}
     <tr data-tag-id="{{ t.id }}">
       {{ select_td(t.id, t.label) }}
-      <td><strong>{{ t.label }}</strong>{% if t.unit %} <span class="text-secondary small">[{{ t.unit }}]</span>{% endif %}
+      <td><strong>{{ t.label }}</strong>{% if t.name_issues %} <span class="badge text-bg-warning tag-name-legacy" title="{{ _('This name does not follow the tag name rules. Rename it when you edit the tag:') }} {{ t.name_issues|join(' ') }}"><i class="bi bi-exclamation-triangle"></i> {{ _('rename') }}</span>{% endif %}{% if t.unit %} <span class="text-secondary small">[{{ t.unit }}]</span>{% endif %}
         {% if t.is_logged %} <a href="{{ url_for('history.index', tags=t.id) }}" class="badge hmi-badge-neutral text-decoration-none tag-logged" title="{{ _('History saved every {0} s', t.log_interval) }}"><i class="bi bi-graph-up"></i> {{ t.log_interval }} s</a>{% endif %}</td>
       <td>{{ t.plc.name }}{% if not t.plc.enabled %} <span class="badge text-bg-secondary">{{ _('disabled') }}</span>{% endif %}</td>
       <td><code>{{ t.address_text or t.address }}</code>{% if t.is_local %} <span class="badge text-bg-info" title="{{ _('Local dummy tag: each browser window has its own value') }}">{{ _('local') }}</span>{% elif t.protocol == "dummy" %} <span class="badge text-bg-secondary" title="{{ _('General dummy tag: one value for everybody, stored in the database') }}">{{ _('general') }}</span>{% endif %}</td>

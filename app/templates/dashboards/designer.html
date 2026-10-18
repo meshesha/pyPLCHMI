@@ -56,7 +56,8 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
       </div>
       <div class="modal-body row g-2">
-        <div class="col-12"><label class="form-label">{{ _('Label') }}</label><input class="form-control" name="label" required maxlength="100"></div>
+        <div class="col-12"><label class="form-label" for="tag-form-label">{{ _('Tag name') }}</label><input class="form-control" name="label" id="tag-form-label" required maxlength="100" placeholder="Tank_1.level" autocomplete="off">
+          <div class="form-text">{{ _('Unique; letters, digits, _ and . only – no spaces or symbols, not starting with a digit (e.g. Tank_1.level).') }}</div></div>
         <div class="col-12"><label class="form-label">{{ _('PLC') }}</label>
           <select class="form-select" name="plc_id">{% for p in designer.plcs %}<option value="{{ p.id }}">{{ p.name }} ({{ p.ip }})</option>{% endfor %}</select></div>
         <div class="col-7"><label class="form-label">{{ _('Address') }}</label><input class="form-control" name="address" placeholder="DB1.DBD4, M10.5, IW64…" required></div>
@@ -92,4 +93,5 @@
 <script src="{{ url_for('static', filename='js/hmi-render.js') }}"></script>
 <script src="{{ url_for('static', filename='js/tag_picker.js') }}"></script>
 <script src="{{ url_for('static', filename='js/hmi-designer.js') }}"></script>
+<script src="{{ url_for('static', filename='js/tag-name-check.js') }}" data-url="{{ url_for('api.tag_name_check') }}" data-input="#tag-form [name=label]" data-tag-id=""></script>
 {% endblock %}
