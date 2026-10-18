@@ -7,12 +7,17 @@ Protocols:
 * ``modbus_rtu`` – Modbus RTU over a serial port via pymodbus
 * ``bacnet_ip``  – BACnet/IP via BAC0 (``AV3``, ``BO12``, ``AI1.units``)
 * ``dummy``      – no device: internal values, tags need no address (see :mod:`app.plc.dummy`)
+* ``http``       – web device: JSON / XML over HTTP or HTTPS, also header-less HTTP/0.9
+  (address = key path such as ``meter.power``; see :mod:`app.plc.web`)
+* ``websocket``  – web device: JSON / XML messages over WebSocket (ws:// or wss://)
 """
 
 from app.plc.addressing import AddressError, S7Address, parse_address
 from app.plc.bacnet import BACnetAddress, BACnetAddressError, parse_bacnet_address
 from app.plc.dummy import DummyAddress, DummyAddressError, parse_dummy_address
 from app.plc.modbus import ModbusAddress, ModbusAddressError, parse_modbus_address
+from app.plc.web import WebAddress, is_web, parse_web_address
+from app.plc.web_data import WebDataError
 
 #: ``protocol -> label`` for select fields.
 PROTOCOLS = {
@@ -21,19 +26,24 @@ PROTOCOLS = {
     "modbus_rtu": "Modbus RTU (serial)",
     "bacnet_ip": "BACnet/IP (BAC0)",
     "dummy": "Dummy (no device – internal values)",
+    "http": "HTTP / HTTPS (JSON, XML)",
+    "websocket": "WebSocket WS / WSS (JSON, XML)",
 }
 
 #: Client libraries available for Modbus TCP.
 MODBUS_LIBRARIES = {"pymodbus": "PyModbus", "pymodbustcp": "pyModbusTCP"}
 
 #: Default TCP port per protocol.
-DEFAULT_PORTS = {"s7": 102, "modbus_tcp": 502, "modbus_rtu": 0, "bacnet_ip": 47808, "dummy": 0}
+DEFAULT_PORTS = {"s7": 102, "modbus_tcp": 502, "modbus_rtu": 0, "bacnet_ip": 47808, "dummy": 0, "http": 80,
+                 "websocket": 80}
 
 #: Address examples shown in forms.
 ADDRESS_HELP = {
     "s7": "e.g. DB1.DBD4, DB1.DBX0.0, M10.5, MW20, IW64, Q0.1, T5",
     "modbus": "e.g. HR100, HR100:REAL, HR10.3 (bit), IR5, C12 (coil), DI3, 40001, 30010",
     "bacnet": "e.g. AV3, AI1, BO12, MV2, AI1.units, AV5@10 (write priority)",
+    "web": "key path, e.g. meter.power, phases[0], data[\"key with space\"] (JSON) or status/sensor[2]/temp, "
+           "sensor/@id (XML)",
 }
 
 
@@ -80,11 +90,16 @@ def parse_tag_address(text: str, data_type=None, string_length=None, protocol: s
             return parse_dummy_address(text, data_type, string_length)
         except DummyAddressError as exc:
             raise AddressError(str(exc)) from exc
+    if is_web(protocol):
+        try:
+            return parse_web_address(text, data_type, string_length)
+        except WebDataError as exc:
+            raise AddressError(str(exc)) from exc
     return parse_address(text, data_type, string_length)
 
 
 def make_address(protocol: str, area: str, db_number: int, start: int, bit: int, data_type: str, string_length: int,
-                 property_name: str = "", priority: int = 0):
+                 property_name: str = "", priority: int = 0, path: str = ""):
     """Rebuild an address object from stored data point fields.
 
     Args:
@@ -97,9 +112,11 @@ def make_address(protocol: str, area: str, db_number: int, start: int, bit: int,
         string_length: STRING length.
         property_name: BACnet property (empty = presentValue).
         priority: BACnet write priority (0 = device default).
+        path: Key path (web devices).
 
     Returns:
-        :class:`S7Address`, :class:`ModbusAddress` or :class:`BACnetAddress`.
+        :class:`S7Address`, :class:`ModbusAddress`, :class:`BACnetAddress`,
+        :class:`DummyAddress` or :class:`WebAddress`.
     """
     if is_modbus(protocol):
         return ModbusAddress(area=area, start=start, bit=bit, data_type=data_type, string_length=string_length)
@@ -108,6 +125,8 @@ def make_address(protocol: str, area: str, db_number: int, start: int, bit: int,
                              priority=priority or 0, data_type=data_type)
     if protocol == "dummy":
         return DummyAddress(start=start, data_type=data_type, string_length=string_length)
+    if is_web(protocol):
+        return WebAddress(path=path, data_type=data_type, string_length=string_length)
     return S7Address(area=area, db_number=db_number, start=start, bit=bit, data_type=data_type, string_length=string_length)
 
 
@@ -118,10 +137,12 @@ def syntax_family(protocol: str | None) -> str:
         protocol: Protocol code.
 
     Returns:
-        ``"s7"``, ``"modbus"``, ``"bacnet"`` or ``"dummy"``.
+        ``"s7"``, ``"modbus"``, ``"bacnet"``, ``"dummy"`` or ``"web"``.
     """
     if is_modbus(protocol):
         return "modbus"
+    if is_web(protocol):
+        return "web"
     if protocol == "dummy":
         return "dummy"
     return "bacnet" if protocol == "bacnet_ip" else "s7"

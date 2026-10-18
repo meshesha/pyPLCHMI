@@ -1,6 +1,6 @@
 /**
  * Data point form helpers: shows the STRING length field only for STRING,
- * switches the address help between Siemens S7, Modbus and BACnet syntax according to
+ * switches the address help between Siemens S7, Modbus, BACnet and web device syntax according to
  * the selected PLC (and hides the address for Dummy PLCs), and implements the "Test read" button
  * (POST /api/plcs/<id>/read).
  */
@@ -53,6 +53,7 @@
     s7: T("e.g. {0}", "DB1.DBD4, DB1.DBX0.0, M10.5, MW20, IW64"),
     modbus: T("e.g. {0}", "HR100, HR100:REAL, HR10.3, IR5, C12, DI3, 40001"),
     bacnet: T("e.g. {0}", "AV3, AI1, BO12, MV2, AI1.units, AV5@10"),
+    web: T("e.g. {0}", "meter.power, phases[0], status/sensor[2]/temp"),
   };
 
   const addressBox = addressInput.closest(".mb-3");
@@ -67,7 +68,8 @@
   function syncProtocol() {
     const raw = protocols[plcSelect.value] || "s7";
     const dummy = raw === "dummy";
-    const proto = raw.startsWith("modbus") ? "modbus" : (raw === "bacnet_ip" ? "bacnet" : "s7");
+    const proto = raw.startsWith("modbus") ? "modbus" : (raw === "bacnet_ip" ? "bacnet"
+      : (raw === "http" || raw === "websocket" ? "web" : "s7"));
     addressInput.placeholder = HINTS[proto];
     addressBox.hidden = dummy;
     dummyNote.hidden = !dummy;

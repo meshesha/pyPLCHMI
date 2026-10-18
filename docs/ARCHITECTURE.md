@@ -77,6 +77,9 @@ Asset (uploaded image; file in UPLOAD_FOLDER)  ◀── referenced by id from l
 | `addressing.py` | `parse_address("DB1.DBD4:REAL")` → `S7Address`; `S7Address.format()`; mapping to `snap7.type.Area`. |
 | `driver.py` | `Snap7Connection` (real), `SimulatedConnection` (in-memory), `PLCConnectionManager` (pooling, locking, reconnect back-off, batching). |
 | `service.py` | `read_dashboard`, `read_datapoints`, `write_datapoint` – bridge between models and the manager. |
+| `web_client.py` | Socket-level `http_get` (HTTP/1.x **and** header-less HTTP/0.9, HTTPS, Basic auth) and `WebSocketClient` (RFC 6455). |
+| `web_data.py` | JSON / XML documents: `parse_document`, `flatten` (all key paths), `resolve`, `convert`, `suggest_type`. |
+| `web.py` | `WebAddress` (key path), `WebSettings`, `WebConnection` (tag-based driver), `probe` (wizard test). |
 
 ### Connection manager behaviour
 
@@ -317,6 +320,41 @@ PLC. `DataPoint.dummy_scope` makes a dummy tag **general** or **local**:
 The connection signature is constant, so the PLC is always online; the PLC form never
 creates a communication alarm for it. Migration `a3f6c2d8e91b` adds `dummy_scope`
 (default `general`) and `dummy_values`.
+
+## Web devices (HTTP / WebSocket, JSON / XML)
+
+Protocols `http` and `websocket`. PLC columns (migration `a7d3e9f2c5b8`): `url`,
+`data_format` (`json`/`xml`), `poll_interval`, `http_mode` (`auto`/`http09`), `verify_tls`,
+`ws_message`; `ip_address`/`tcp_port` are filled from the URL (`WebSettings.apply`). A tag
+stores its key path in `datapoints.path`; `WebAddress` (area `WB`, `writable_area = False`)
+accepts both key syntaxes (`DataPointForm` additionally checks the device's own format).
+
+* **Why not `requests`/`http.client`?** They reject answers without a status line, but
+  many small devices answer HTTP/0.9-style (body only, then close). `web_client.http_get`
+  writes the request on a socket (optionally TLS, `verify_tls=False` for self-signed
+  certificates) and reads until the body is complete: `Content-Length`, the last `chunked`
+  chunk, connection close, or – for devices that keep the socket open – the time limit
+  with data already received. Request mode `http09` sends only `GET /path\r\n`. The
+  WebSocket client does the opening handshake (checks `Sec-WebSocket-Accept`), masks
+  client frames, joins fragments, answers pings and caps messages at 4 MB.
+* **`WebConnection`** plugs into `PLCConnectionManager` like Modbus/BACnet (`connect`,
+  `connected`, `read_tags`, `write_tag`, `cpu_info`). HTTP: `connect()` fetches once,
+  `read_tags` fetches again when `poll_interval` has passed (otherwise the cached document
+  is used, so many readers cause one request per interval); a failure raises
+  `ConnectionLostError` → the manager's usual reconnect, back-off, stale values and
+  communication alarm. WebSocket: a daemon thread receives messages, re-sends
+  `ws_message` every interval, pings every 10 s and marks the link dead when no frame
+  arrives for 10 s + timeout; values come from the latest message, then from a merged map
+  of all messages (`flatten`). `write_tag` raises `DeviceError` (read only).
+* **XML safety:** `<!ENTITY` declarations are refused; the standard library parser does
+  not load external entities.
+* **Wizard** (`app/admin/web_devices.py`, `templates/admin/web_device.html`,
+  `static/js/web-device.js`): `POST /admin/plcs/web/api/test` → `probe()` + suggested
+  names (`suggest_name`: `<device>.<key>` through `naming.suggest`, unique within the
+  table); `/api/check-names` checks names live (rules + duplicates in the table);
+  `/api/save` validates every row (name rules and uniqueness, key syntax for the format,
+  data type, STRING length) and creates the PLC (when new, with its communication alarm)
+  and all tags in one transaction – or nothing, with per-row messages.
 
 ## Excel export / import
 

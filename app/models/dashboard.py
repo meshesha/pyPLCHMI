@@ -274,6 +274,8 @@ class DataPoint(db.Model):
     property_name = db.Column(db.String(64), nullable=False, default="", server_default="")
     #: BACnet write priority 1..16 (0 = device default); unused for S7/Modbus.
     priority = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+    #: Web devices: key path of the value in the JSON / XML data (``meter.power``, ``status/temp``).
+    path = db.Column(db.String(255), nullable=False, default="", server_default="")
 
     # presentation
     widget = db.Column(db.String(20), nullable=False, default="value")
@@ -397,7 +399,8 @@ class DataPoint(db.Model):
         from app.plc.protocols import make_address  # noqa: PLC0415
 
         return make_address(self.protocol, self.area, self.db_number or 0, self.start or 0, self.bit or 0,
-                            self.data_type, self.string_length or 0, self.property_name or "", self.priority or 0)
+                            self.data_type, self.string_length or 0, self.property_name or "", self.priority or 0,
+                            self.path or "")
 
     @property
     def s7_address(self):
@@ -420,6 +423,7 @@ class DataPoint(db.Model):
         prop = getattr(address, "property_name", "")
         self.property_name = "" if prop in ("", "presentValue") else prop
         self.priority = getattr(address, "priority", 0) or 0
+        self.path = getattr(address, "path", "") or ""
         self.address_text = address.format()[:80]
 
     @property

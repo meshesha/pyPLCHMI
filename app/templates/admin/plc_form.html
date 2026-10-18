@@ -24,6 +24,17 @@
           <div class="list-group mb-3" id="whois-results"></div>
         </div>
 
+        <div class="proto-group" data-protocols="http websocket">
+          {{ render_field(form.url) }}
+          <div class="row">{{ render_field(form.data_format, 'col-md-4') }}{{ render_field(form.poll_interval, 'col-md-8') }}</div>
+          <div class="proto-group" data-protocols="http">{{ render_field(form.http_mode) }}</div>
+          <div class="proto-group" data-protocols="websocket">{{ render_field(form.ws_message) }}</div>
+          {{ render_field(form.verify_tls) }}
+          {% if plc and plc.is_web %}
+          <p><a class="btn btn-sm btn-outline-success" href="{{ url_for('admin.web_device_tags', plc_id=plc.id) }}"><i class="bi bi-table"></i> {{ _('Test and add tags') }}</a></p>
+          {% endif %}
+        </div>
+
         <div class="proto-group" data-protocols="s7">
           <div class="row">{{ render_field(form.rack, 'col-6') }}{{ render_field(form.slot, 'col-6') }}</div>
         </div>
@@ -42,7 +53,7 @@
           </div>
           {{ render_field(form.data_order) }}
         </div>
-        <fieldset class="border rounded p-3 mb-3 proto-group" id="comm-settings" data-protocols="s7 modbus_tcp modbus_rtu bacnet_ip">
+        <fieldset class="border rounded p-3 mb-3 proto-group" id="comm-settings" data-protocols="s7 modbus_tcp modbus_rtu bacnet_ip http websocket">
           <legend class="float-none w-auto px-2 fs-6 mb-0">{{ _('Communication monitoring') }}</legend>
           <div class="row">
             {{ render_field(form.timeout, 'col-md-6') }}
@@ -95,6 +106,23 @@
         <li>{{ _('Each DB you read: Properties → Optimized block access OFF (absolute offsets).') }}</li>
         <li>{{ _('TCP port 102 reachable from this server.') }}</li>
       </ul>
+    </div></div>
+    <div class="card hmi-panel proto-group" data-protocols="http websocket"><div class="card-body small">
+      <h2 class="h6">{{ _('Web devices (HTTP / WebSocket)') }}</h2>
+      <ul class="mb-2">
+        <li>{{ _('HTTP: the HMI sends a GET request every request interval. Answers with HTTP headers and header-less answers (HTTP/0.9) are both accepted; for very old devices choose the HTTP/0.9 request mode.') }}</li>
+        <li>{{ _('WebSocket: the HMI keeps the connection open and uses the latest message. Keys missing from a message keep the value of an earlier message.') }}</li>
+        <li>{{ _('Tags of web devices are read only.') }}</li>
+        <li>{{ _('Easiest: use Add device in the PLC list – test the device and pick the keys from a table.') }}</li>
+      </ul>
+      <p class="mb-1"><strong>{{ _('Tag addresses (keys)') }}</strong></p>
+      <table class="table table-sm mb-0">
+        <tr><td><code>meter.power</code></td><td>{{ _('JSON: object keys separated by dots') }}</td></tr>
+        <tr><td><code>phases[0]</code></td><td>{{ _('JSON: list item (from 0)') }}</td></tr>
+        <tr><td><code>data["flow rate"]</code></td><td>{{ _('JSON: key with spaces or symbols') }}</td></tr>
+        <tr><td><code>status/sensor[2]/temp</code></td><td>{{ _('XML: elements from the root, [n] from 1') }}</td></tr>
+        <tr><td><code>status/sensor/@id</code></td><td>{{ _('XML: attribute') }}</td></tr>
+      </table>
     </div></div>
     <div class="card hmi-panel proto-group" data-protocols="dummy"><div class="card-body small">
       <h2 class="h6">{{ _('Dummy PLC') }}</h2>

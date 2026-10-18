@@ -78,10 +78,10 @@ class DataPointForm(FlaskForm):
     plc_id = SelectField("PLC", coerce=int, validators=[DataRequired()])
     address = StringField(
         "Address",
-        validators=[Optional(), Length(max=40)],
+        validators=[Optional(), Length(max=255)],
         description="S7: DB1.DBD4, DB1.DBX0.0, M10.5, MW20, IW64, Q0.1, T5 · "
                     "Modbus: HR100, HR100:REAL, HR10.3, IR5, C12, DI3, 40001 · BACnet: AV3, BO12, MV2, AI1.units · "
-                    "Dummy PLC: no address",
+                    "Web device: meter.power, status/sensor[2]/temp · Dummy PLC: no address",
     )
     data_type = SelectField("Data type", choices=DATA_TYPE_CHOICES, default="INT")
     dummy_scope = SelectField(
@@ -153,8 +153,10 @@ class DataPointForm(FlaskForm):
         """Parse the address with the syntax of the selected PLC's protocol.
 
         Siemens S7 PLCs use S7 notation (``DB1.DBD4``), Modbus devices Modbus
-        notation (``HR100``, ``40001``, ``C5``...).  Dummy PLCs need no
-        address (any text is ignored; :meth:`validate` builds the slot).
+        notation (``HR100``, ``40001``, ``C5``...), web devices a key path in
+        the syntax of their data format (``meter.power`` / ``status/temp``).
+        Dummy PLCs need no address (any text is ignored; :meth:`validate`
+        builds the slot).
 
         Args:
             field: The address field.
@@ -170,6 +172,13 @@ class DataPointForm(FlaskForm):
             self.parsed_address = parse_tag_address(field.data, self.data_type.data, self.string_length.data, protocol)
         except AddressError as exc:
             raise ValidationError(str(exc)) from exc
+        if plc is not None and plc.is_web:   # the key must use the device's syntax (JSON or XML)
+            from app.plc.web_data import WebDataError, check_path  # noqa: PLC0415
+
+            try:
+                check_path(self.parsed_address.path, plc.data_format or "json")
+            except WebDataError as exc:
+                raise ValidationError(str(exc)) from exc
         # A ':TYPE' suffix in the address wins over the drop-down.
         self.data_type.data = self.parsed_address.data_type
         if self.parsed_address.data_type == "STRING":

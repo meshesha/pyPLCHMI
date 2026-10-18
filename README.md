@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
 
-**A web-based HMI / light SCADA for Siemens S7, Modbus and BACnet – built in Python, running in any browser.**
+**A web-based HMI / light SCADA for Siemens S7, Modbus, BACnet and JSON/XML web devices – built in Python, running in any browser.**
 
 Draw a P&ID-style screen, bind it to PLC tags, and open it on any PC, tablet or wall display on
 the plant network. No runtime licenses, no client installation, no tag limits.
@@ -21,6 +21,7 @@ operator station is just a browser window, and the engineering tools are on the 
 | | |
 |---|---|
 | 🔌 **Talks to your field devices** | Siemens **S7-300/400/1200/1500 & LOGO!** (snap7), **Modbus TCP / RTU** (PyModbus, pyModbusTCP), **BACnet/IP** (BAC0, Who-Is & object browser) |
+| 🌐 **Web devices in a minute** | Energy meters, gateways, IoT sensors that send **JSON or XML** over **HTTP / HTTPS – even header-less HTTP/0.9 –** or **WebSocket (WS / WSS)**: *Add device* → **Test** shows the data → **Process** lists every key with a suggested tag name → **Save Selected / Save All** |
 | 🖌️ **Graphic screens** | Drag-and-drop SVG designer: pumps, valves, tanks, motors, pipes with animated flow, live values, lamps, bars, buttons, ~5,200 icons, your own images & animated GIFs |
 | 🚨 **Alarms** | Tag conditions (`>`, `≥`, `=`, `≠`…) with Critical/High/Low severity, pop-up with *Ack* / *Open Screen*, event history, PLC communication-loss alarms |
 | 📈 **Historian & trends** | Per-tag sampling interval, multi-pen trend charts, zoom, live mode, Excel export, save charts as PNG |
@@ -74,6 +75,7 @@ add your PLC under **PLCs**, and build screens from your real tags.
 | Siemens S7 | `DB1.DBD4:REAL` · `DB1.DBX0.0` · `MW20` · `M10.5` · `IW64` · `Q0.1` · `DB2.DBB20:STRING[20]` |
 | Modbus | `HR100` / `40101` · `IR5` · `C12` · `DI3` · `HR10.3` (bit) · `HR200:REAL` (byte/word order per device) |
 | BACnet/IP | `AI1` · `AO2` · `AV3@10` (write priority) · `BV5` · `MV2` · `AI1.units` |
+| Web device (JSON / XML) | `meter.power` · `meter.phases[0]` · `data["flow rate"]` · `status/sensor[2]/temp` · `status/sensor/@id` |
 | Dummy PLC | internal tags without a device – general (shared) or local (per browser window) |
 
 S7-1200/1500: enable *PUT/GET access* and disable *optimized block access* for the DBs you read.

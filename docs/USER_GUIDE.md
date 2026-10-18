@@ -1,7 +1,8 @@
 # pyPLCHMI
 
 A web-based HMI for **Siemens S7 PLCs** (S7-300/400/1200/1500, LOGO! 8),
-**Modbus TCP / RTU devices** and **BACnet/IP devices**, built with **Flask**,
+**Modbus TCP / RTU devices**, **BACnet/IP devices** and **web devices** that send
+**JSON or XML over HTTP/HTTPS (also header-less HTTP/0.9) or WebSocket**, built with **Flask**,
 **SQLAlchemy**, **python-snap7**, **PyModbus**, **pyModbusTCP** and **BAC0**.
 
 * Role-based access: **Admin**, **Viewer**, **Guest** (plus custom roles), with a
@@ -41,6 +42,9 @@ A web-based HMI for **Siemens S7 PLCs** (S7-300/400/1200/1500, LOGO! 8),
 * **UI templates** switched by the administrator: Classic, High-performance (ISA-101),
   Alarm focus, Workspaces (sidebar, plant overview, Ctrl+K search) and Engineering
   (side-panel tag editing, bulk actions) – and developers can **upload their own**.
+* **Web devices** (energy meters, gateways, weather stations, IoT sensors): an *Add device*
+  wizard tests the device, shows the received JSON / XML and turns the keys you tick into
+  tags – HTTP, HTTPS, header-less HTTP/0.9, WS and WSS, with no extra libraries.
 * A built-in **PLC simulator** (`PLC_SIMULATION=1`) lets you develop and demo
   without hardware.
 * Bootstrap is bundled locally, so the HMI works on networks without internet.
@@ -80,19 +84,22 @@ pyPLCHMI/
 │   ├── extensions.py        # db, migrate, bcrypt, login_manager, csrf
 │   ├── cli.py               # flask seed / create-admin / demo
 │   ├── models/              # User, Role, Permission, Setting, PLC, Dashboard (= screen), DataPoint (= tag), ScreenTag, Asset, Alarm, AlarmEvent, TagSample, TrendChart
-│   ├── plc/                 # PLC communication (S7 + Modbus)
+│   ├── plc/                 # PLC communication (S7, Modbus, BACnet, Dummy, web devices)
 │   │   ├── datatypes.py     #   S7 type registry, encode/decode via snap7.util
 │   │   ├── addressing.py    #   "DB1.DBD4:REAL" parser/formatter
 │   │   ├── driver.py        #   connections, simulator, PLCConnectionManager
 │   │   ├── modbus.py        #   Modbus addresses, codec, pymodbus/pyModbusTCP adapters
 │   │   ├── bacnet.py        #   BACnet addresses, BAC0 stack thread, adapters
 │   │   ├── dummy.py         #   Dummy PLC: internal values, tags without address
+│   │   ├── web.py           #   web devices: key-path addresses, WebConnection, wizard probe
+│   │   ├── web_client.py    #   HTTP/HTTPS (also header-less HTTP/0.9) and WebSocket clients
+│   │   ├── web_data.py      #   JSON / XML: keys, lookup, type conversion
 │   │   ├── errors.py        #   common error types of tag-based drivers
 │   │   ├── protocols.py     #   protocol registry (s7, modbus_tcp, modbus_rtu, bacnet_ip)
 │   │   └── service.py       #   screen read/write helpers
 │   ├── auth/                # blueprint: login, logout, Settings page (password, theme, language)
 │   ├── main/                # blueprint: home (screen list)
-│   ├── admin/               # blueprint: users, roles/permissions, PLCs
+│   ├── admin/               # blueprint: users, roles/permissions, PLCs, web_devices.py (Add device wizard)
 │   ├── dashboards/          # blueprint: HMI screens, data point editor, designer
 │   │   ├── layout.py        #   graphic layout schema + server-side validation
 │   │   ├── icons.py         #   Tabler icon index/shapes (pytablericons SVG files)
@@ -374,6 +381,62 @@ and the HMI gives each tag an internal slot (shown as `D1`, `D2`…). Choose the
 * To connect a dummy tag to a real PLC later, edit the tag, choose the PLC and enter the
   address (the address is required again). Its screens and alarms stay attached.
 * A dummy PLC is always *connected* and gets no communication alarm.
+
+## 5f. Web devices – HTTP / HTTPS / WebSocket with JSON or XML
+
+Many devices publish their values as a JSON or XML document: energy meters, weather
+stations, IoT gateways, UPS cards, small controllers. *Admin → PLCs → **Add device*** opens
+a wizard:
+
+1. **Device** – name, protocol (*HTTP / HTTPS* or *WebSocket WS / WSS*), the **address (URL)**
+   (`http://192.168.1.50/status.json`, `https://…`, `ws://192.168.1.50:8080/live`, `wss://…`),
+   the **data format** (JSON or XML), the **request interval** and the **timeout**.
+   *Advanced*: the HTTP **request mode**, switching off the **certificate check** for
+   self-signed HTTPS/WSS certificates, and a **message sent after connecting** (WebSocket
+   devices that send data only on request, e.g. `{"subscribe": "all"}`).
+   `user:password@` in the URL sends HTTP *Basic* authentication.
+2. **Test** – one exchange with the device; the received data is shown formatted, or the
+   exact error (no answer, HTTP 404, invalid JSON, TLS certificate…).
+3. **Process** – a table with one row per value found: a checkbox, the **key**, a suggested
+   **tag name** (`<device>.<key>`, already valid and unique under the tag naming rules,
+   editable, checked while typing), the **data type** (guessed from the value: BOOL, DINT,
+   LREAL or STRING – can be changed) and the **value**.
+4. **Save Selected** / **Save All** – creates the device (with its communication alarm) and
+   one read-only tag per row in one step. If a name or key is invalid, nothing is saved and
+   the row shows why.
+
+For a saved device, the table icon in the PLC list (*Test and add tags*) opens the same
+wizard: keys that already have a tag are marked, the others can be added. The device's
+settings are changed with *Edit* like any PLC.
+
+**HTTP.** Every request interval the HMI sends `GET` (only when someone needs the values:
+screens, alarms, history, automations). It accepts normal HTTP/1.x answers
+(`Content-Length`, `chunked`, or "until the connection closes") **and answers without any
+HTTP headers (HTTP/0.9)** – which `requests`/`urllib` refuse. For very old devices that do
+not understand a modern request, choose the request mode *HTTP/0.9* (only `GET /path` is
+sent). A device that sends its data but keeps the connection open is accepted too.
+
+**WebSocket.** The HMI keeps the connection open, uses the latest message and keeps the
+values of keys that are missing from a message (devices that send different values in
+different messages). It answers pings, sends its own ping every 10 s and reports the device
+offline when nothing comes back.
+
+**Keys (tag addresses):**
+
+| Key | Meaning |
+|---|---|
+| `meter.power` | JSON: object keys separated by dots |
+| `meter.phases[0]` | JSON: list item (from 0) |
+| `data["flow rate"]` | JSON: key with spaces or symbols |
+| `$` | JSON: the whole document when it is a single value |
+| `status/sensor[2]/temp` | XML: elements from the root; `[n]` from 1, no index = the first |
+| `status/sensor/@id` | XML: attribute (XML name spaces are ignored) |
+
+Text values are converted to the tag's type (`"21.5"` → REAL, `"on"`/`"true"`/`1` → BOOL);
+`null`, a missing key or a value out of range makes only that tag bad. Web device tags are
+**read only**. Communication timeout, communication alarm, history, alarms and automations
+work as for every PLC. Everything uses the Python standard library – nothing to add to an
+offline installation.
 
 ## 6. Plane (graphic) screens
 

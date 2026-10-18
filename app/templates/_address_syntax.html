@@ -35,4 +35,13 @@
             <tr><td><code>MV3:INT</code></td><td>{{ _('override the value type (the drop-down is ignored for BACnet)') }}</td></tr>
             <tr><td colspan="2">{{ _('Outputs and values (AO/AV/BO/BV/MO/MV/CS) can be written; inputs are read only. Tip: PLCs → Browse objects lists every object of the device.') }}</td></tr>
           </table>
+          <table class="table table-sm small mt-2 mb-0 syntax-table" data-syntax="web">
+            <tr><th colspan="2">{{ _('Web device (key of the value in the JSON / XML data)') }}</th></tr>
+            <tr><td><code>meter.power</code></td><td>{{ _('JSON: object keys separated by dots') }}</td></tr>
+            <tr><td><code>phases[0]</code></td><td>{{ _('JSON: list item (from 0)') }}</td></tr>
+            <tr><td><code>data["flow rate"]</code></td><td>{{ _('JSON: key with spaces or symbols') }}</td></tr>
+            <tr><td><code>status/sensor[2]/temp</code></td><td>{{ _('XML: elements from the root, [n] from 1') }}</td></tr>
+            <tr><td><code>status/sensor/@id</code></td><td>{{ _('XML: attribute') }}</td></tr>
+            <tr><td colspan="2">{{ _('Web device tags are read only. Tip: PLCs → Test and add tags lists every key of the device with its value.') }}</td></tr>
+          </table>
         </details>

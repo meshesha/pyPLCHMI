@@ -82,6 +82,7 @@ It is often missing on minimal servers.
 | Operator browsers → server | TCP **8000** (any port you choose) | Web interface |
 | Server → PLC | TCP **102** | Siemens S7 (S7-300/400/1200/1500, LOGO!). S7-1200/1500: enable *PUT/GET* and disable *optimized block access* for the DBs that are read. |
 | Server → device | TCP **502** | Modbus TCP |
+| Server → device | TCP **80 / 443** or the port in the device URL | Web devices: HTTP / HTTPS (also HTTP/0.9) and WebSocket WS / WSS – JSON or XML |
 | Server ↔ devices | UDP **47808** (broadcast) | BACnet/IP |
 | Server → device | serial port (COM*n* / `/dev/ttyUSB0`) | Modbus RTU through a USB / RS-485 adapter |
 

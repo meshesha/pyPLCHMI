@@ -1,4 +1,6 @@
-"""PLC / device connection model (Siemens S7, Modbus TCP/RTU or BACnet/IP)."""
+"""PLC / device connection model (Siemens S7, Modbus TCP/RTU, BACnet/IP or web devices)."""
+
+from sqlalchemy import true as sa_true
 
 from app.extensions import db
 from app.models.user import utcnow
@@ -69,6 +71,21 @@ class PLC(db.Model):
     bacnet_device_id = db.Column(db.Integer, nullable=False, default=0, server_default="0")
     #: Default write priority 1..16 (8 = manual operator).
     bacnet_priority = db.Column(db.Integer, nullable=False, default=8, server_default="8")
+
+    # --- Web device settings (HTTP/HTTPS and WebSocket; ignored for other protocols) ----
+    #: Device URL: ``http://``, ``https://`` (protocol ``http``) or ``ws://``, ``wss://`` (``websocket``).
+    #: ``ip_address`` and ``tcp_port`` are filled from it.
+    url = db.Column(db.String(500), nullable=False, default="", server_default="")
+    #: Format of the data the device sends: ``json`` or ``xml``.
+    data_format = db.Column(db.String(4), nullable=False, default="json", server_default="json")
+    #: Seconds between two requests (HTTP) or repeated messages (WebSocket).
+    poll_interval = db.Column(db.Float, nullable=False, default=1.0, server_default="1.0")
+    #: HTTP request mode: ``auto`` or ``http09`` (see :data:`app.plc.web.HTTP_MODES`).
+    http_mode = db.Column(db.String(8), nullable=False, default="auto", server_default="auto")
+    #: Check HTTPS / WSS certificates (switch off for self-signed device certificates).
+    verify_tls = db.Column(db.Boolean, nullable=False, default=True, server_default=sa_true())
+    #: Text sent to a WebSocket device after connecting and every poll interval (``""`` = none).
+    ws_message = db.Column(db.Text, nullable=False, default="", server_default="")
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
 
     datapoints = db.relationship("DataPoint", back_populates="plc", cascade="all, delete-orphan", lazy="dynamic")
@@ -99,6 +116,11 @@ class PLC(db.Model):
         return self.protocol == "dummy"
 
     @property
+    def is_web(self) -> bool:
+        """``True`` for web devices (HTTP/HTTPS or WebSocket with JSON / XML data)."""
+        return self.protocol in ("http", "websocket")
+
+    @property
     def protocol_label(self) -> str:
         """Short protocol name for lists, e.g. ``Modbus TCP (pyModbusTCP)``."""
         from app.plc.protocols import MODBUS_LIBRARIES, PROTOCOLS  # noqa: PLC0415
@@ -117,6 +139,8 @@ class PLC(db.Model):
             return f"{self.ip_address}:{self.tcp_port} dev {self.bacnet_device_id}"
         if self.protocol == "dummy":
             return "no device"
+        if self.is_web:
+            return self.url
         return f"{self.ip_address}:{self.tcp_port}"
 
     @property
@@ -130,6 +154,9 @@ class PLC(db.Model):
         base = (self.protocol or "s7", self.ip_address, int(self.tcp_port or 0))
         if self.is_dummy:
             return ("dummy",)
+        if self.is_web:
+            return (self.protocol, self.url, self.data_format, float(self.poll_interval or 1.0), self.timeout,
+                    self.http_mode, bool(self.verify_tls), self.ws_message or "")
         if self.is_bacnet:
             return base + (self.bacnet_device_id, self.bacnet_priority, self.timeout)
         if not self.is_modbus:
@@ -161,4 +188,7 @@ class PLC(db.Model):
             "endpoint": self.endpoint,
             "timeout": self.timeout,
             "offline_delay": self.offline_delay,
+            "url": self.url or "",
+            "data_format": self.data_format or "json",
+            "poll_interval": self.poll_interval,
         }

@@ -686,3 +686,20 @@ body.hmi-bulk-open main { padding-bottom: 5rem !important; }
 .hmi-trace-step.result-error::before { background: var(--hmi-bad); }
 .hmi-trace-step.result-disabled::before { background: var(--hmi-dimmed); }
 .hmi-trace-result { font-size: .8rem; color: var(--hmi-muted); white-space: nowrap; }
+
+/* Web devices: Add device wizard (admin/web_device.html) */
+.wd-step { display: flex; align-items: center; gap: .5rem; }
+.wd-step-no { display: inline-flex; align-items: center; justify-content: center; width: 1.6rem; height: 1.6rem;
+  border-radius: 50%; background: var(--hmi-accent); color: #fff; font-size: .85rem; font-weight: 600; }
+.wd-raw { max-height: 22rem; overflow: auto; padding: .75rem; margin-bottom: .75rem; border: 1px solid var(--hmi-border);
+  border-radius: .45rem; background: var(--hmi-raised); font-size: .82rem; white-space: pre; text-align: left; }
+.wd-table-wrap { max-height: 60vh; overflow: auto; border: 1px solid var(--hmi-border); border-radius: .45rem; }
+.wd-table-wrap thead th { position: sticky; top: 0; z-index: 1; background: var(--hmi-panel); }
+.wd-filter { max-width: 18rem; }
+.wd-key code { white-space: nowrap; }
+.wd-name-cell { min-width: 14rem; }
+.wd-type-cell { min-width: 8.5rem; white-space: nowrap; }
+.wd-type-cell .form-select { display: inline-block; width: auto; }
+.wd-len { display: inline-block; width: 4.5rem; margin-inline-start: .25rem; }
+.wd-value { max-width: 18rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+tr.wd-existing td { color: var(--hmi-muted); }

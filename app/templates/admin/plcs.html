@@ -4,7 +4,10 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h1 class="h3 mb-0">{{ _('PLCs & devices') }}</h1>
-  <a class="btn btn-primary" href="{{ url_for('admin.plc_create') }}"><i class="bi bi-plus-lg"></i> {{ _('Add PLC / device') }}</a>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-primary" href="{{ url_for('admin.web_device_new') }}" title="{{ _('HTTP / HTTPS or WebSocket device sending JSON or XML') }}"><i class="bi bi-globe2"></i> {{ _('Add device') }}</a>
+    <a class="btn btn-primary" href="{{ url_for('admin.plc_create') }}"><i class="bi bi-plus-lg"></i> {{ _('Add PLC / device') }}</a>
+  </div>
 </div>
 <div class="table-responsive">
 <table class="table table-hover align-middle hmi-table">
@@ -14,9 +17,9 @@
     {% set st = statuses[p.id] %}
     <tr>
       <td><strong>{{ p.name }}</strong>{% if p.files %} <a href="{{ url_for('admin.plc_edit', plc_id=p.id) }}#plc-files-card" class="badge hmi-badge-neutral text-decoration-none plc-file-count" title="{{ _('Files') }}: {{ p.files|map(attribute='name')|join(', ') }}"><i class="bi bi-paperclip"></i> {{ p.files|length }}</a>{% endif %}<div class="small text-secondary">{{ p.description }}</div></td>
-      <td><span class="badge {{ 'text-bg-info' if p.is_modbus else ('text-bg-success' if p.is_bacnet else ('text-bg-secondary' if p.is_dummy else 'text-bg-primary')) }}">{{ _(p.protocol_label) }}</span></td>
-      <td><code>{{ _(p.endpoint) if p.is_dummy else p.endpoint }}</code></td>
-      <td class="small">{% if p.is_dummy %}{{ _('internal values') }}{% elif p.is_bacnet %}{{ _('priority {0}', p.bacnet_priority) }}{% elif p.is_modbus %}{{ _('unit {0}', p.unit_id) }} · {{ {('big','big'):'ABCD',('big','little'):'CDAB',('little','big'):'BADC',('little','little'):'DCBA'}[(p.byte_order, p.word_order)] }}{% else %}{{ _('rack {0} / slot {1}', p.rack, p.slot) }}{% endif %}</td>
+      <td><span class="badge {{ 'text-bg-info' if p.is_modbus else ('text-bg-success' if p.is_bacnet else ('text-bg-secondary' if p.is_dummy else ('text-bg-warning' if p.is_web else 'text-bg-primary'))) }}">{{ _(p.protocol_label) }}</span></td>
+      <td><code class="{{ 'text-break' if p.is_web else '' }}">{{ _(p.endpoint) if p.is_dummy else p.endpoint }}</code></td>
+      <td class="small">{% if p.is_dummy %}{{ _('internal values') }}{% elif p.is_web %}{{ p.data_format|upper }} · {{ _('every {0} s', p.poll_interval|round(2)) }}{% if p.protocol == 'http' and p.http_mode == 'http09' %} · HTTP/0.9{% endif %}{% elif p.is_bacnet %}{{ _('priority {0}', p.bacnet_priority) }}{% elif p.is_modbus %}{{ _('unit {0}', p.unit_id) }} · {{ {('big','big'):'ABCD',('big','little'):'CDAB',('little','big'):'BADC',('little','little'):'DCBA'}[(p.byte_order, p.word_order)] }}{% else %}{{ _('rack {0} / slot {1}', p.rack, p.slot) }}{% endif %}</td>
       <td>
         {% if st.state == 'disabled' %}<span class="badge text-bg-secondary">{{ _('disabled') }}</span>
         {% elif st.state == 'online' %}<span class="badge text-bg-success">{{ _('connected') }}</span>
@@ -29,6 +32,7 @@
       <td>{{ p.datapoints.count() }}</td>
       <td class="text-end text-nowrap">
         {{ post_button(url_for('admin.plc_test', plc_id=p.id), 'Test connection', 'plug', 'btn-outline-info') }}
+        {% if p.is_web %}<a class="btn btn-sm btn-outline-success" href="{{ url_for('admin.web_device_tags', plc_id=p.id) }}" title="{{ _('Test and add tags') }}"><i class="bi bi-table"></i></a>{% endif %}
         {% if p.is_bacnet %}<a class="btn btn-sm btn-outline-success" href="{{ url_for('admin.plc_browse', plc_id=p.id) }}" title="{{ _('Browse objects') }}"><i class="bi bi-list-ul"></i></a>{% endif %}
         <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('admin.plc_edit', plc_id=p.id) }}" title="{{ _('Edit') }}"><i class="bi bi-pencil"></i></a>
         {{ post_button(url_for('admin.plc_delete', plc_id=p.id), 'Delete', 'trash', confirm=_('Delete PLC {0} and all its tags?', p.name)) }}

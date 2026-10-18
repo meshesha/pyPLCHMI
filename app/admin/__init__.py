@@ -4,4 +4,4 @@ from flask import Blueprint
 
 bp = Blueprint("admin", __name__)
 
-from app.admin import routes  # noqa: E402,F401  (registers the view functions)
+from app.admin import routes, web_devices  # noqa: E402,F401  (registers the view functions)

@@ -589,7 +589,8 @@ class PLCConnectionManager:
         :class:`SimulatedConnection`); Modbus devices get a
         :class:`~app.plc.modbus.ModbusConnection` with the pymodbus,
         pyModbusTCP or simulated adapter; BACnet devices get a
-        :class:`~app.plc.bacnet.BACnetConnection` (BAC0 or simulated).
+        :class:`~app.plc.bacnet.BACnetConnection` (BAC0 or simulated); web
+        devices get a :class:`~app.plc.web.WebConnection`.
 
         Args:
             plc: A :class:`~app.models.plc.PLC` (or any object with
@@ -611,6 +612,10 @@ class PLCConnectionManager:
             from app.plc.dummy import DummyConnection  # noqa: PLC0415
 
             return DummyConnection.for_plc(plc)
+        if protocol in ("http", "websocket"):   # web devices are always real (also in simulation mode)
+            from app.plc.web import WebConnection  # noqa: PLC0415
+
+            return WebConnection.for_plc(plc)
         if self.simulation:
             return SimulatedConnection(plc.ip_address, int(plc.rack), int(plc.slot), int(plc.tcp_port))
         return Snap7Connection(plc.ip_address, int(plc.rack), int(plc.slot), int(plc.tcp_port),
