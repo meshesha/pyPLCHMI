@@ -1,0 +1,3 @@
+{# Device windows (faceplates): include after hmi-render.js and hmi-mimic.js – see static/js/hmi-faceplate.js #}
+<script type="application/json" id="faceplate-config">{{ {"instance": url_for('faceplates.api_instance', instance_id=0)}|tojson }}</script>
+<script src="{{ url_for('static', filename='js/hmi-faceplate.js') }}"></script>

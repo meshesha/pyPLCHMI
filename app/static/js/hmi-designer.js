@@ -347,7 +347,7 @@
   // ---------------------------------------------------------------------
   // Element factories & palette
   // ---------------------------------------------------------------------
-  const BOX_DEFAULTS = { rot: 0, opacity: 1, locked: false, name: "", link: null };
+  const BOX_DEFAULTS = { rot: 0, opacity: 1, locked: false, name: "", link: null, faceplate: null };
 
   /**
    * Shape presets offered in the palette.
@@ -1366,7 +1366,8 @@
   const GEOM = [["x", "num", "X"], ["y", "num", "Y"], ["w", "num", "Width"], ["h", "num", "Height"], ["rot", "num", "Rotation °"]];
   const LABEL = [["label", "text", "Label"], ["labelPos", "select", "Label position", ["center", "top", "bottom", "none"]],
     ["labelSize", "num", "Label size"], ["labelColor", "color", "Label colour"]];
-  const TAIL = [["opacity", "range", "Opacity"], ["name", "text", "Name / tooltip"], ["link", "dashboard", "Click opens screen"], ["locked", "check", "Locked (cannot be moved)"]];
+  const TAIL = [["opacity", "range", "Opacity"], ["name", "text", "Name / tooltip"], ["link", "dashboard", "Click opens screen"],
+    ["faceplate", "faceplate", "Click opens device window (faceplate)"], ["locked", "check", "Locked (cannot be moved)"]];
   const STATE_HDR = ["-", "PLC state (optional)"];
   const VIS_OPS = [["on", "tag is ON / not 0"], ["off", "tag is OFF / 0"], ["eq", "= value"], ["ne", "≠ value"],
     ["gt", "> value"], ["ge", "≥ value"], ["lt", "< value"], ["le", "≤ value"]];
@@ -1408,7 +1409,7 @@
     lamp: [...GEOM, ["point", "point", "Tag"], ["onColor", "color", "Colour when ON"], ["offColor", "color", "Colour when OFF"], ["blink", "check", "Blink when ON"], ["stroke", "colorNone", "Border"]],
     button: [...GEOM, ["text", "text", "Caption"], ["action", "select", "Action", data.button_actions], ["point", "point", "Tag to write"],
       ["value", "text", "Value (for 'set')"], ["confirm", "check", "Ask for confirmation"], ["color", "color", "Button colour"], ["textColor", "color", "Text colour"], ["size", "num", "Font size"],
-      ["-", "toggle = invert a BOOL · set = write the value above · input = operator types a value · momentary = TRUE while pressed · link = open the screen chosen below"]],
+      ["-", "toggle = invert a BOOL · set = write the value above · input = operator types a value · momentary = TRUE while pressed · link = open the screen chosen below · faceplate = open the device window chosen below"]],
     bar: [...GEOM, ["point", "point", "Tag"], ["min", "num", "Min"], ["max", "num", "Max"], ["orientation", "select", "Orientation", ["vertical", "horizontal"]],
       ["color", "color", "Fill colour"], ["bg", "colorNone", "Background"], ["stroke", "colorNone", "Border"]],
     icon: [...GEOM, ["icon", "text", "Icon name (Tabler)"], ["iconStyle", "select", "Style", ["outline", "filled"]], ["color", "color", "Colour"],
@@ -1558,7 +1559,7 @@
           set(input.value ? Number(input.value) : null);
         });
         const p = obj[prop] && data.points[obj[prop]];
-        if (p && obj.type === "button" && obj.action !== "link" && !p.writable) {
+        if (p && obj.type === "button" && !["link", "faceplate"].includes(obj.action) && !p.writable) {
           const warn = document.createElement("div");
           warn.className = "dz-warn";
           warn.textContent = T("This tag is read-only – mark it writable in the tag settings.");
@@ -1574,6 +1575,17 @@
         input.appendChild(option("", T("— none —"), !obj[prop]));
         data.dashboards.forEach((d) => input.appendChild(option(d.id, d.name, obj[prop] === d.id)));
         input.addEventListener("change", () => set(input.value ? Number(input.value) : null));
+        break;
+      case "faceplate":
+        input = document.createElement("select");
+        input.className = "form-select form-select-sm";
+        input.appendChild(option("", T("— none —"), !obj[prop]));
+        (data.faceplates || []).forEach((d) => input.appendChild(option(d.id, d.name, obj[prop] === d.id)));
+        input.addEventListener("change", () => set(input.value ? Number(input.value) : null));
+        if (!(data.faceplates || []).length) {
+          input.disabled = true;
+          input.title = T("No devices yet – create them under Admin → Faceplates.");
+        }
         break;
       case "asset":
         input = document.createElement("select");

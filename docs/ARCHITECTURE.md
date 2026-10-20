@@ -402,6 +402,36 @@ Publishes tag values to other SCADA systems; tags with *Allow write* can be writ
   (`/api/<id>`), remove, and the address list (`addresses.xlsx` / `.csv`). Permission
   `manage_plcs`; changes are in the audit log ("Modbus export").
 
+## Faceplates (`app/faceplates`)
+
+One template screen for many identical devices, opened in pop-up windows.
+
+* **Data** (migration `d5e8b3c1a9f4`): `Faceplate` (`faceplates`: name, `screen_id` → template
+  Plane screen, `prefix` of the reference device) and `FaceplateInstance` (`faceplate_instances`:
+  name, `prefix`, `overrides_json` = parameter → tag id bound by hand). Nothing is copied: the
+  template layout stays the single source.
+* **Binding** (`binding.py`): `parameters(fp)` = template tags whose label starts with the
+  reference prefix (case-insensitive), the rest of the label is the parameter key; other template
+  tags are *fixed*. `resolve(inst)` finds `inst.prefix + key` (or the override); `point_map`
+  gives template tag id → device tag id; `substitute_layout` rewrites `point` / `visPoint` of a
+  deep copy (a missing tag: no value; a visibility rule on it is dropped). `scan` finds candidate
+  prefixes among all tags (labels ending with a parameter key); `create_tags` clones the reference
+  tags (`DataPoint.clone`, write roles copied) with `shifted_address` – DB number and/or start
+  shifted, rebuilt with `make_address` and validated with `parse_tag_address` – all checks first,
+  then the inserts (a refused request leaves nothing behind). `instances_of_tag` /
+  `window_screens` answer "which windows show this tag" for permissions.
+* **Run time:** `GET /faceplates/api/instances/<id>` returns the substituted layout, tag metadata
+  (with `may_write`), right-click menu data and icon shapes; `/values` reads the device's tags.
+  Both need `can_view_dashboard(template)`. The write API and *Details* also accept tags reached
+  through such a window (`window_screens`), so device tags need not be on any screen.
+* **Browser:** `hmi-mimic.js` became a factory (`HMIMimic.create(svg, data, opts)`); the screen
+  page runs it for `#mimic-svg`, `hmi-faceplate.js` for each window (`.hmi-fp-win`: title bar
+  drag with pointer capture, CSS `resize`, z-order on focus, at most 10 windows, moved into the
+  full-screen element). Elements get `data-point`, and `HMITagMenu.addPoints` registers the tags,
+  so the right-click menu works in windows; `hmi:values` events are merged. Layout elements have
+  the common property `faceplate` (device id, validated like screen links) and the button action
+  `faceplate`.
+
 ## Excel export / import
 
 `app/utils/xlsx.py` writes workbooks (data sheet + *Help* sheet; openpyxl) and reads

@@ -110,9 +110,21 @@ def tag_menu_data(dashboard: Dashboard) -> dict:
         JSON-ready dict: ``can_history`` (``view_history`` permission), per-tag
         label and history flag, and the URLs used by ``hmi-tagmenu.js``.
     """
+    return tag_menu_data_for(dashboard.datapoints)
+
+
+def tag_menu_data_for(points) -> dict:
+    """Right-click menu data for any set of tags (a screen, or a faceplate pop-up window).
+
+    Args:
+        points: The tags.
+
+    Returns:
+        See :func:`tag_menu_data`.
+    """
     from app.history.data import tags_with_history  # noqa: PLC0415
 
-    points = list(dashboard.datapoints)
+    points = list(points)
     can_history = current_user.can(Perm.VIEW_HISTORY)
     history = tags_with_history(dp.id for dp in points) if can_history else set()
     return {
@@ -203,6 +215,10 @@ def designer(dashboard_id: int):
     data["data_types"] = DATA_TYPE_CHOICES
     data["areas"] = AREA_CHOICES
     data["button_actions"] = list(BUTTON_ACTIONS)
+    from app.faceplates.routes import faceplate_choices  # noqa: PLC0415
+
+    data["faceplates"] = faceplate_choices()
+    data["urls"]["faceplates"] = url_for("faceplates.index")
     data["icons_available"] = icons_available()
     data["urls"].update({
         "layout": url_for("api.dashboard_layout", dashboard_id=dashboard.id),

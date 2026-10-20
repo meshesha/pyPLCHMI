@@ -49,6 +49,10 @@ A web-based HMI for **Siemens S7 PLCs** (S7-300/400/1200/1500, LOGO! 8),
   Kepware…) read the values of the tags you pick over Modbus TCP – read only, or writable per
   tag (audited) – automatic addresses, INT16/32, FLOAT32/64, bits and strings, heartbeat and quality bits, client
   allow-list, and an Excel address list for the SCADA engineer.
+* **Faceplates** for identical devices: draw one screen for one electricity meter (pump, AHU…),
+  and a button opens it as a **pop-up window** for any of 200 meters – tags matched by name prefix,
+  devices found among the tags or imported from Excel, missing tags created as copies with an
+  address shift; write buttons, right-click *Show graph* / *Details* work in every window.
 * A built-in **PLC simulator** (`PLC_SIMULATION=1`) lets you develop and demo
   without hardware.
 * Bootstrap is bundled locally, so the HMI works on networks without internet.
@@ -123,6 +127,7 @@ pyPLCHMI/
 │   ├── i18n/                # languages: catalog.py (_(), language choice), forms.py, routes.py (switcher, admin)
 │   │   └── languages/       #   built-in language files: en.json (all texts), he.json (Hebrew)
 │   ├── modbus_server/       # Modbus TCP server: encoding.py, layout.py (addresses), server.py, admin page
+│   ├── faceplates/          # faceplates: binding.py (parameters, device tags, scan, copies), routes.py (pages, window API)
 │   ├── automations/         # automations: schema.py (blocks, validation), engine.py (triggers, runs), documents.py (YAML)
 │   ├── ui_templates/        # UI templates: registry.py (manifest, install/export), nav.py, routes.py
 │   │   └── builtin/         #   classic, high-performance, alarm-focus, workspace, engineering
@@ -1061,6 +1066,63 @@ be **exported** and **imported** as YAML (one or a list; all or nothing).
 * The engine checks the triggers every second (`AUTOMATION_TICK`) in a background thread, also
   when no browser is open. Times use `DISPLAY_TIMEZONE` (or the server's clock).
 * Permission: `manage_automations` (Admin by default).
+
+## 7k. Faceplates – one screen for many identical devices (*Admin → Faceplates*)
+
+100 electrical panels with two meters each need no 200 screens: draw **one** screen and open it
+for any meter in a **pop-up window** (known as *faceplates* in WinCC, *parameterized popups* in
+Ignition, *Super Genies* in Citect).
+
+**1. Name the tags consistently** – every device's tags start with the same pattern, the rest of
+the name is the same for all devices:
+
+```
+Panel_01.MeterA.voltage   Panel_01.MeterA.power   Panel_01.MeterA.breaker
+Panel_37.MeterB.voltage   Panel_37.MeterB.power   Panel_37.MeterB.breaker
+```
+
+**2. Draw the template** – an ordinary Plane screen with the tags of one device (the *reference
+device*, e.g. `Panel_01.MeterA.…`): values, bars, lamps, write buttons, visibility rules. Tags of
+other devices (e.g. `Site.frequency`) may be on it too – they are the same in every window.
+
+**3. Create a device type** – *Admin → Faceplates → New device type*: a name ("Electricity meter"),
+the template screen and the **reference prefix** (`Panel_01.MeterA.` – suggested automatically).
+Every template tag that starts with the prefix becomes a **parameter** (`voltage`, `power`,
+`breaker`); the page shows them while you type.
+
+**4. Add the devices** (each has a name – the window title – and its own prefix):
+
+* **Add device** – one at a time. The form shows which tag each parameter finds; any parameter can
+  be bound to another tag by name.
+* **Find devices in the tags** – lists the prefixes that are followed by the parameter names
+  (e.g. `Panel_02.MeterA.` with 3 of 3 tags); tick and add.
+* **Excel** – export / import the list (*Name, Prefix, Description, Bindings*).
+* **Devices whose tags do not exist yet** – tick *Create the missing tags*: every missing tag is a
+  copy of the reference tag (type, scaling, limits, write and history settings) with the
+  address **shifted**:
+
+  | Situation | Setting |
+  |---|---|
+  | each meter in its own DB (DB50, DB51, …) | *DB number shift* 1, 2, … |
+  | an array in one DB, 20 bytes per meter | *Address shift* 20, 40, … |
+  | Modbus registers, 100 per meter | *Address shift* 100, 200, … |
+  | one Modbus / BACnet device per meter with the same map | choose that device as *PLC*, no shift |
+
+  The Excel import does the same for many devices at once (columns *Create tags, PLC, DB shift,
+  Address shift*). Copies on the reference PLC without a shift are refused (they would read the
+  reference device). Nothing is saved when any row or tag is invalid.
+
+**5. Open the windows** – in the designer, a **button** with the action *faceplate*, or any object
+with *Click opens device window*, opens the window of the chosen device. The **Devices** page
+(top bar, shown once devices exist) lists every device with an *Open* button.
+
+The windows float over the screen: drag them by the title bar, resize them at the corner, open
+several at once (clicking an open device brings its window to the front), close with × or
+Escape. Each shows live values, write buttons work with the tag's write permissions (and the
+*Write values* permission), right-click gives *Show graph* (tags with history) and *Details* (with
+the device windows that show the tag). Who may open a window: everybody who may open the
+template screen – keep the template non-public if only some roles may see the devices. A
+parameter without a tag shows no value and is listed at the bottom of the window.
 
 ## 8. Database migrations
 

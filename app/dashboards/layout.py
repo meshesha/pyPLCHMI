@@ -41,7 +41,7 @@ SYMBOL_KEYS = (
 )
 
 #: Button actions understood by the runtime (``static/js/hmi-mimic.js``).
-BUTTON_ACTIONS = ("toggle", "set", "input", "momentary", "link")
+BUTTON_ACTIONS = ("toggle", "set", "input", "momentary", "link", "faceplate")
 
 #: Visibility modes of an element.
 VIS_MODES = ("always", "hidden", "tag")
@@ -144,7 +144,7 @@ def _ref(kind):
     """Spec for a reference to another object by id.
 
     Args:
-        kind: ``"point"``, ``"asset"`` or ``"dashboard"``.
+        kind: ``"point"``, ``"asset"``, ``"dashboard"`` or ``"faceplate"`` (device id).
 
     Returns:
         A spec tuple.
@@ -162,6 +162,8 @@ _COMMON = {
     "locked": _bool(),
     "name": _str(100),
     "link": _ref("dashboard"),
+    # A device (faceplate instance) whose pop-up window opens on click (see app/faceplates).
+    "faceplate": _ref("faceplate"),
     "vis": _choice(VIS_MODES, "always"),
     "visPoint": _ref("point"),
     "visOp": _choice(VIS_OPS, "on"),
@@ -403,7 +405,7 @@ def sanitize_element(raw: dict, refs: dict) -> dict | None:
     return el
 
 
-def sanitize_layout(data, point_ids, asset_ids, dashboard_ids) -> dict:
+def sanitize_layout(data, point_ids, asset_ids, dashboard_ids, faceplate_ids=()) -> dict:
     """Validate a complete layout document from the designer.
 
     Args:
@@ -411,6 +413,7 @@ def sanitize_layout(data, point_ids, asset_ids, dashboard_ids) -> dict:
         point_ids: Ids of the dashboard's own data points.
         asset_ids: Ids of existing image assets.
         dashboard_ids: Ids of dashboards that may be linked to.
+        faceplate_ids: Ids of devices (faceplate instances) that may be opened.
 
     Returns:
         A cleaned layout safe to store and render.
@@ -426,7 +429,8 @@ def sanitize_layout(data, point_ids, asset_ids, dashboard_ids) -> dict:
         raise LayoutError(gettext("'elements' must be a list"))
     if len(elements) > MAX_ELEMENTS:
         raise LayoutError(gettext('Too many elements (max {0})', MAX_ELEMENTS))
-    refs = {"point": set(point_ids), "asset": set(asset_ids), "dashboard": set(dashboard_ids)}
+    refs = {"point": set(point_ids), "asset": set(asset_ids), "dashboard": set(dashboard_ids),
+            "faceplate": set(faceplate_ids)}
 
     raw_canvas = data.get("canvas") if isinstance(data.get("canvas"), dict) else {}
     canvas = {k: _clean_value(spec, raw_canvas.get(k), refs) for k, spec in CANVAS_SPEC.items()}

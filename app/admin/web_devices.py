@@ -34,7 +34,6 @@ from app.plc.web import (CONTENT_TYPES, HTTP_MODES, MAX_BODY, MAX_HEADERS_TEXT, 
                          MAX_TIMEOUT, MIN_INTERVAL, MIN_TIMEOUT, WebSettings, parse_web_address, probe)
 from app.plc.web_client import example_url
 from app.plc.web_data import FORMATS, MAX_KEYS, MAX_STRING, WEB_TYPES, WebDataError, check_path
-from app.tags import naming
 from app.utils.decorators import permission_required
 
 
@@ -53,6 +52,13 @@ def _web_plc(plc_id) -> PLC | None:
     except (TypeError, ValueError):
         return None
     return plc if plc is not None and plc.is_web else None
+
+
+def _naming():
+    """The tag naming rules (imported late: ``app.tags`` imports the screen routes, which import this blueprint)."""
+    from app.tags import naming  # noqa: PLC0415
+
+    return naming
 
 
 def path_to_name(path: str) -> str:
@@ -78,8 +84,8 @@ def suggest_name(device: str, path: str, taken: set) -> str:
         path: Key path.
         taken: Lower-case names already suggested in this table (updated).
     """
-    base = naming.normalize(device) + "." + naming.normalize(path_to_name(path)) if device else path_to_name(path)
-    name = naming.suggest(base, taken=taken)
+    base = _naming().normalize(device) + "." + _naming().normalize(path_to_name(path)) if device else path_to_name(path)
+    name = _naming().suggest(base, taken=taken)
     taken.add(name.lower())
     return name
 
@@ -97,7 +103,7 @@ def _name_problems(names: list[str]) -> list[list[str]]:
     out = []
     for index, raw in enumerate(names):
         name = (raw or "").strip()
-        problems = naming.check(name)
+        problems = _naming().check(name)
         key = name.lower()
         if not problems and key in seen:
             problems = [gettext("The name '{0}' is used twice in this table (row {1}).", name, seen[key] + 1)]

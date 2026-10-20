@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Devices') }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">{{ _('Devices') }}</h1>
+    <div class="small text-secondary">{{ _('Open the window of any device – several windows can be open at once; drag them by the title bar.') }}</div>
+  </div>
+  <input type="search" class="form-control" id="dev-filter" placeholder="{{ _('Filter…') }}" aria-label="{{ _('Filter devices') }}" style="max-width: 18rem">
+</div>
+{% for g in groups %}
+<section class="card hmi-panel mb-3 dev-group" aria-labelledby="dev-g{{ g.faceplate.id }}"><div class="card-body">
+  <h2 class="h5" id="dev-g{{ g.faceplate.id }}">{{ g.faceplate.name }} <span class="badge hmi-badge-neutral">{{ g.instances|length }}</span></h2>
+  {% if g.faceplate.description %}<p class="small text-secondary">{{ g.faceplate.description }}</p>{% endif %}
+  <div class="d-flex flex-wrap gap-2">
+    {% for i in g.instances %}
+    <button type="button" class="btn btn-outline-primary dev-btn" data-faceplate="{{ i.id }}" title="{{ i.description }}"><i class="bi bi-window"></i> {{ i.name }}</button>
+    {% endfor %}
+  </div>
+</div></section>
+{% else %}
+<p class="text-secondary">{{ _('No devices yet.') }}{% if current_user.can(Perm.MANAGE_SCREENS) %} <a href="{{ url_for('faceplates.index') }}">{{ _('Create device types under Admin → Faceplates.') }}</a>{% endif %}</p>
+{% endfor %}
+{% endblock %}
+{% block scripts %}
+{% include "faceplates/_scripts.html" %}
+<script>
+  (function () {
+    const f = document.getElementById("dev-filter");
+    f.addEventListener("input", () => {
+      const q = f.value.toLowerCase();
+      document.querySelectorAll(".dev-group").forEach((g) => {
+        let any = false;
+        g.querySelectorAll(".dev-btn").forEach((b) => { const hit = !q || b.textContent.toLowerCase().includes(q); b.hidden = !hit; any = any || hit; });
+        g.hidden = !any;
+      });
+    });
+  })();
+</script>
+{% endblock %}

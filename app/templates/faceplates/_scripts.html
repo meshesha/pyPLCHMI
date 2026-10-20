@@ -1,0 +1,7 @@
+{# Everything a page needs to open device windows (faceplates) without a screen of its own. #}
+<script src="{{ url_for('static', filename='js/hmi-symbols.js') }}"></script>
+<script src="{{ url_for('static', filename='js/hmi-local.js') }}"></script>
+<script src="{{ url_for('static', filename='js/hmi-render.js') }}"></script>
+<script src="{{ url_for('static', filename='js/hmi-mimic.js') }}"></script>
+{% include "dashboards/_tag_menu.html" %}
+{% include "faceplates/_runtime.html" %}

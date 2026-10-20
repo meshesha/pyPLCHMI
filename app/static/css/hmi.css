@@ -706,3 +706,22 @@ tr.wd-existing td { color: var(--hmi-muted); }
 .mbs-address, .mbs-scale { width: 6.5rem; }
 .mbs-len { width: 4.5rem; }
 .mbs-status dt { font-weight: 500; color: var(--hmi-muted); }
+
+/* Device windows (faceplates) – static/js/hmi-faceplate.js */
+.hmi-fp-win { position: fixed; z-index: 1050; display: flex; flex-direction: column; min-width: 220px; min-height: 140px;
+  max-width: 100vw; max-height: 100vh; resize: both; overflow: hidden; background: var(--hmi-panel);
+  border: 1px solid var(--hmi-border-hover); border-radius: .5rem; box-shadow: 0 12px 40px rgba(0, 0, 0, .55); outline: none; }
+.hmi-fp-win:focus-within, .hmi-fp-win:focus { border-color: var(--hmi-accent); }
+.hmi-fp-head { display: flex; align-items: center; gap: .5rem; padding: .35rem .5rem .35rem .75rem; cursor: move;
+  background: var(--hmi-raised); border-bottom: 1px solid var(--hmi-border); user-select: none; touch-action: none; flex: 0 0 auto; }
+.hmi-fp-title { flex: 1 1 auto; min-width: 0; font-weight: 600; }
+.hmi-fp-type { color: var(--hmi-muted); font-weight: 400; margin-inline-end: .4rem; }
+.hmi-fp-type::after { content: "›"; margin-inline-start: .4rem; }
+.hmi-fp-state { font-size: .8rem; white-space: nowrap; }
+.hmi-fp-close { flex: 0 0 auto; }
+[data-bs-theme="light"] .hmi-fp-close { filter: none; }
+.hmi-fp-body { flex: 1 1 auto; min-height: 0; position: relative; }
+.hmi-fp-svg { display: block; width: 100%; height: 100%; }
+.hmi-fp-foot { flex: 0 0 auto; padding: .2rem .75rem; font-size: .78rem; color: var(--hmi-warn); border-top: 1px solid var(--hmi-border);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hmi-fp-svg .hmi-vis-off { display: none; }

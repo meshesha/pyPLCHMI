@@ -113,6 +113,7 @@ def _register_blueprints(app: Flask) -> None:
     from app.ui_templates import bp as ui_templates_bp  # noqa: PLC0415
     from app.automations import bp as automations_bp  # noqa: PLC0415
     from app.modbus_server import bp as modbus_server_bp  # noqa: PLC0415
+    from app.faceplates import bp as faceplates_bp  # noqa: PLC0415
 
     app.register_blueprint(main_bp)
     app.register_blueprint(i18n_bp)
@@ -131,6 +132,7 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(ui_templates_bp)
     app.register_blueprint(automations_bp, url_prefix="/automations")
     app.register_blueprint(modbus_server_bp, url_prefix="/admin/modbus-server")
+    app.register_blueprint(faceplates_bp, url_prefix="/faceplates")
 
 
 def _register_legacy_redirects(app: Flask) -> None:
@@ -247,6 +249,18 @@ def _register_template_helpers(app: Flask) -> None:
     from app.models.alarm import iso  # noqa: PLC0415
     from app.utils.tables import PAGE_SIZES  # noqa: PLC0415
 
+    def has_devices() -> bool:
+        """``True`` when faceplate devices exist (shows *Devices* in the menu; one cheap query)."""
+        from app.extensions import db  # noqa: PLC0415
+        from app.models import FaceplateInstance  # noqa: PLC0415
+
+        try:
+            return db.session.query(FaceplateInstance.id).first() is not None
+        except Exception:  # noqa: BLE001 - e.g. before "flask db upgrade" created the table
+            db.session.rollback()
+            return False
+
+    app.jinja_env.globals["has_devices"] = has_devices
     app.jinja_env.globals["iso_time"] = iso
     app.jinja_env.globals["page_sizes"] = PAGE_SIZES
 

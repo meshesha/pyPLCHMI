@@ -18,7 +18,7 @@ from app.dashboards.forms import DataPointForm
 from app.dashboards.layout import LayoutError, sanitize_layout
 from app.extensions import db
 from app.alarms.engine import scan_if_due
-from app.models import PLC, AlarmEvent, Asset, Dashboard, DataPoint, Perm
+from app.models import PLC, AlarmEvent, Asset, Dashboard, DataPoint, FaceplateInstance, Perm
 from app.models.alarm import SEVERITIES
 from app.plc.addressing import AddressError
 from app.plc.protocols import parse_tag_address
@@ -126,9 +126,12 @@ def datapoint_write(point_id: int):
         JSON with the confirmed value, or an error with status 400/403/502.
     """
     dp = db.get_or_404(DataPoint, point_id)
-    # Allowed on any screen the user may open; tags on no screen: screen managers only.
+    from app.faceplates.binding import window_screens  # noqa: PLC0415
+
+    # Allowed on any screen the user may open (also in a faceplate window whose template
+    # screen the user may open); tags on no screen: screen managers only.
     allowed = current_user.can(Perm.MANAGE_SCREENS) or any(
-        current_user.can_view_dashboard(screen) for screen in dp.screens)
+        current_user.can_view_dashboard(screen) for screen in dp.screens) or bool(window_screens(dp, current_user))
     if not allowed:
         abort(403)
     if not dp.writable:
@@ -176,8 +179,11 @@ def datapoint_details(point_id: int):
     from app.models.alarm import iso  # noqa: PLC0415
 
     dp = db.get_or_404(DataPoint, point_id)
+    from app.faceplates.binding import instances_of_tag, window_screens  # noqa: PLC0415
+
     visible = [s for s in dp.screens if current_user.can_view_dashboard(s)]
-    if not (current_user.can(Perm.MANAGE_SCREENS) or visible):
+    windows = window_screens(dp, current_user)
+    if not (current_user.can(Perm.MANAGE_SCREENS) or visible or windows):
         abort(403)
     plc = dp.plc
     info = {
@@ -204,6 +210,8 @@ def datapoint_details(point_id: int):
         "may_write": dp.may_write(current_user),
         "dummy": dp.scope_label if dp.protocol == "dummy" else None,
         "screens": [s.name for s in visible],
+        "devices": [f"{i.faceplate.name} – {i.name}" for i in instances_of_tag(dp)
+                    if i.faceplate and i.faceplate.screen and current_user.can_view_dashboard(i.faceplate.screen)],
         "alarms": [a.name for a in dp.alarms] if current_user.is_authenticated else [],
         "history": None,
         "files": [{"name": f.name, "url": url_for("documents.file", file_id=f.id), "kind": f.kind}
@@ -319,6 +327,7 @@ def dashboard_layout_save(dashboard_id: int):
             point_ids=[dp.id for dp in dashboard.datapoints],
             asset_ids=[a.id for a in Asset.query.with_entities(Asset.id)],
             dashboard_ids=[d.id for d in Dashboard.query.with_entities(Dashboard.id)],
+            faceplate_ids=[i.id for i in FaceplateInstance.query.with_entities(FaceplateInstance.id)],
         )
     except LayoutError as exc:
         return _json_error(str(exc), 400)

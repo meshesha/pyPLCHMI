@@ -1,29 +1,42 @@
 /**
- * pyPLCHMI graphic (Image) dashboard runtime.
+ * pyPLCHMI graphic (Plane) screen runtime.
  *
- * Renders the stored layout with HMIRender, polls live values and handles
- * operator interaction: buttons (toggle / set / input / momentary / link) and
- * navigation links on any element.  The update state is shown by the clock
- * in the top bar (``HMIClock``, hmi-shell.js).  Local dummy tags
- * (value per browser window) are read and written through HMILocal.
+ * Renders a layout with HMIRender, polls live values and handles operator
+ * interaction: buttons (toggle / set / input / momentary / link / faceplate),
+ * navigation links and device windows (faceplates) on any element.  The
+ * update state of the main screen is shown by the clock in the top bar
+ * (``HMIClock``, hmi-shell.js).  Local dummy tags (value per browser window)
+ * are read and written through HMILocal.
+ *
+ * ``window.HMIMimic.create(svg, data, options)`` runs a layout in any SVG –
+ * the screen page uses it for ``#mimic-svg``; faceplate pop-up windows
+ * (hmi-faceplate.js) use it for their own SVG.  ``options.main`` = the page's
+ * screen (reports to the clock, pauses with the page).  Returns
+ * ``{nodes, poll, stop}``.
  */
 (function () {
   "use strict";
 
-  const dataEl = document.getElementById("mimic-data");
-  if (!dataEl) return;
   const R = window.HMIRender;
-  const data = JSON.parse(dataEl.textContent);
-  const svg = document.getElementById("mimic-svg");
+
+  /**
+   * Run a layout in an SVG element.
+   * @param {SVGSVGElement} svg Target SVG.
+   * @param {Object} data Runtime data (layout, points, urls, icons, can_write, refresh_ms…).
+   * @param {Object} [options] ``{main: bool}``.
+   * @returns {{nodes: Object, poll: Function, stop: Function}}
+   */
+  function create(svg, data, options) {
+  const opts = options || {};
   const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
   const ctx = { points: data.points, urls: data.urls, designer: false, icons: data.icons || {} };
   const layout = data.layout;
   const elementsById = {};
   layout.elements.forEach((e) => { elementsById[e.id] = e; });
   const { nodes } = R.renderLayout(svg, layout, ctx);
-  const refreshMs = Math.max(250, data.dashboard.refresh_ms || 1000);
+  const refreshMs = Math.max(250, (data.dashboard ? data.dashboard.refresh_ms : data.refresh_ms) || 1000);
   let lastValues = {};
-  let timer = null, inFlight = false;
+  let timer = null, inFlight = false, stopped = false;
 
   /**
    * Tell whether the operator may press a button bound to a point.
@@ -40,7 +53,7 @@
   }
 
   layout.elements.forEach((e) => {
-    if (e.type === "button" && e.action !== "link" && !mayWrite(e.point && data.points[e.point])) {
+    if (e.type === "button" && !["link", "faceplate"].includes(e.action) && !mayWrite(e.point && data.points[e.point])) {
       nodes[e.id].classList.add("hmi-disabled");
     }
   });
@@ -56,19 +69,22 @@
 
   /** Fetch values once, apply them, and schedule the next poll. */
   async function poll() {
+    if (stopped) return;
     if (inFlight) return schedule();
     inFlight = true;
     try {
       const resp = await fetch(data.urls.values, { credentials: "same-origin", headers: { Accept: "application/json" } });
-      if (resp.status === 401) { window.location.reload(); return; }
+      if (resp.status === 401 && opts.main) { window.location.reload(); return; }
       if (!resp.ok) throw new Error("HTTP " + resp.status);
       const json = await resp.json();
       lastValues = window.HMILocal.overlay(json.values);
       R.applyValues(nodes, layout, lastValues, ctx);
       document.dispatchEvent(new CustomEvent("hmi:values", { detail: { values: lastValues, plcs: json.plcs, timestamp: json.timestamp } }));
-      if (window.HMIClock) window.HMIClock.reportPoll(json);
+      if (opts.main && window.HMIClock) window.HMIClock.reportPoll(json);
+      if (opts.onValues) opts.onValues(json);
     } catch (err) {
-      if (window.HMIClock) window.HMIClock.reportError(err);
+      if (opts.main && window.HMIClock) window.HMIClock.reportError(err);
+      if (opts.onError) opts.onError(err);
     } finally {
       inFlight = false;
       schedule();
@@ -78,7 +94,14 @@
   /** Schedule the next poll (slower while the tab is hidden). */
   function schedule() {
     clearTimeout(timer);
+    if (stopped) return;
     timer = setTimeout(poll, document.hidden ? refreshMs * 5 : refreshMs);
+  }
+
+  /** Stop polling (window closed). */
+  function stop() {
+    stopped = true;
+    clearTimeout(timer);
   }
 
   /**
@@ -160,6 +183,7 @@
    */
   async function pressButton(el) {
     if (el.action === "link") return;
+    if (el.action === "faceplate") { openFaceplate(el); return; }
     const point = el.point && data.points[el.point];
     if (!point) { flash(T("Button has no tag."), true); return; }
     if (!point.writable) { flash(T("{0} is read-only.", point.label), true); return; }
@@ -205,11 +229,21 @@
   svg.addEventListener("pointerup", release);
   svg.addEventListener("pointercancel", release);
 
+  /**
+   * Open the device window (faceplate) of an element.
+   * @param {Object} el Element with ``faceplate`` (device id).
+   */
+  function openFaceplate(el) {
+    if (!el.faceplate) { flash(T("No device chosen for this button."), true); return; }
+    if (window.HMIFaceplate) window.HMIFaceplate.open(el.faceplate);
+  }
+
   svg.addEventListener("click", (ev) => {
     const g = ev.target.closest(".hmi-el");
     const el = g && elementsById[g.dataset.id];
     if (!el) return;
     if (el.type === "button" && el.action !== "link") { pressButton(el); return; }
+    if (el.faceplate) { openFaceplate(el); return; }
     if (el.link) {
       const target = R.urlFor(data.urls.go, el.link);
       // inside the full-screen frame: stay in frame mode (hmi-shell.js)
@@ -217,6 +251,13 @@
     }
   });
 
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && !stopped) poll(); });
   poll();
+  return { nodes: nodes, poll: poll, stop: stop, elements: elementsById };
+  }
+
+  window.HMIMimic = { create: create };
+
+  const dataEl = document.getElementById("mimic-data");
+  if (dataEl) create(document.getElementById("mimic-svg"), JSON.parse(dataEl.textContent), { main: true });
 })();

@@ -47,7 +47,7 @@ TEMPLATE_MACRO_RES = [
 JS_CALL_RE = re.compile(r"(?<![\w.])T\(\s*" + _STR)
 # hmi-designer.js: texts translated where they are displayed
 JS_PATTERNS = [
-    re.compile(r'\[\s*"\w+",\s*"(?:num|optnum|text|textarea|check|color|colorNone|select|symbol|point|dashboard|asset|range)",\s*'
+    re.compile(r'\[\s*"\w+",\s*"(?:num|optnum|text|textarea|check|color|colorNone|select|symbol|point|dashboard|faceplate|asset|range)",\s*'
                + _STR),                                           # property field labels
     re.compile(r'\[\s*"-",\s*' + _STR + r"\s*\]"),                # property section headers
     re.compile(r"\b(?:label|section):\s*" + _STR),                # palette items

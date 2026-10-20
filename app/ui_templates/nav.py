@@ -68,6 +68,11 @@ def nav_items(user, home_overview: bool = False) -> list[NavItem]:
         items.append(NavItem("alarms", gettext("Alarms"), "bell", url_for("alarms.index"), ENGINEER, eng))
     if user.can(Perm.MANAGE_AUTOMATIONS):
         items.append(NavItem("automations", gettext("Automations"), "robot", url_for("automations.index"), ENGINEER, eng))
+    if _has_devices():
+        items.append(NavItem("devices", gettext("Devices"), "window-stack", url_for("faceplates.devices"), OPERATE, tools))
+    if user.can(Perm.MANAGE_SCREENS):
+        items.append(NavItem("faceplates", gettext("Faceplates"), "window-stack", url_for("faceplates.index"),
+                             ENGINEER, eng))
     if user.can(Perm.MANAGE_PLCS):
         items.append(NavItem("plcs", gettext("PLCs"), "hdd-network", url_for("admin.plcs"), ENGINEER, eng))
         items.append(NavItem("modbus-server", gettext("Modbus TCP server"), "broadcast-pin",
@@ -104,3 +109,11 @@ def grouped(items: list[NavItem]) -> list[tuple[str, str, list[NavItem]]]:
         else:
             groups.append((item.workspace, item.group, [item]))
     return groups
+
+
+def _has_devices() -> bool:
+    """``True`` when faceplate devices exist (see ``has_devices`` in the app factory)."""
+    from flask import current_app  # noqa: PLC0415
+
+    fn = current_app.jinja_env.globals.get("has_devices")
+    return bool(fn and fn())

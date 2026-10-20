@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% from "_macros.html" import render_field %}
+{% block title %}{{ _('Edit device') if instance else _('Add device') }}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">{{ _('Device {0}', instance.name) if instance else _('Add device') }}</h1>
+<div class="small text-secondary mb-3">{{ _('Device type') }}: <a href="{{ url_for('faceplates.detail', faceplate_id=faceplate.id) }}">{{ faceplate.name }}</a>
+  · {{ _('Reference prefix') }}: <code>{{ faceplate.prefix }}</code></div>
+{% for e in errors %}<div class="alert alert-danger py-2">{{ e }}</div>{% endfor %}
+<form method="post" novalidate id="instance-form">
+  {{ form.hidden_tag() }}
+  <div class="row g-4">
+    <div class="col-lg-5">
+      <div class="card hmi-panel"><div class="card-body">
+        {{ render_field(form.name) }}
+        {{ render_field(form.prefix) }}
+        {{ render_field(form.description) }}
+        <fieldset class="border rounded p-3 mb-3">
+          <legend class="float-none w-auto px-2 fs-6 mb-0">{{ _('Tags') }}</legend>
+          {{ render_field(form.create_tags) }}
+          <div id="create-options">{{ render_field(form.plc_id) }}
+            <div class="row">{{ render_field(form.db_shift, 'col-sm-6') }}{{ render_field(form.start_shift, 'col-sm-6') }}</div>
+            <p class="form-text">{{ _('Reference addresses: {0}', ref_addresses) }}</p></div>
+          <p class="form-text mb-0">{{ _('For a device whose tags do not exist yet: every parameter without a tag gets a copy of the reference tag (same address, type, scaling, limits, write and history settings) named prefix + parameter.') }}</p>
+        </fieldset>
+        {{ form.submit(class_='btn btn-primary') }}
+        <a class="btn btn-outline-secondary" href="{{ url_for('faceplates.detail', faceplate_id=faceplate.id) }}">{{ _('Cancel') }}</a>
+      </div></div>
+    </div>
+    <div class="col-lg-7">
+      <div class="card hmi-panel"><div class="card-body">
+        <h2 class="h5">{{ _('Parameters') }}</h2>
+        <p class="small text-secondary">{{ _('Each parameter uses the tag named prefix + parameter. To use another tag for a parameter, type its name in the last column.') }}</p>
+        <div class="table-responsive"><table class="table table-sm align-middle small hmi-table mb-0" id="bind-table">
+          <thead><tr><th>{{ _('Parameter') }}</th><th>{{ _('Tag found by the prefix') }}</th><th>{{ _('Other tag (optional)') }}</th></tr></thead>
+          <tbody>
+          {% for r in rows %}
+            <tr>
+              <td class="font-monospace fw-semibold">{{ r.param.name }}</td>
+              <td>{% if r.auto %}<span class="font-monospace">{{ r.auto.label }}</span>
+                  {% else %}<span class="text-warning"><i class="bi bi-exclamation-triangle"></i> {{ _('no tag') }}</span>{% endif %}</td>
+              <td><input class="form-control form-control-sm font-monospace" name="bind_{{ r.param.key }}" value="{{ r.bound }}"
+                         list="tag-names" autocomplete="off" aria-label="{{ _('Other tag for {0}', r.param.name) }}"></td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table></div>
+        <p class="small text-secondary mt-2 mb-0">{{ _('The "Tag found" column shows the result of the prefix as saved; save to see a changed prefix.') }}</p>
+      </div></div>
+    </div>
+  </div>
+  <datalist id="tag-names"></datalist>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+  (function () {
+    const box = document.getElementById("create_tags"), opts = document.getElementById("create-options");
+    function sync() { opts.hidden = !box.checked; }
+    box.addEventListener("change", sync); sync();
+    /* Tag name suggestions for the "Other tag" fields (tag search API). */
+    const list = document.getElementById("tag-names");
+    let timer = null;
+    document.querySelectorAll('#bind-table input').forEach((input) => input.addEventListener("input", () => {
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        const q = input.value.trim();
+        if (q.length < 2) return;
+        const resp = await fetch("{{ url_for('api.tag_search') }}?q=" + encodeURIComponent(q), { credentials: "same-origin" });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        const items = Array.isArray(data) ? data : (data.tags || data.results || []);
+        list.replaceChildren(...items.slice(0, 30).map((t) => { const o = document.createElement("option"); o.value = t.label; return o; }));
+      }, 200);
+    }));
+  })();
+</script>
+{% endblock %}

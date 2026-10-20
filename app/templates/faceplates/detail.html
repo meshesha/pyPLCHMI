@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% from "_macros.html" import post_button %}
+{% block title %}{{ faceplate.name }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">{{ faceplate.name }}</h1>
+    <div class="small text-secondary">
+      {{ _('Template screen') }}: {% if faceplate.screen %}<a href="{{ url_for('dashboards.designer', dashboard_id=faceplate.screen.id) }}">{{ faceplate.screen.name }}</a>{% else %}<span class="text-danger">{{ _('deleted – choose another screen') }}</span>{% endif %}
+      · {{ _('Reference prefix') }}: <code>{{ faceplate.prefix }}</code>
+    </div>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-secondary" href="{{ url_for('faceplates.edit', faceplate_id=faceplate.id) }}"><i class="bi bi-pencil"></i> {{ _('Edit type') }}</a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('faceplates.index') }}">{{ _('Back') }}</a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-4">
+    <section class="card hmi-panel" aria-labelledby="fp-params-title"><div class="card-body">
+      <h2 class="h5" id="fp-params-title"><i class="bi bi-list-ul"></i> {{ _('Parameters') }} <span class="badge hmi-badge-neutral">{{ parameters|length }}</span></h2>
+      {% if parameters %}
+      <div class="table-responsive"><table class="table table-sm small hmi-table mb-2">
+        <thead><tr><th>{{ _('Parameter') }}</th><th>{{ _('Type') }}</th><th>{{ _('Unit') }}</th><th>{{ _('Writable') }}</th></tr></thead>
+        <tbody>
+        {% for p in parameters %}<tr><td class="font-monospace">{{ p.name }}</td><td>{{ p.ref.data_type }}</td><td>{{ p.ref.unit }}</td>
+          <td>{% if p.ref.writable %}<i class="bi bi-pencil-square" title="{{ _('writable') }}"></i>{% endif %}</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}<p class="text-warning small">{{ _('No parameters: no tag of the template screen starts with the prefix.') }}</p>{% endif %}
+      {% if fixed %}<p class="small text-secondary mb-0">{{ _('Same in every window: {0}', fixed|map(attribute='label')|join(', ')) }}</p>{% endif %}
+    </div></section>
+  </div>
+  <div class="col-xl-8">
+    <section class="card hmi-panel" aria-labelledby="fp-devices-title"><div class="card-body">
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <h2 class="h5 mb-0 me-auto" id="fp-devices-title"><i class="bi bi-window-stack"></i> {{ _('Devices') }} <span class="badge hmi-badge-neutral">{{ rows|length }}</span></h2>
+        <a class="btn btn-sm btn-primary" href="{{ url_for('faceplates.instance_edit', faceplate_id=faceplate.id) }}" id="fp-add"><i class="bi bi-plus-lg"></i> {{ _('Add device') }}</a>
+        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#fp-scan" id="fp-scan-btn"><i class="bi bi-search"></i> {{ _('Find devices in the tags') }}</button>
+        <div class="btn-group">
+          <a class="btn btn-sm btn-outline-success" href="{{ url_for('faceplates.instances_xlsx', faceplate_id=faceplate.id) }}"><i class="bi bi-file-earmark-excel"></i> {{ _('Export') }}</a>
+          <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#fp-import"><i class="bi bi-upload"></i> {{ _('Import') }}</button>
+        </div>
+      </div>
+      {% if rows %}
+      <input type="search" class="form-control form-control-sm mb-2" id="fp-filter" placeholder="{{ _('Filter…') }}" aria-label="{{ _('Filter devices') }}" style="max-width: 18rem">
+      <div class="table-responsive"><table class="table table-sm align-middle hmi-table mb-0" id="fp-instances">
+        <thead><tr><th>{{ _('Device') }}</th><th>{{ _('Tag prefix') }}</th><th>{{ _('Tags found') }}</th><th class="text-end">{{ _('Actions') }}</th></tr></thead>
+        <tbody>
+        {% for r in rows %}{% set i = r.instance %}
+          <tr>
+            <td><span class="fw-semibold">{{ i.name }}</span>{% if i.description %}<div class="small text-secondary">{{ i.description }}</div>{% endif %}</td>
+            <td><code>{{ i.prefix }}</code>{% if i.overrides %} <span class="badge hmi-badge-neutral" title="{{ _('Parameters bound by hand') }}">+{{ i.overrides|length }}</span>{% endif %}</td>
+            <td>{% if r.missing %}<span class="badge text-bg-warning" title="{{ _('No tag for: {0}', r.missing|join(', ')) }}">{{ r.found }} / {{ r.total }}</span>
+                {% else %}<span class="badge text-bg-success">{{ r.found }} / {{ r.total }}</span>{% endif %}</td>
+            <td class="text-end text-nowrap">
+              <button type="button" class="btn btn-sm btn-outline-success" data-faceplate="{{ i.id }}" title="{{ _('Open window') }}"><i class="bi bi-window"></i></button>
+              <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('faceplates.instance_edit', instance_id=i.id) }}" title="{{ _('Edit') }}"><i class="bi bi-pencil"></i></a>
+              {{ post_button(url_for('faceplates.instance_delete', instance_id=i.id), 'Delete', 'trash', confirm=_('Delete the device {0}? Its tags are kept.', i.name)) }}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}
+      <p class="text-secondary mb-0">{{ _('No devices yet. Add them one by one, let pyPLCHMI find them among the tags, or import an Excel list.') }}</p>
+      {% endif %}
+    </div></section>
+  </div>
+</div>
+
+<div class="modal fade" id="fp-scan" tabindex="-1" aria-labelledby="fp-scan-title" aria-hidden="true"
+     data-url="{{ url_for('faceplates.scan_tags', faceplate_id=faceplate.id) }}">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title h5" id="fp-scan-title">{{ _('Find devices in the tags') }}</h2>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+    </div>
+    <div class="modal-body">
+      <p class="small text-secondary">{{ _('Tag-name prefixes followed by the parameter names of this type (other than the reference device and the devices already added). Tick the devices to add; names can be changed.') }}</p>
+      <div class="table-responsive"><table class="table table-sm align-middle hmi-table mb-0">
+        <thead><tr><th class="text-center"><input type="checkbox" class="form-check-input" id="fp-scan-all" aria-label="{{ _('Select all') }}"></th>
+          <th>{{ _('Tag prefix') }}</th><th>{{ _('Name') }}</th><th>{{ _('Tags found') }}</th></tr></thead>
+        <tbody id="fp-scan-rows"><tr><td colspan="4" class="text-secondary">{{ _('searching…') }}</td></tr></tbody>
+      </table></div>
+    </div>
+    <div class="modal-footer">
+      <span class="small text-secondary me-auto" id="fp-scan-count"></span>
+      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+      <button type="button" class="btn btn-primary" id="fp-scan-add" disabled>{{ _('Add selected') }}</button>
+    </div>
+  </div></div>
+</div>
+
+<div class="modal fade" id="fp-import" tabindex="-1" aria-labelledby="fp-import-title" aria-hidden="true">
+  <div class="modal-dialog"><div class="modal-content">
+    <form method="post" enctype="multipart/form-data" action="{{ url_for('faceplates.instances_import', faceplate_id=faceplate.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-header"><h2 class="modal-title h5" id="fp-import-title">{{ _('Import devices from Excel') }}</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button></div>
+      <div class="modal-body">
+        <p class="small text-secondary">{{ _('Columns: Name, Prefix, Description, Bindings (export first to get the format). Rows are matched by name; nothing is imported when a row is invalid.') }}</p>
+        <input class="form-control" type="file" name="file" accept=".xlsx" required aria-label="{{ _('Excel file') }}">
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+        <button type="submit" class="btn btn-primary">{{ _('Import') }}</button></div>
+    </form>
+  </div></div>
+</div>
+{% endblock %}
+{% block scripts %}
+{% include "faceplates/_scripts.html" %}
+<script>
+  /* Filter, and "Find devices in the tags". */
+  (function () {
+    const filter = document.getElementById("fp-filter");
+    if (filter) filter.addEventListener("input", () => {
+      const q = filter.value.toLowerCase();
+      document.querySelectorAll("#fp-instances tbody tr").forEach((tr) => { tr.hidden = q && !tr.textContent.toLowerCase().includes(q); });
+    });
+    const modal = document.getElementById("fp-scan");
+    const rowsEl = document.getElementById("fp-scan-rows"), addBtn = document.getElementById("fp-scan-add");
+    const count = document.getElementById("fp-scan-count"), all = document.getElementById("fp-scan-all");
+    const csrf = document.querySelector('meta[name="csrf-token"]').content;
+    function update() {
+      const checks = [...rowsEl.querySelectorAll(".fp-scan-check")];
+      const n = checks.filter((c) => c.checked).length;
+      addBtn.disabled = n === 0;
+      count.textContent = checks.length ? T("{0} of {1} selected", n, checks.length) : "";
+      all.checked = checks.length > 0 && n === checks.length;
+    }
+    modal.addEventListener("show.bs.modal", async () => {
+      rowsEl.innerHTML = "";
+      const resp = await fetch(modal.dataset.url, { credentials: "same-origin" });
+      const data = await resp.json();
+      if (!data.candidates.length) {
+        const tr = document.createElement("tr"), td = document.createElement("td");
+        td.colSpan = 4; td.className = "text-secondary"; td.textContent = T("No other devices found among the tags.");
+        tr.appendChild(td); rowsEl.appendChild(tr); update(); return;
+      }
+      data.candidates.forEach((c) => {
+        const tr = document.createElement("tr");
+        const td0 = document.createElement("td"); td0.className = "text-center";
+        const cb = document.createElement("input"); cb.type = "checkbox"; cb.className = "form-check-input fp-scan-check";
+        cb.checked = c.found === c.total; cb.dataset.prefix = c.prefix; cb.setAttribute("aria-label", c.prefix);
+        cb.addEventListener("change", update); td0.appendChild(cb);
+        const td1 = document.createElement("td"); td1.className = "font-monospace"; td1.textContent = c.prefix;
+        const td2 = document.createElement("td");
+        const name = document.createElement("input"); name.className = "form-control form-control-sm fp-scan-name"; name.value = c.name; name.maxLength = 100;
+        name.setAttribute("aria-label", T("Name of {0}", c.prefix)); td2.appendChild(name);
+        const td3 = document.createElement("td");
+        const badge = document.createElement("span"); badge.className = "badge " + (c.found === c.total ? "text-bg-success" : "text-bg-warning");
+        badge.textContent = c.found + " / " + c.total; if (c.missing.length) badge.title = T("No tag for: {0}", c.missing.join(", "));
+        td3.appendChild(badge);
+        tr.append(td0, td1, td2, td3); rowsEl.appendChild(tr);
+      });
+      update();
+    });
+    all.addEventListener("change", () => { rowsEl.querySelectorAll(".fp-scan-check").forEach((c) => { c.checked = all.checked; }); update(); });
+    addBtn.addEventListener("click", async () => {
+      const items = [...rowsEl.querySelectorAll("tr")].filter((tr) => tr.querySelector(".fp-scan-check:checked"))
+        .map((tr) => ({ prefix: tr.querySelector(".fp-scan-check").dataset.prefix, name: tr.querySelector(".fp-scan-name").value }));
+      addBtn.disabled = true;
+      const resp = await fetch(modal.dataset.url, { method: "POST", credentials: "same-origin",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": csrf }, body: JSON.stringify({ items: items }) });
+      const data = await resp.json();
+      if (data.errors && data.errors.length && window.HMIDialog) window.HMIDialog.toast(data.errors.join("\n"), { icon: "warning" });
+      window.location.reload();
+    });
+  })();
+</script>
+{% endblock %}

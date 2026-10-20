@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% from "_macros.html" import render_field %}
+{% block title %}{{ _('Edit device type') if faceplate else _('New device type') }}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">{{ _('Device type {0}', faceplate.name) if faceplate else _('New device type') }}</h1>
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card hmi-panel"><div class="card-body">
+      <form method="post" novalidate id="faceplate-form" data-preview-url="{{ url_for('faceplates.api_preview') }}">
+        {{ form.hidden_tag() }}
+        {{ render_field(form.name) }}
+        {{ render_field(form.screen_id) }}
+        {{ render_field(form.prefix) }}
+        <div class="mb-3 small" id="fp-suggest" hidden>{{ _('Suggestion:') }} <button type="button" class="btn btn-link btn-sm p-0 align-baseline" id="fp-suggest-btn"></button></div>
+        {{ render_field(form.description) }}
+        {{ form.submit(class_='btn btn-primary') }}
+        <a class="btn btn-outline-secondary" href="{{ url_for('faceplates.detail', faceplate_id=faceplate.id) if faceplate else url_for('faceplates.index') }}">{{ _('Cancel') }}</a>
+      </form>
+    </div></div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card hmi-panel"><div class="card-body">
+      <h2 class="h5">{{ _('Parameters') }}</h2>
+      <p class="small text-secondary">{{ _('Tags of the screen whose name starts with the prefix become parameters – every device shows its own tag with the same ending. Other tags of the screen are shown unchanged in every window.') }}</p>
+      <div class="table-responsive"><table class="table table-sm small hmi-table mb-2">
+        <thead><tr><th>{{ _('Parameter') }}</th><th>{{ _('Reference tag') }}</th><th>{{ _('Type') }}</th></tr></thead>
+        <tbody id="fp-params"><tr><td colspan="3" class="text-secondary">{{ _('Choose a screen and a prefix.') }}</td></tr></tbody>
+      </table></div>
+      <div class="small" id="fp-fixed"></div>
+    </div></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  /* Live preview of the parameters (screen + prefix). */
+  (function () {
+    const form = document.getElementById("faceplate-form");
+    const screen = document.getElementById("screen_id"), prefix = document.getElementById("prefix");
+    const body = document.getElementById("fp-params"), fixed = document.getElementById("fp-fixed");
+    const suggest = document.getElementById("fp-suggest"), suggestBtn = document.getElementById("fp-suggest-btn");
+    let timer = null;
+    function cell(text, cls) { const td = document.createElement("td"); td.textContent = text; if (cls) td.className = cls; return td; }
+    async function preview() {
+      const url = form.dataset.previewUrl + "?screen=" + encodeURIComponent(screen.value) + "&prefix=" + encodeURIComponent(prefix.value.trim());
+      const resp = await fetch(url, { credentials: "same-origin" });
+      if (!resp.ok) return;
+      const d = await resp.json();
+      suggest.hidden = !d.suggested || d.suggested === prefix.value.trim();
+      suggestBtn.textContent = d.suggested;
+      if (!prefix.value.trim() && d.suggested) { prefix.value = d.suggested; return preview(); }
+      const rows = d.parameters.map((p) => { const tr = document.createElement("tr"); tr.append(cell(p.name, "fw-semibold"), cell(p.tag, "font-monospace"), cell(p.type)); return tr; });
+      if (!rows.length) { const tr = document.createElement("tr"); tr.append(cell(d.problems.length ? d.problems.join(" ") : T("No tag of the screen starts with this prefix."), "text-warning")); tr.firstChild.colSpan = 3; rows.push(tr); }
+      body.replaceChildren(...rows);
+      fixed.textContent = d.fixed.length ? T("Same in every window: {0}", d.fixed.join(", ")) : "";
+    }
+    screen.addEventListener("change", preview);
+    prefix.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(preview, 250); });
+    suggestBtn.addEventListener("click", () => { prefix.value = suggestBtn.textContent; preview(); });
+    if (screen.value && screen.value !== "0") preview();
+  })();
+</script>
+{% endblock %}

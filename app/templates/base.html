@@ -84,10 +84,13 @@
             <li><a class="dropdown-item" href="{{ url_for('documents.index') }}" id="nav-documents"><i class="bi bi-file-earmark-richtext"></i> {{ _('Information library') }}</a></li>
           </ul>
         </li>
+        {% if has_devices() %}
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('faceplates.devices') }}" id="nav-devices" aria-label="{{ _('Devices') }}"><i class="bi bi-window-stack"></i>{{ nav_label(_('Devices')) }}</a></li>
+        {% endif %}
         {% if current_user.can(Perm.MANAGE_PLCS) %}
         <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.plcs') }}" id="nav-plcs" aria-label="{{ _('PLCs') }}"><i class="bi bi-hdd-network"></i>{{ nav_label(_('PLCs')) }}</a></li>
         {% endif %}
-        {% if current_user.can(Perm.MANAGE_USERS) or current_user.can(Perm.MANAGE_ROLES) or current_user.can(Perm.VIEW_AUDIT) or current_user.can(Perm.MANAGE_AUTOMATIONS) %}
+        {% if current_user.can(Perm.MANAGE_USERS) or current_user.can(Perm.MANAGE_ROLES) or current_user.can(Perm.VIEW_AUDIT) or current_user.can(Perm.MANAGE_AUTOMATIONS) or current_user.can(Perm.MANAGE_SCREENS) or current_user.can(Perm.MANAGE_PLCS) %}
         <li class="nav-item dropdown">
           <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" id="nav-admin" aria-label="{{ _('Admin') }}"><i class="bi bi-shield-lock"></i>{{ nav_label(_('Admin')) }}</a>
           <ul class="dropdown-menu dropdown-menu-end">
@@ -101,6 +104,7 @@
             <li><a class="dropdown-item" href="{{ url_for('tags.index') }}" id="nav-tags"><i class="bi bi-tags"></i> {{ _('Tag table') }}</a></li>
             <li><a class="dropdown-item" href="{{ url_for('alarms.index') }}" id="nav-alarms"><i class="bi bi-bell"></i> {{ _('Alarms') }}</a></li>{% endif %}
             {% if current_user.can(Perm.MANAGE_AUTOMATIONS) %}<li><a class="dropdown-item" href="{{ url_for('automations.index') }}" id="nav-automations"><i class="bi bi-robot"></i> {{ _('Automations') }}</a></li>{% endif %}
+            {% if current_user.can(Perm.MANAGE_SCREENS) %}<li><a class="dropdown-item" href="{{ url_for('faceplates.index') }}" id="nav-faceplates"><i class="bi bi-window-stack"></i> {{ _('Faceplates') }}</a></li>{% endif %}
             {% if current_user.can(Perm.MANAGE_PLCS) %}<li><a class="dropdown-item" href="{{ url_for('modbus_server.index') }}" id="nav-modbus-server"><i class="bi bi-broadcast-pin"></i> {{ _('Modbus TCP server') }}</a></li>{% endif %}
             {% if current_user.can(Perm.VIEW_AUDIT) %}<li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="{{ url_for('audit.index') }}" id="nav-audit"><i class="bi bi-journal-text"></i> {{ _('Audit log') }}</a></li>{% endif %}

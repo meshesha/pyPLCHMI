@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_macros.html" import post_button %}
+{% block title %}{{ _('Faceplates') }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">{{ _('Faceplates') }}</h1>
+    <div class="small text-secondary">{{ _('One template screen for many identical devices (e.g. 200 electricity meters): a button opens the screen in a pop-up window with the tags of the chosen device.') }}</div>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary" href="{{ url_for('faceplates.devices') }}"><i class="bi bi-window-stack"></i> {{ _('All devices') }}</a>
+    <a class="btn btn-primary" href="{{ url_for('faceplates.edit') }}" id="new-faceplate"><i class="bi bi-plus-lg"></i> {{ _('New device type') }}</a>
+  </div>
+</div>
+{% if items %}
+<div class="table-responsive">
+<table class="table align-middle hmi-table" id="faceplate-table">
+  <thead><tr><th>{{ _('Device type') }}</th><th>{{ _('Template screen') }}</th><th>{{ _('Tag prefix of the reference device') }}</th>
+    <th class="text-end">{{ _('Parameters') }}</th><th class="text-end">{{ _('Devices') }}</th><th class="text-end">{{ _('Actions') }}</th></tr></thead>
+  <tbody>
+  {% for it in items %}{% set fp = it.faceplate %}
+    <tr>
+      <td><a class="fw-semibold text-reset" href="{{ url_for('faceplates.detail', faceplate_id=fp.id) }}">{{ fp.name }}</a>
+        {% if fp.description %}<div class="small text-secondary">{{ fp.description }}</div>{% endif %}</td>
+      <td>{% if fp.screen %}<a href="{{ url_for('dashboards.designer', dashboard_id=fp.screen.id) }}">{{ fp.screen.name }}</a>
+        {% else %}<span class="badge text-bg-danger">{{ _('screen deleted') }}</span>{% endif %}</td>
+      <td><code>{{ fp.prefix }}</code></td>
+      <td class="text-end">{{ it.parameters }}</td>
+      <td class="text-end">{{ it.instances }}</td>
+      <td class="text-end text-nowrap">
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('faceplates.edit', faceplate_id=fp.id) }}" title="{{ _('Edit') }}"><i class="bi bi-pencil"></i></a>
+        {{ post_button(url_for('faceplates.delete', faceplate_id=fp.id), 'Delete', 'trash', confirm=_('Delete the device type {0} and its devices? Tags and screens are kept.', fp.name)) }}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="card hmi-panel"><div class="card-body">
+  <h2 class="h5">{{ _('How it works') }}</h2>
+  <ol class="mb-0">
+    <li>{{ _('Give the tags of every device names with a common beginning, e.g. Panel_01.MeterA.voltage, Panel_01.MeterA.power, Panel_02.MeterA.voltage …') }}</li>
+    <li>{{ _('Draw one Plane screen with the tags of one device (the reference device): values, gauges, lamps, write buttons.') }}</li>
+    <li>{{ _('Create a device type: choose that screen and enter the reference prefix (Panel_01.MeterA.).') }}</li>
+    <li>{{ _('Add the devices – one by one, found automatically among the tags, or from Excel. A device without tags can get them as copies of the reference tags.') }}</li>
+    <li>{{ _('On any screen, give a button (or any object) "Click opens device window" – it opens the template with the values of that device.') }}</li>
+  </ol>
+</div></div>
+{% endif %}
+{% endblock %}

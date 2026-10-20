@@ -45,7 +45,12 @@
   const RANGES = [[1 / 24, "1 hour"], [8 / 24, "8 hours"], [1, "1 day"], [7, "7 days"], [30, "30 days"]];
   const STORE_KEY = "hmi-graph-days";
   let latest = { values: {}, plcs: {}, timestamp: null };
-  document.addEventListener("hmi:values", (ev) => { latest = ev.detail || latest; });
+  // Several runtimes publish values (the screen and device windows): keep them all.
+  document.addEventListener("hmi:values", (ev) => {
+    const d = ev.detail || {};
+    latest = { values: Object.assign({}, latest.values, d.values || {}), plcs: Object.assign({}, latest.plcs, d.plcs || {}),
+               timestamp: d.timestamp || latest.timestamp };
+  });
 
   // ------------------------------------------------------------------ helpers
   /**
@@ -196,6 +201,8 @@
     if (tile) return tile.dataset.id;
     const g = target.closest("#mimic-svg .hmi-el[data-id]");
     if (g) return elementPoint[g.dataset.id] || null;
+    const fp = target.closest(".hmi-fp-body .hmi-el[data-point]");   // device windows (hmi-faceplate.js)
+    if (fp) return fp.dataset.point;
     return null;
   }
 
@@ -295,6 +302,7 @@
       [T("Status"), plc ? plcState(plc) : null],
       ["-", T("Usage")],
       [T("Screens"), d.screens.join(", ")],
+      [T("Device windows"), d.devices && d.devices.length ? d.devices.join(", ") : null],
       [T("Alarms"), d.alarms.length ? d.alarms.join(", ") : null],
     ];
     const tbody = h("tbody");
@@ -504,5 +512,11 @@
     load();
   }
 
-  window.HMITagMenu = { showGraph: showGraph, showDetails: showDetails };
+  /**
+   * Add the tags of a device window to the menu (label, history flag…).
+   * @param {Object} points ``{id: meta}`` like ``#tag-menu-data``.
+   */
+  function addPoints(points) { Object.assign(cfg.points, points || {}); }
+
+  window.HMITagMenu = { showGraph: showGraph, showDetails: showDetails, addPoints: addPoints };
 })();
