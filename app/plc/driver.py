@@ -507,6 +507,8 @@ class _CommFailure(Exception):
 
 #: Back-off after the first failed connection attempt (doubles each time).
 FIRST_RETRY_DELAY = 0.5
+#: Largest doubling step of the reconnect back-off (0.5 s × 2**20 is far above any reconnect delay).
+MAX_BACKOFF_EXPONENT = 20
 
 
 def offline_delay_of(plc) -> float:
@@ -647,7 +649,9 @@ class PLCConnectionManager:
         """
         if entry.failures <= 0:
             return 0.0
-        return min(self.reconnect_delay, FIRST_RETRY_DELAY * 2 ** (entry.failures - 1))
+        # The exponent is capped: a PLC that stays offline for days keeps counting failures,
+        # and 2 ** 1024 no longer fits in a float (OverflowError).
+        return min(self.reconnect_delay, FIRST_RETRY_DELAY * 2.0 ** min(entry.failures - 1, MAX_BACKOFF_EXPONENT))
 
     def _ensure_connected(self, entry: _Entry, plc) -> None:
         """Make sure ``entry.conn`` is an open connection for ``plc``.

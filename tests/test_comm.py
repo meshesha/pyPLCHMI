@@ -215,6 +215,15 @@ def test_backoff_grows_and_is_capped(manager, clock):
     assert waits == [0.5, 1.0, 2.0, 4.0, 5.0, 5.0]
 
 
+def test_backoff_after_thousands_of_failures(manager):
+    """A PLC offline for days: the failure counter keeps growing, the wait stays at reconnect_delay."""
+    plc = make_plc(ip="10.1.1.253")
+    entry = manager._entry(plc.id)
+    for failures in (1024, 1025, 10_000, 10**9):
+        entry.failures = failures
+        assert manager._retry_wait(entry) == manager.reconnect_delay      # no OverflowError
+
+
 def test_backoff_blocks_until_due(manager, clock):
     """During the back-off no connection attempt is made."""
     plc = make_plc(ip="10.1.1.254")
