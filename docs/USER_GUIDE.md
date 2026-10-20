@@ -45,6 +45,10 @@ A web-based HMI for **Siemens S7 PLCs** (S7-300/400/1200/1500, LOGO! 8),
 * **Web devices** (energy meters, gateways, weather stations, IoT sensors): an *Add device*
   wizard tests the device, shows the received JSON / XML and turns the keys you tick into
   tags – HTTP, HTTPS, header-less HTTP/0.9, WS and WSS, with no extra libraries.
+* **Modbus TCP server (SCADA gateway)**: other SCADA systems (WinCC, ControlMaestro, Ignition,
+  Kepware…) read the values of the tags you pick over Modbus TCP – read only, or writable per
+  tag (audited) – automatic addresses, INT16/32, FLOAT32/64, bits and strings, heartbeat and quality bits, client
+  allow-list, and an Excel address list for the SCADA engineer.
 * A built-in **PLC simulator** (`PLC_SIMULATION=1`) lets you develop and demo
   without hardware.
 * Bootstrap is bundled locally, so the HMI works on networks without internet.
@@ -118,6 +122,7 @@ pyPLCHMI/
 │   ├── library/animations/  # built-in animated GIFs (<Category>/*.gif + manifest.json)
 │   ├── i18n/                # languages: catalog.py (_(), language choice), forms.py, routes.py (switcher, admin)
 │   │   └── languages/       #   built-in language files: en.json (all texts), he.json (Hebrew)
+│   ├── modbus_server/       # Modbus TCP server: encoding.py, layout.py (addresses), server.py, admin page
 │   ├── automations/         # automations: schema.py (blocks, validation), engine.py (triggers, runs), documents.py (YAML)
 │   ├── ui_templates/        # UI templates: registry.py (manifest, install/export), nav.py, routes.py
 │   │   └── builtin/         #   classic, high-performance, alarm-focus, workspace, engineering
@@ -443,6 +448,73 @@ Text values are converted to the tag's type (`"21.5"` → REAL, `"on"`/`"true"`/
 **read only**. Communication timeout, communication alarm, history, alarms and automations
 work as for every PLC. Everything uses the Python standard library – nothing to add to an
 offline installation.
+
+## 5g. Modbus TCP server – publish tags to other SCADA systems
+
+*Admin → **Modbus TCP server*** turns pyPLCHMI into a Modbus TCP **server (slave)**: other
+SCADA / HMI systems – Siemens WinCC, ControlMaestro, Ignition, Kepware, another PLC – connect
+as Modbus TCP clients and read the values of the tags you publish – and, for the tags you
+allow, write them (e.g. setpoints).
+
+**Settings:** *Enable*, the IP address to listen on (`0.0.0.0` = every network card, or the
+card of the OT network), the **TCP port** (502 is the standard – on Linux ports below 1024
+need administrator rights, use e.g. 5020), the **unit id** (0 = answer every unit id), the
+**value order** of 32/64-bit values (ABCD big endian, CDAB word swapped, BADC, DCBA – set the
+same in the SCADA), the **update interval**, what tags **without a valid value** send (keep
+the last good value, or 0), the **allowed clients** (IP addresses / networks; others are
+disconnected at once), an optional **heartbeat register** (a counter that grows on every
+update – alarm in the SCADA when it stops) and optional **quality bits** (one bit per tag,
+ON = valid value).
+
+**Published tags:** *Add tags* opens a picker; every tag gets the next free address and a
+suggested type, both editable in the table (overlaps and reserved addresses are refused):
+
+| Modbus type | Registers | Default for |
+|---|---|---|
+| `BIT` | 1 coil / discrete input | BOOL |
+| `BOOL16` | 1 (0/1) | – (for SCADA drivers that read only registers) |
+| `INT16` / `UINT16` | 1 | SINT, INT / BYTE, USINT, WORD, UINT |
+| `INT32` / `UINT32` | 2 | DINT / DWORD, UDINT |
+| `FLOAT32` / `FLOAT64` | 2 / 4 | REAL, LREAL and tags with scale/offset |
+| `STRING` | 1 per 2 characters | STRING, CHAR |
+
+The **engineering value** (after the tag's scale and offset) is published; an extra *Modbus
+scale* multiplies it before encoding (e.g. 10 → 21.5 °C is sent as the INT16 215). Integers are
+rounded and clamped to the type's range.
+
+**Reading it from the SCADA:** registers with function 3 (*holding registers*, `4xxxx`) **or**
+4 (*input registers*, `3xxxx`) – both return the same data; bits with function 1 (*coils*,
+`0xxxx`) **or** 2 (*discrete inputs*, `1xxxx`). Addresses in the table are 0-based protocol
+addresses, with the classic 1-based reference next to them (`40001` = register 0). Unused
+addresses read as 0, so the SCADA may read whole blocks. **Address list (Excel / CSV)** gives
+the SCADA engineer every tag with its address, type, references, scale and value order, plus
+the heartbeat and quality bits. The status panel shows the clients, requests, writes (done /
+refused / failed), the last writes and refused connections. Open the TCP port in the server's
+firewall.
+
+**Writes from the SCADA:** every published tag is **read only** for the other systems until you
+switch on **Allow write** in its row – possible only for tags that are writable in pyPLCHMI
+(*Tag table → Edit → Writable*). Then the SCADA writes registers with function 6 / 16 and bits
+with function 5 / 15. The value goes through the same path as an operator's write: the Modbus
+scale is divided out, the tag's own scale / offset and range checks apply, the PLC is written
+and the value read back. Every write is in the **audit log** as user `Modbus TCP <client IP>`.
+Answers to the SCADA:
+
+| Situation | Modbus answer |
+|---|---|
+| Write accepted and written to the PLC | normal response |
+| Address of a read-only tag, an unused address, or only part of a 32/64-bit value or STRING (write all its registers in one request) | exception 02 *illegal data address* – nothing is written |
+| Value cannot be used (NaN, out of the tag's range…) | exception 03 *illegal data value* |
+| The PLC refuses the write or does not answer | exception 04 *server device failure* |
+
+A request is checked as a whole before anything is written. Function 23 (read/write multiple
+registers) is not supported (exception 01). The *Writable* tag setting stays the master switch:
+making a tag read only in the tag table stops Modbus writes at once. The tag's role limits
+(*write access by role*) apply to operators in pyPLCHMI; for the SCADA, the *Allow write*
+switch is the permission – keep the **allowed clients** list filled when writes are on.
+
+The server runs inside the pyPLCHMI process (one server per installation; `MODBUS_SERVER=0`
+switches the background thread off). It uses pyModbusTCP, already part of the installation.
 
 ## 6. Plane (graphic) screens
 

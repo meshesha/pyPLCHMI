@@ -101,6 +101,7 @@
             <li><a class="dropdown-item" href="{{ url_for('tags.index') }}" id="nav-tags"><i class="bi bi-tags"></i> {{ _('Tag table') }}</a></li>
             <li><a class="dropdown-item" href="{{ url_for('alarms.index') }}" id="nav-alarms"><i class="bi bi-bell"></i> {{ _('Alarms') }}</a></li>{% endif %}
             {% if current_user.can(Perm.MANAGE_AUTOMATIONS) %}<li><a class="dropdown-item" href="{{ url_for('automations.index') }}" id="nav-automations"><i class="bi bi-robot"></i> {{ _('Automations') }}</a></li>{% endif %}
+            {% if current_user.can(Perm.MANAGE_PLCS) %}<li><a class="dropdown-item" href="{{ url_for('modbus_server.index') }}" id="nav-modbus-server"><i class="bi bi-broadcast-pin"></i> {{ _('Modbus TCP server') }}</a></li>{% endif %}
             {% if current_user.can(Perm.VIEW_AUDIT) %}<li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="{{ url_for('audit.index') }}" id="nav-audit"><i class="bi bi-journal-text"></i> {{ _('Audit log') }}</a></li>{% endif %}
           </ul>

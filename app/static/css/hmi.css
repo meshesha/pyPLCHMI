@@ -703,3 +703,6 @@ body.hmi-bulk-open main { padding-bottom: 5rem !important; }
 .wd-len { display: inline-block; width: 4.5rem; margin-inline-start: .25rem; }
 .wd-value { max-width: 18rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 tr.wd-existing td { color: var(--hmi-muted); }
+.mbs-address, .mbs-scale { width: 6.5rem; }
+.mbs-len { width: 4.5rem; }
+.mbs-status dt { font-weight: 500; color: var(--hmi-muted); }

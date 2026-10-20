@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% from "_macros.html" import render_field %}
+{% block title %}{{ _('Modbus TCP server') }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+  <div>
+    <h1 class="h3 mb-0">{{ _('Modbus TCP server') }}</h1>
+    <div class="text-secondary small">{{ _('Publishes tag values to other SCADA systems (WinCC, ControlMaestro, Ignition, Kepware…) over Modbus TCP – read only, or writable per tag.') }}</div>
+  </div>
+  <span class="badge fs-6 hmi-badge-neutral" id="mbs-state" aria-live="polite">…</span>
+</div>
+
+<div id="mbs" data-status-url="{{ url_for('modbus_server.api_status') }}" data-tags-url="{{ url_for('modbus_server.api_tags') }}"
+     data-add-url="{{ url_for('modbus_server.api_add') }}" data-remove-url="{{ url_for('modbus_server.api_remove') }}"
+     data-update-url="{{ url_for('modbus_server.api_update', export_id=0) }}" data-max-string="{{ max_string }}">
+
+<div class="row g-4 mb-4">
+  <div class="col-xl-5">
+    <section class="card hmi-panel h-100" aria-labelledby="mbs-settings-title"><div class="card-body">
+      <h2 class="h5" id="mbs-settings-title"><i class="bi bi-sliders"></i> {{ _('Settings') }}</h2>
+      <form method="post" action="{{ url_for('modbus_server.save_settings') }}" novalidate>
+        {{ form.hidden_tag() }}
+        {{ render_field(form.enabled) }}
+        <div class="row">{{ render_field(form.host, 'col-md-7') }}{{ render_field(form.port, 'col-md-5') }}</div>
+        <div class="row">{{ render_field(form.unit_id, 'col-md-5') }}{{ render_field(form.interval, 'col-md-7') }}</div>
+        {{ render_field(form.order) }}
+        {{ render_field(form.bad_value) }}
+        {{ render_field(form.allowed) }}
+        <div class="row">{{ render_field(form.heartbeat, 'col-md-6') }}{{ render_field(form.quality_base, 'col-md-6') }}</div>
+        {{ form.submit(class_='btn btn-primary') }}
+      </form>
+    </div></section>
+  </div>
+  <div class="col-xl-7">
+    <section class="card hmi-panel mb-4" aria-labelledby="mbs-status-title"><div class="card-body">
+      <h2 class="h5" id="mbs-status-title"><i class="bi bi-activity"></i> {{ _('Status') }}</h2>
+      <div class="alert alert-danger small" id="mbs-error" hidden></div>
+      <dl class="row small mb-2 mbs-status">
+        <dt class="col-sm-5">{{ _('Listening on') }}</dt><dd class="col-sm-7 font-monospace" id="mbs-endpoint">—</dd>
+        <dt class="col-sm-5">{{ _('Last update') }}</dt><dd class="col-sm-7" id="mbs-updated">—</dd>
+        <dt class="col-sm-5">{{ _('Tags valid / without value') }}</dt><dd class="col-sm-7" id="mbs-quality">—</dd>
+        <dt class="col-sm-5">{{ _('Requests') }}</dt><dd class="col-sm-7" id="mbs-requests">—</dd>
+        <dt class="col-sm-5">{{ _('Writes done / refused / failed') }}</dt><dd class="col-sm-7" id="mbs-writes">—</dd>
+        <dt class="col-sm-5">{{ _('Connections refused (not allowed)') }}</dt><dd class="col-sm-7" id="mbs-refused">—</dd>
+        <dt class="col-sm-5">{{ _('Heartbeat') }}</dt><dd class="col-sm-7" id="mbs-heartbeat">—</dd>
+      </dl>
+      <h3 class="h6 mt-3">{{ _('Clients') }}</h3>
+      <div class="table-responsive"><table class="table table-sm small mb-0 hmi-table">
+        <thead><tr><th>{{ _('IP address') }}</th><th>{{ _('Connections') }}</th><th>{{ _('Requests') }}</th><th>{{ _('Last request') }}</th></tr></thead>
+        <tbody id="mbs-clients"><tr><td colspan="4" class="text-secondary">{{ _('No client has connected yet.') }}</td></tr></tbody>
+      </table></div>
+      <div id="mbs-recent" hidden>
+        <h3 class="h6 mt-3">{{ _('Last writes from other systems') }}</h3>
+        <div class="table-responsive"><table class="table table-sm small mb-0 hmi-table">
+          <thead><tr><th>{{ _('Time') }}</th><th>{{ _('IP address') }}</th><th>{{ _('Tag') }}</th><th>{{ _('Value / error') }}</th></tr></thead>
+          <tbody id="mbs-recent-rows"></tbody>
+        </table></div>
+      </div>
+    </div></section>
+    <section class="card hmi-panel" aria-labelledby="mbs-help-title"><div class="card-body small">
+      <h2 class="h6" id="mbs-help-title">{{ _('In the SCADA system') }}</h2>
+      <ul class="mb-0">
+        <li>{{ _('Add a Modbus TCP connection to the IP address of this computer, the port above and the unit id (any when it is 0).') }}</li>
+        <li>{{ _('Registers: read with function 3 (holding registers, 4xxxx) or 4 (input registers, 3xxxx) – both return the same values. Bits: function 1 (coils, 0xxxx) or 2 (discrete inputs, 1xxxx).') }}</li>
+        <li>{{ _('Set the same value order (ABCD / CDAB …) for 32/64-bit values. Download the address list below for the SCADA engineer.') }}</li>
+        <li>{{ _('Tags are read only for the SCADA unless Allow write is on (only for tags that are writable here). Write with function 6/16 (all registers of a value in one request) or 5/15 for bits; every write is in the audit log. Unused addresses read as 0.') }}</li>
+        <li>{{ _('Open the TCP port in the firewall of this computer.') }}</li>
+      </ul>
+    </div></section>
+  </div>
+</div>
+
+<section class="card hmi-panel" aria-labelledby="mbs-tags-title"><div class="card-body">
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h2 class="h5 mb-0 me-auto" id="mbs-tags-title"><i class="bi bi-list-ol"></i> {{ _('Published tags') }} <span class="badge hmi-badge-neutral" id="mbs-count">{{ exports|length }}</span></h2>
+    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#mbs-picker"><i class="bi bi-plus-lg"></i> {{ _('Add tags') }}</button>
+    <button type="button" class="btn btn-sm btn-outline-danger" id="mbs-remove" disabled><i class="bi bi-trash"></i> {{ _('Remove selected') }}</button>
+    <div class="btn-group">
+      <a class="btn btn-sm btn-outline-success" href="{{ url_for('modbus_server.addresses_xlsx') }}"><i class="bi bi-file-earmark-excel"></i> {{ _('Address list (Excel)') }}</a>
+      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('modbus_server.addresses_csv') }}">CSV</a>
+    </div>
+  </div>
+  <p class="small text-secondary">{{ _('Addresses are 0-based (protocol addresses); the classic 1-based reference is shown next to them. Changing a type or an address takes effect within one update interval.') }}</p>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle hmi-table" id="mbs-table">
+      <thead><tr>
+        <th scope="col" class="text-center"><input type="checkbox" class="form-check-input" id="mbs-check-all" aria-label="{{ _('Select all') }}"></th>
+        <th scope="col">{{ _('Tag') }}</th>
+        <th scope="col">{{ _('Value') }}</th>
+        <th scope="col">{{ _('Modbus type') }}</th>
+        <th scope="col">{{ _('Address') }}</th>
+        <th scope="col">{{ _('Reference') }}</th>
+        <th scope="col">{{ _('Scale') }}</th>
+        <th scope="col">{{ _('Published') }}</th>
+        <th scope="col" class="text-center">{{ _('Allow write') }}</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <p class="text-secondary small mb-0" id="mbs-empty" {% if exports %}hidden{% endif %}>{{ _('No tags are published yet – click Add tags.') }}</p>
+</div></section>
+</div>
+
+<div class="modal fade" id="mbs-picker" tabindex="-1" aria-labelledby="mbs-picker-title" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title h5" id="mbs-picker-title">{{ _('Add tags to the Modbus TCP server') }}</h2>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+    </div>
+    <div class="modal-body">
+      <div class="d-flex gap-2 mb-2">
+        <input type="search" class="form-control form-control-sm" id="mbs-picker-filter" placeholder="{{ _('Filter by tag, PLC or type…') }}" aria-label="{{ _('Filter') }}">
+        <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" id="mbs-picker-all">{{ _('Select all shown') }}</button>
+      </div>
+      <p class="small text-secondary">{{ _('Each tag gets the next free address and a suggested type (BOOL → bit, integers → INT16/32, REAL and scaled values → FLOAT32, STRING → text). Both can be changed afterwards.') }}</p>
+      <div class="list-group small" id="mbs-picker-list"></div>
+    </div>
+    <div class="modal-footer">
+      <span class="small text-secondary me-auto" id="mbs-picker-count"></span>
+      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+      <button type="button" class="btn btn-primary" id="mbs-picker-add" disabled>{{ _('Add') }}</button>
+    </div>
+  </div></div>
+</div>
+<script type="application/json" id="mbs-data">{{ exports|tojson }}</script>
+<template id="mbs-types">{% for code, info in types.items() %}<option value="{{ code }}">{{ code }}</option>{% endfor %}</template>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/modbus-server.js') }}"></script>
+{% endblock %}

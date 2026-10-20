@@ -22,6 +22,7 @@ operator station is just a browser window, and the engineering tools are on the 
 |---|---|
 | 🔌 **Talks to your field devices** | Siemens **S7-300/400/1200/1500 & LOGO!** (snap7), **Modbus TCP / RTU** (PyModbus, pyModbusTCP), **BACnet/IP** (BAC0, Who-Is & object browser) |
 | 🌐 **Web devices in a minute** | Energy meters, gateways, IoT sensors that send **JSON or XML** over **HTTP / HTTPS – even header-less HTTP/0.9 –** or **WebSocket (WS / WSS)** – GET or **POST with parameters**, API-key / token headers: *Add device* → **Test** shows the data → **Process** lists every key with a suggested tag name → **Save Selected / Save All** |
+| 🔁 **SCADA gateway (Modbus TCP server)** | Publish any tag to **WinCC, ControlMaestro, Ignition, Kepware…** – pick tags, addresses are assigned automatically, INT16/32, FLOAT32/64, bits & strings, ABCD/CDAB order, heartbeat and quality bits, client allow-list, read only or **writable per tag** (setpoints from the SCADA, every write audited), Excel address list for the SCADA engineer |
 | 🖌️ **Graphic screens** | Drag-and-drop SVG designer: pumps, valves, tanks, motors, pipes with animated flow, live values, lamps, bars, buttons, ~5,200 icons, your own images & animated GIFs |
 | 🚨 **Alarms** | Tag conditions (`>`, `≥`, `=`, `≠`…) with Critical/High/Low severity, pop-up with *Ack* / *Open Screen*, event history, PLC communication-loss alarms |
 | 📈 **Historian & trends** | Per-tag sampling interval, multi-pen trend charts, zoom, live mode, Excel export, save charts as PNG |

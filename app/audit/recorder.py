@@ -45,18 +45,19 @@ def _audited() -> dict:
         ``class -> name``.
     """
     from app.models import (  # noqa: PLC0415
-        PLC, Alarm, AlarmEvent, Asset, AssetFolder, Automation, Dashboard, DataPoint, InfoFile, Role, ScreenTag,
-        Setting, TrendChart, User,
+        PLC, Alarm, AlarmEvent, Asset, AssetFolder, Automation, Dashboard, DataPoint, InfoFile, ModbusExport, Role,
+        ScreenTag, Setting, TrendChart, User,
     )
 
     return {User: "User", Role: "Role", PLC: "PLC", Dashboard: "Screen", DataPoint: "Tag", ScreenTag: "Screen tag",
             Alarm: "Alarm", AlarmEvent: "Alarm event", Asset: "Image", AssetFolder: "Image folder",
-            Setting: "Setting", TrendChart: "Trend chart", InfoFile: "Library file", Automation: "Automation"}
+            Setting: "Setting", TrendChart: "Trend chart", InfoFile: "Library file", Automation: "Automation",
+            ModbusExport: "Modbus export"}
 
 
 #: Object type names (for the filter of the audit page).
 OBJECT_TYPES = ["User", "Role", "PLC", "Screen", "Tag", "Screen tag", "Alarm", "Alarm event", "Image",
-                "Image folder", "Library file", "Setting", "Trend chart", "UI template", "Automation", "Value"]
+                "Image folder", "Library file", "Setting", "Trend chart", "UI template", "Automation", "Modbus export", "Value"]
 
 
 @contextmanager

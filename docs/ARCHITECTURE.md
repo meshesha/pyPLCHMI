@@ -362,6 +362,46 @@ accepts both key syntaxes (`DataPointForm` additionally checks the device's own 
   data type, STRING length) and creates the PLC (when new, with its communication alarm)
   and all tags in one transaction – or nothing, with per-row messages.
 
+## Modbus TCP server (`app/modbus_server`)
+
+Publishes tag values to other SCADA systems; tags with *Allow write* can be written by them.
+
+* **Data:** `ModbusExport` (table `modbus_exports`, migration `c4d9a2e7b1f3`): one row per
+  published tag – `area` (`reg` / `bit`), 0-based `address`, `mb_type`, `scale`,
+  `string_length`, `writable` (*Allow write*; effective only while `DataPoint.writable`,
+  see `write_ok`); deleted with its tag. Settings are `settings` rows `modbus_server.*`
+  (`config.ServerConfig`: enabled, host, port, unit id, value order, interval, bad-value
+  policy, allowed clients, heartbeat register, quality bit base).
+* **`encoding.py`:** engineering value × scale → registers (`struct` big endian, then the value
+  order: CDAB reverses the words, BADC swaps the bytes in each word, DCBA both; strings only
+  swap bytes); integers rounded and clamped; `default_type` picks the type from the tag.
+* **`layout.py`:** registers and bits are separate address spaces; `next_free` finds the lowest
+  gap of the needed size, `check` refuses overlaps, out-of-range addresses and the reserved
+  heartbeat register / quality bits.
+* **`server.py`:** `ModbusPublisher` (one per process, thread started on the first request
+  like the alarm scanner) runs `cycle()` every interval: load settings → if disabled stop the
+  server → `read_datapoints` for the published tags → `build_image` (register and bit maps;
+  bad tags keep their last good encoding or send 0; quality bits; heartbeat) → start the
+  server or restart it when host/port changed (a busy or forbidden port is reported and retried
+  every 10 s). The pyModbusTCP server answers from the current image through `ExportHandler`:
+  functions 1/2 read bits, 3/4 read registers (same data), gaps read 0, wrong unit id →
+  exception 0B. **Writes** (5/15 bits, 6/16 registers): every cycle builds `targets`
+  (`write_targets`: address → `WriteTarget` for exports with `write_ok`); `plan_writes` checks
+  the whole request first – each address must start a writable value and the request must
+  cover all its registers (else 02), `encoding.decode` reverses the encoding and the Modbus
+  scale (NaN etc. → 03). `apply_writes` then runs in an application context under a lock:
+  re-checks `write_ok`, calls `service.write_datapoint` (tag scaling, range checks, PLC write,
+  read-back; `ValueError` → 03, `PLCError` → 04), writes an audit row (user
+  `Modbus TCP <ip>`), patches the image so a read-back shows the new value, and keeps the last
+  20 writes for the status panel. Function 23 → 01. `ExportServer` replaces pyModbusTCP's connection handler to drop
+  clients outside the allow-list and to count connections. The image is swapped atomically,
+  so readers never see half an update.
+* **Admin page** (`routes.py`, `templates/modbus_server/index.html`,
+  `static/js/modbus-server.js`): settings form, live status (`/api/status`, every 2 s, with the
+  registers actually published per tag), tag picker (`/api/tags`, `/api/add`), in-place edit
+  (`/api/<id>`), remove, and the address list (`addresses.xlsx` / `.csv`). Permission
+  `manage_plcs`; changes are in the audit log ("Modbus export").
+
 ## Excel export / import
 
 `app/utils/xlsx.py` writes workbooks (data sheet + *Help* sheet; openpyxl) and reads

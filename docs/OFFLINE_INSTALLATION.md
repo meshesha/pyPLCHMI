@@ -83,6 +83,7 @@ It is often missing on minimal servers.
 | Server → PLC | TCP **102** | Siemens S7 (S7-300/400/1200/1500, LOGO!). S7-1200/1500: enable *PUT/GET* and disable *optimized block access* for the DBs that are read. |
 | Server → device | TCP **502** | Modbus TCP |
 | Server → device | TCP **80 / 443** or the port in the device URL | Web devices: HTTP / HTTPS (also HTTP/0.9) and WebSocket WS / WSS – JSON or XML |
+| SCADA → server | TCP **502** (or the port set in *Modbus TCP server*) | Only when the Modbus TCP server is enabled: other SCADA systems read published tags (and write the ones allowed) |
 | Server ↔ devices | UDP **47808** (broadcast) | BACnet/IP |
 | Server → device | serial port (COM*n* / `/dev/ttyUSB0`) | Modbus RTU through a USB / RS-485 adapter |
 
@@ -412,6 +413,13 @@ For BACnet/IP, also allow inbound UDP 47808:
 New-NetFirewallRule -DisplayName "pyPLCHMI BACnet (UDP 47808)" -Direction Inbound -Protocol UDP -LocalPort 47808 -Action Allow -Profile Domain,Private
 ```
 
+For the built-in Modbus TCP server (other SCADA systems reading the tags), allow its port – best
+only from the SCADA servers:
+
+```powershell
+New-NetFirewallRule -DisplayName "pyPLCHMI Modbus server (TCP 502)" -Direction Inbound -Protocol TCP -LocalPort 502 -RemoteAddress 10.0.0.20 -Action Allow -Profile Domain,Private
+```
+
 For Modbus RTU, install the driver of the USB / RS-485 adapter and note its COM port in
 the Device Manager.
 
@@ -519,10 +527,14 @@ Ports below 1024 need root. Keep 8000, or put a reverse proxy in front.
 
 * ufw (Ubuntu / Debian):
   `sudo ufw allow from <operator-subnet> to any port 8000 proto tcp`, plus
-  `sudo ufw allow 47808/udp` for BACnet.
+  `sudo ufw allow 47808/udp` for BACnet, and for the Modbus TCP server
+  `sudo ufw allow from <scada-server-ip> to any port 5020 proto tcp`.
 * firewalld (RHEL family):
   `sudo firewall-cmd --permanent --add-port=8000/tcp && sudo firewall-cmd --reload`, plus
-  `--add-port=47808/udp` for BACnet.
+  `--add-port=47808/udp` for BACnet and `--add-port=5020/tcp` for the Modbus TCP server.
+* Modbus TCP server on Linux: ports below 1024 need root, so use e.g. **5020** (set it in
+  *Admin → Modbus TCP server* and in the SCADA), or allow port 502 for the venv's Python with
+  `sudo setcap 'cap_net_bind_service=+ep' "$(readlink -f /opt/pyplchmi/venv/bin/python3)"`.
 
 BACnet note: *Who-Is* uses broadcasts. If the server has several network cards, set
 `BACNET_LOCAL_IP=<ip>/<mask>` in `.env` to the card on the BACnet network.

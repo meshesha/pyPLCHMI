@@ -12,8 +12,9 @@ from app.models.audit import AuditLog
 from app.models.document import InfoFile
 from app.models.dummy_value import DummyValue
 from app.models.history import TagSample, TrendChart
+from app.models.modbus_export import ModbusExport
 from app.models.plc import PLC
 from app.models.setting import Setting
 from app.models.user import AnonymousUser, Perm, Permission, Role, User
 
-__all__ = ["Alarm", "AlarmEvent", "Automation", "AutomationRun", "AuditLog", "InfoFile", "AnonymousUser", "Asset", "AssetFolder", "Dashboard", "DataPoint", "DummyValue", "PLC", "Perm", "Permission", "Role", "ScreenTag", "Setting", "TagSample", "TrendChart", "User"]
+__all__ = ["Alarm", "AlarmEvent", "Automation", "AutomationRun", "AuditLog", "InfoFile", "ModbusExport", "AnonymousUser", "Asset", "AssetFolder", "Dashboard", "DataPoint", "DummyValue", "PLC", "Perm", "Permission", "Role", "ScreenTag", "Setting", "TagSample", "TrendChart", "User"]

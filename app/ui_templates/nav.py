@@ -70,6 +70,8 @@ def nav_items(user, home_overview: bool = False) -> list[NavItem]:
         items.append(NavItem("automations", gettext("Automations"), "robot", url_for("automations.index"), ENGINEER, eng))
     if user.can(Perm.MANAGE_PLCS):
         items.append(NavItem("plcs", gettext("PLCs"), "hdd-network", url_for("admin.plcs"), ENGINEER, eng))
+        items.append(NavItem("modbus-server", gettext("Modbus TCP server"), "broadcast-pin",
+                             url_for("modbus_server.index"), ENGINEER, eng))
     if user.can(Perm.MANAGE_SCREENS):
         items.append(NavItem("images", gettext("Images"), "images", url_for("assets.index"), ENGINEER, eng))
     if user.can(Perm.MANAGE_USERS):

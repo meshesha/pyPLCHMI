@@ -47,6 +47,7 @@ def create_app(config_name: str | None = None) -> Flask:
     _init_alarm_scanner(app)
     _init_history_logger(app)
     _init_automation_engine(app)
+    _init_modbus_server(app)
 
     from app.cli import register_cli  # noqa: PLC0415
 
@@ -111,6 +112,7 @@ def _register_blueprints(app: Flask) -> None:
     from app.audit import bp as audit_bp  # noqa: PLC0415
     from app.ui_templates import bp as ui_templates_bp  # noqa: PLC0415
     from app.automations import bp as automations_bp  # noqa: PLC0415
+    from app.modbus_server import bp as modbus_server_bp  # noqa: PLC0415
 
     app.register_blueprint(main_bp)
     app.register_blueprint(i18n_bp)
@@ -128,6 +130,7 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(audit_bp, url_prefix="/admin/audit")
     app.register_blueprint(ui_templates_bp)
     app.register_blueprint(automations_bp, url_prefix="/automations")
+    app.register_blueprint(modbus_server_bp, url_prefix="/admin/modbus-server")
 
 
 def _register_legacy_redirects(app: Flask) -> None:
@@ -349,6 +352,27 @@ def _init_automation_engine(app: Flask) -> None:
         from app.automations.engine import AutomationEngine  # noqa: PLC0415
 
         AutomationEngine.start(app)
+
+
+def _init_modbus_server(app: Flask) -> None:
+    """Start the Modbus TCP server's publisher thread on the first web request.
+
+    The thread starts and stops the server itself according to the settings
+    (*Admin → Modbus TCP server*).  Disabled with ``MODBUS_SERVER=0`` (tests
+    call :meth:`app.modbus_server.server.ModbusPublisher.cycle` directly).
+
+    Args:
+        app: The application being created.
+    """
+    if not app.config.get("MODBUS_SERVER", True):
+        return
+
+    @app.before_request
+    def start_modbus_publisher():
+        """Start the publisher thread once (and again if it has stopped)."""
+        from app.modbus_server.server import ModbusPublisher  # noqa: PLC0415
+
+        ModbusPublisher.start(app)
 
 
 def _init_history_logger(app: Flask) -> None:

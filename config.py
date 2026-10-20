@@ -124,6 +124,10 @@ class Config:
     #: Run the actions in the calling thread (tests only).
     AUTOMATION_SYNC = False
 
+    # --- Modbus TCP server (publishes tags to other SCADA systems) -----------
+    #: Run the publisher thread (the server itself is switched on in Admin → Modbus TCP server).
+    MODBUS_SERVER = _env_bool("MODBUS_SERVER", True)
+
     #: Lowest allowed dashboard refresh interval in milliseconds.
     DASHBOARD_MIN_REFRESH_MS = 250
 
@@ -158,6 +162,7 @@ class TestingConfig(Config):
     HISTORY_LOGGER = False
     AUTOMATIONS = False
     AUTOMATION_SYNC = True
+    MODBUS_SERVER = False
     SERVER_NAME = "localhost"
 
 
