@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}{{ _('About pyPLCHMI') }}{% endblock %}
+{% block content %}
+<div class="about-page mx-auto">
+  <section class="about-hero mb-4" aria-labelledby="about-title">
+    <div class="about-logo" aria-hidden="true"><i class="bi bi-cpu"></i></div>
+    <div>
+      <h1 class="h2 mb-1" id="about-title">py<strong>PLC</strong>HMI</h1>
+      <p class="lead mb-2">{{ _('A web-based HMI / light SCADA for Siemens S7, Modbus, BACnet and JSON/XML web devices – built in Python, running in any browser.') }}</p>
+      <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-primary" href="{{ project.repository }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-github"></i> {{ _('Source code on GitHub') }}</a>
+        <a class="btn btn-outline-secondary" href="{{ project.issues }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-bug"></i> {{ _('Report an issue / suggest a feature') }}</a>
+        <a class="btn btn-outline-secondary" href="{{ project.license_url }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-file-earmark-text"></i> {{ _('{0} license', project.license) }}</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="row g-4 mb-4">
+    <div class="col-lg-5">
+      <section class="card hmi-panel h-100" aria-labelledby="about-author"><div class="card-body">
+        <h2 class="h5 mb-3" id="about-author"><i class="bi bi-person-badge"></i> {{ _('Author') }}</h2>
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="about-avatar" aria-hidden="true">{{ author.name[:1] }}<i class="bi bi-github"></i></div>
+          <div>
+            <div class="fs-5 fw-semibold">{{ author.name }}</div>
+            <a href="{{ author.github }}" target="_blank" rel="noopener noreferrer" class="text-decoration-none"><i class="bi bi-github"></i> @{{ author.login }}</a>
+          </div>
+        </div>
+        <ul class="list-unstyled mb-0 about-links">
+          <li><i class="bi bi-github"></i> <a href="{{ author.github }}" target="_blank" rel="noopener noreferrer">{{ author.github|replace('https://', '') }}</a></li>
+          <li><i class="bi bi-globe2"></i> <a href="{{ author.website }}" target="_blank" rel="noopener noreferrer">{{ author.website|replace('https://', '') }}</a></li>
+          <li><i class="bi bi-box-seam"></i> <a href="{{ project.repository }}" target="_blank" rel="noopener noreferrer">{{ project.repository|replace('https://', '') }}</a></li>
+        </ul>
+        <p class="small text-secondary mt-3 mb-0">{{ _('Links open on the internet – on a plant network without internet access they do not work from this computer.') }}</p>
+      </div></section>
+    </div>
+    <div class="col-lg-7">
+      <section class="card hmi-panel h-100" aria-labelledby="about-what"><div class="card-body">
+        <h2 class="h5 mb-3" id="about-what"><i class="bi bi-info-circle"></i> {{ _('What it does') }}</h2>
+        <ul class="mb-0 about-features">
+          <li>{{ _('Talks to Siemens S7, Modbus TCP / RTU, BACnet/IP and HTTP / WebSocket devices (JSON, XML).') }}</li>
+          <li>{{ _('Grid and graphic (Plane) screens with a drag-and-drop designer, faceplates for identical devices.') }}</li>
+          <li>{{ _('Alarms, tag history and trend charts, automations, audit log.') }}</li>
+          <li>{{ _('Publishes tags to other SCADA systems with its Modbus TCP server.') }}</li>
+          <li>{{ _('Roles and permissions, English and Hebrew (and your own languages), dark and light mode.') }}</li>
+          <li>{{ _('Runs on Windows and Linux, also on networks without internet access.') }}</li>
+        </ul>
+      </div></section>
+    </div>
+  </div>
+
+  {% if system %}
+  <section class="card hmi-panel mb-4" aria-labelledby="about-system"><div class="card-body">
+    <h2 class="h5 mb-3" id="about-system"><i class="bi bi-hdd-stack"></i> {{ _('This installation') }} <span class="badge hmi-badge-neutral small">{{ _('administrators only') }}</span></h2>
+    <div class="row g-4">
+      <div class="col-lg-5">
+        <table class="table table-sm small hmi-table mb-0" id="about-system-table"><tbody>
+          {% for label, value in system %}<tr><th scope="row" class="fw-normal text-secondary">{{ _(label) }}</th><td class="font-monospace">{{ _(value) }}</td></tr>{% endfor %}
+        </tbody></table>
+      </div>
+      <div class="col-lg-7">
+        <table class="table table-sm small hmi-table mb-0"><thead><tr><th>{{ _('Python package') }}</th><th>{{ _('Version') }}</th></tr></thead><tbody>
+          {% for c in python_components %}<tr><td>{{ c.name }}</td><td class="font-monospace">{{ c.version or _('not installed') }}</td></tr>{% endfor %}
+        </tbody></table>
+      </div>
+    </div>
+  </div></section>
+  {% endif %}
+
+  <section class="card hmi-panel mb-4" aria-labelledby="about-credits"><div class="card-body">
+    <h2 class="h5 mb-1" id="about-credits"><i class="bi bi-heart"></i> {{ _('Open-source components') }}</h2>
+    <p class="small text-secondary">{{ _('pyPLCHMI is built on these projects – thank you to their authors.') }}</p>
+    <div class="row g-4">
+      <div class="col-lg-7">
+        <table class="table table-sm small hmi-table mb-0"><thead><tr><th>{{ _('Server') }}</th><th>{{ _('Used for') }}</th><th>{{ _('License') }}</th></tr></thead><tbody>
+          {% for name, role, lic in credits %}<tr><td>{{ name }}</td><td>{{ _(role) }}</td><td>{{ lic }}</td></tr>{% endfor %}
+        </tbody></table>
+      </div>
+      <div class="col-lg-5">
+        <table class="table table-sm small hmi-table mb-0"><thead><tr><th>{{ _('In the browser (bundled)') }}</th><th>{{ _('Used for') }}</th><th>{{ _('License') }}</th></tr></thead><tbody>
+          {% for name, version, role, lic in web_components %}<tr><td>{{ name }} <span class="text-secondary">{{ version }}</span></td><td>{{ _(role) }}</td><td>{{ lic }}</td></tr>{% endfor %}
+        </tbody></table>
+      </div>
+    </div>
+  </div></section>
+
+  <p class="text-center small text-secondary">© 2026 {{ author.name }} (<a href="{{ author.github }}" target="_blank" rel="noopener noreferrer">@{{ author.login }}</a>) {{ _('and the pyPLCHMI contributors') }} · {{ _('{0} license', project.license) }}</p>
+</div>
+{% endblock %}

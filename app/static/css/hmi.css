@@ -725,3 +725,18 @@ tr.wd-existing td { color: var(--hmi-muted); }
 .hmi-fp-foot { flex: 0 0 auto; padding: .2rem .75rem; font-size: .78rem; color: var(--hmi-warn); border-top: 1px solid var(--hmi-border);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hmi-fp-svg .hmi-vis-off { display: none; }
+
+/* About page (main/about.html) */
+.about-page { max-width: 72rem; }
+.about-hero { display: flex; gap: 1.5rem; align-items: center; padding: 1.5rem; border: 1px solid var(--hmi-border);
+  border-radius: .75rem; background: linear-gradient(135deg, var(--hmi-raised), var(--hmi-panel)); }
+.about-logo { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; width: 5rem; height: 5rem;
+  border-radius: 1.25rem; font-size: 2.6rem; color: #fff; background: var(--hmi-accent); }
+.about-avatar { position: relative; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; width: 4rem;
+  height: 4rem; border-radius: 50%; font-size: 1.8rem; font-weight: 700; color: #fff; background: #24292f; }
+.about-avatar .bi { position: absolute; bottom: -.2rem; inset-inline-end: -.2rem; font-size: 1.3rem; color: var(--hmi-text, #e6edf3);
+  background: var(--hmi-panel); border-radius: 50%; line-height: 1; padding: .15rem; }
+.about-links li { margin-bottom: .35rem; }
+.about-links .bi { width: 1.4rem; display: inline-block; color: var(--hmi-muted); }
+.about-features li { margin-bottom: .35rem; }
+@media (max-width: 575.98px) { .about-hero { flex-direction: column; align-items: flex-start; } }

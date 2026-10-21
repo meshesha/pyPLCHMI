@@ -120,6 +120,7 @@
             <i class="bi bi-bell"></i><span class="badge rounded-pill events-count" id="events-count" hidden>0</span>{{ nav_label(_('Events')) }}
           </button>
         </li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('main.about') }}" id="nav-about" aria-label="{{ _('About') }}"><i class="bi bi-info-circle"></i>{{ nav_label(_('About')) }}</a></li>
         <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.profile') }}" id="nav-settings" aria-label="{{ _('Settings') }}"><i class="bi bi-person-gear"></i>{{ nav_label(_('Settings') ~ ' · ' ~ current_user.username ~ ' (' ~ _(current_user.role.name) ~ ')') }}</a></li>
         <li class="nav-item">
           <form method="post" action="{{ url_for('auth.logout') }}" class="d-inline" data-confirm="{{ _('Log out of {0}?', current_user.username) }}"
@@ -138,6 +139,7 @@
           </ul>
         </li>
         {% endif %}
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('main.about') }}" id="nav-about" aria-label="{{ _('About') }}"><i class="bi bi-info-circle"></i>{{ nav_label(_('About')) }}</a></li>
         <li class="nav-item">
           <a class="btn btn-link nav-link hmi-account-btn" id="login-btn" aria-label="{{ _('Log in') }}"
              href="{{ url_for('auth.login') }}"><i class="bi bi-box-arrow-in-right"></i>{{ nav_label(_('Log in')) }}</a>

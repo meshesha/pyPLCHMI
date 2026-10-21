@@ -7,7 +7,7 @@ translation template that administrators download.
 Sources:
 
 * templates – ``_('…')`` / ``_("…")``;
-* Python – ``gettext('…')`` / ``_('…')`` calls, the labels, descriptions,
+* Python – ``gettext('…')`` / ``_('…')`` / ``N_('…')`` (marked, translated where shown) calls, the labels, descriptions,
   static choices and validator messages of every WTForms form, and the
   labels of constants shown in the user interface (protocols, widgets,
   severities, roles, permissions…);
@@ -105,7 +105,7 @@ def from_python() -> set:
             if not isinstance(node, ast.Call):
                 continue
             name = node.func.id if isinstance(node.func, ast.Name) else getattr(node.func, "attr", "")
-            if name in ("gettext", "_") and node.args and isinstance(node.args[0], ast.Constant) \
+            if name in ("gettext", "_", "N_") and node.args and isinstance(node.args[0], ast.Constant) \
                     and isinstance(node.args[0].value, str):
                 keys.add(node.args[0].value)
             if name.endswith("Field") and node.args and isinstance(node.args[0], ast.Constant) \

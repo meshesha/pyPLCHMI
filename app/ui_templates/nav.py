@@ -90,6 +90,7 @@ def nav_items(user, home_overview: bool = False) -> list[NavItem]:
     if user.can(Perm.VIEW_AUDIT):
         items.append(NavItem("audit", gettext("Audit log"), "journal-text", url_for("audit.index"), ENGINEER, sysg))
     items.append(NavItem("account", gettext("Settings"), "person-gear", url_for("auth.profile"), OPERATE, sysg))
+    items.append(NavItem("about", gettext("About"), "info-circle", url_for("main.about"), OPERATE, sysg))
     return items
 
 

@@ -143,6 +143,28 @@ def overview():
     return render_template("main/overview.html", screens=screens)
 
 
+@bp.route("/about")
+def about():
+    """The *About* page: project, author (GitHub), open-source credits.
+
+    Everybody may open it (also on the log-in page); the system information
+    (versions, database, schema revision) is shown to administrators only.
+
+    Returns:
+        Rendered page.
+    """
+    from flask import current_app  # noqa: PLC0415
+
+    from app.main import about as info  # noqa: PLC0415
+
+    admin = current_user.is_authenticated and current_user.can(Perm.MANAGE_ROLES)
+    return render_template("main/about.html", author=info.AUTHOR, project=info.PROJECT,
+                           python_components=info.python_components() if admin else [],
+                           web_components=info.WEB_COMPONENTS,
+                           credits=[(name, role, lic) for name, role, lic in info.PYTHON_COMPONENTS],
+                           system=info.system_info(current_app) if admin else None)
+
+
 @bp.route("/restricted")
 def restricted():
     """Show the Restricted Area page directly (used as a link target).
