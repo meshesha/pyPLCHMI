@@ -124,6 +124,7 @@ own alarm scanner and historian. Put a reverse proxy with HTTPS in front and set
 * **[Offline installation](docs/OFFLINE_INSTALLATION.md)** – Windows & Linux without Internet: requirements, downloads, step-by-step set-up, upgrades.
 * **[Docker](docs/DOCKER.md)** – requirements checklist, volumes, OT networking, operation.
 * **[Architecture](docs/ARCHITECTURE.md)** – how the pieces fit together, for contributors.
+* **[Third-party software and hashes](docs/THIRD_PARTY_HASHES.txt)** ([JSON](docs/THIRD_PARTY_HASHES.json)) – every library with the SHA-256 / MD5 / SRI published by its developers, to verify downloads and the offline package.
 
 ## Tech stack
 

@@ -1,0 +1,1282 @@
+{
+  "project": "pyPLCHMI",
+  "repository": "https://github.com/meshesha/pyPLCHMI",
+  "generated": "2026-10-23",
+  "how_to_read": [
+    "Python packages: the exact wheel files for Windows x64 / CPython 3.12 (the offline package) and Linux x86_64 / CPython 3.12, versions from offline/constraints.txt. sha256 / md5 / blake2b_256 are the digests PyPI publishes for the file the maintainers uploaded (https://pypi.org/pypi/<name>/<version>/json). Every file was downloaded and its SHA-256 compared.",
+    "Browser libraries: bundled in app/static/vendor. integrity (SHA-512, SRI format) and shasum (SHA-1) are published by the npm registry for the release tarball; every bundled file is byte-identical to the file in that tarball (SHA-256 listed). Bootstrap also publishes SRI (SHA-384) hashes for its files – they match.",
+    "Python itself: python.org publishes only an MD5 (plus Sigstore and GPG signatures) for 3.12.10; the SHA-256 shown is computed from the installer in the offline package, whose MD5 and size match python.org.",
+    "Development / build items are not part of the installed application."
+  ],
+  "python_runtime": {
+    "name": "CPython (Windows installer, 64-bit)",
+    "version": "3.12.10",
+    "file": "python-3.12.10-amd64.exe",
+    "url": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe",
+    "size": 26964224,
+    "md5_published": "5eddb0b6f12c852725de071ae681dde4",
+    "md5_source": "https://www.python.org/downloads/release/python-31210/",
+    "sha256_published": null,
+    "sha256_computed": "67b5635e80ea51072b87941312d00ec8927c4db9ba18938f7ad2d27b328b95fb",
+    "sigstore_bundle": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe.sigstore",
+    "gpg_signature": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe.asc",
+    "verified": "installer in pyPLCHMI_offline/python: MD5 and size = python.org",
+    "license": "PSF-2.0"
+  },
+  "python_packages": [
+    {
+      "name": "aiosqlite",
+      "version": "0.22.1",
+      "license": null,
+      "homepage": null,
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "aiosqlite-0.22.1-py3-none-any.whl",
+          "size": 17405,
+          "url": "https://files.pythonhosted.org/packages/00/b7/e3bf5133d697a08128598c8d0abc5e16377b51465a33756de24fa7dee953/aiosqlite-0.22.1-py3-none-any.whl",
+          "uploaded": "2025-12-23T19:25:42.139290Z",
+          "sha256": "21c002eb13823fad740196c5a2e9d8e62f6243bd9e7e4a1f87fb5e44ecb4fceb",
+          "md5": "14062cebc6e9ccb2981f6df42fad2031",
+          "blake2b_256": "00b7e3bf5133d697a08128598c8d0abc5e16377b51465a33756de24fa7dee953",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "alembic",
+      "version": "1.20.0",
+      "license": "MIT",
+      "homepage": "https://alembic.sqlalchemy.org",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "alembic-1.20.0-py3-none-any.whl",
+          "size": 268719,
+          "url": "https://files.pythonhosted.org/packages/3f/27/78a89b55b0904d222183164e079b4ca56208e94eff1d35ad1f1ad5be9b06/alembic-1.20.0-py3-none-any.whl",
+          "uploaded": "2026-09-11T19:09:12.880981Z",
+          "sha256": "77eb101048d95f982c0353e9233404889dcd7a6fc244c107836c0e2fc9cf7d9d",
+          "md5": "0919880c5c91b446f2cd1daea406b6e2",
+          "blake2b_256": "3f2778a89b55b0904d222183164e079b4ca56208e94eff1d35ad1f1ad5be9b06",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "BAC0",
+      "version": "2026.7.25",
+      "license": "LGPL-3.0",
+      "homepage": "https://github.com/ChristianTremblay/BAC0",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "bac0-2026.7.25-py3-none-any.whl",
+          "size": 121783,
+          "url": "https://files.pythonhosted.org/packages/3a/fa/a9de581ccff3f9dda400c2eab92373f7c70dc8111cc61fee9e7643a6c4c6/bac0-2026.7.25-py3-none-any.whl",
+          "uploaded": "2026-07-26T02:44:21.853337Z",
+          "sha256": "889e4455e53c875b46ca7c15eb8f199a9f3e7596426155415d08a20a8a20308e",
+          "md5": "1709d7706f7f78a0f1004a1dcdbf1cc2",
+          "blake2b_256": "3afaa9de581ccff3f9dda400c2eab92373f7c70dc8111cc61fee9e7643a6c4c6",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "bacpypes3",
+      "version": "0.0.110",
+      "license": "MIT",
+      "homepage": "https://github.com/JoelBender/bacpypes3",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "bacpypes3-0.0.110-py3-none-any.whl",
+          "size": 277907,
+          "url": "https://files.pythonhosted.org/packages/52/a3/c51884d0c841ffb9150acde9198615d09b89232455b9b62488f0ffa52318/bacpypes3-0.0.110-py3-none-any.whl",
+          "uploaded": "2026-09-24T18:52:01.976674Z",
+          "sha256": "02abc0c9e7e92d7061727898ba00204ec072f1d451a63c4e7de76015b5b14911",
+          "md5": "c40688f1b03b595df7565937d8458193",
+          "blake2b_256": "52a3c51884d0c841ffb9150acde9198615d09b89232455b9b62488f0ffa52318",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "bcrypt",
+      "version": "5.0.0",
+      "license": "Apache-2.0",
+      "homepage": null,
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312"
+          ],
+          "file": "bcrypt-5.0.0-cp39-abi3-win_amd64.whl",
+          "size": 150912,
+          "url": "https://files.pythonhosted.org/packages/9f/b9/9d9a641194a730bda138b3dfe53f584d61c58cd5230e37566e83ec2ffa0d/bcrypt-5.0.0-cp39-abi3-win_amd64.whl",
+          "uploaded": "2025-09-25T19:50:35.690190Z",
+          "sha256": "64ee8434b0da054d830fa8e89e1c8bf30061d539044a39524ff7dec90481e5c2",
+          "md5": "8ecd029bd4f52aa88df38f65d6789236",
+          "blake2b_256": "9fb99d9a641194a730bda138b3dfe53f584d61c58cd5230e37566e83ec2ffa0d",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        },
+        {
+          "platforms": [
+            "linux-x86_64-cp312"
+          ],
+          "file": "bcrypt-5.0.0-cp39-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+          "size": 278253,
+          "url": "https://files.pythonhosted.org/packages/e4/6e/b77ade812672d15cf50842e167eead80ac3514f3beacac8902915417f8b7/bcrypt-5.0.0-cp39-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+          "uploaded": "2025-09-25T19:50:15.089933Z",
+          "sha256": "7aeef54b60ceddb6f30ee3db090351ecf0d40ec6e2abf41430997407a46d2254",
+          "md5": "db08cf0911a6aced72b00894f6a193a1",
+          "blake2b_256": "e46eb77ade812672d15cf50842e167eead80ac3514f3beacac8902915417f8b7",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "blinker",
+      "version": "1.9.0",
+      "license": null,
+      "homepage": "https://github.com/pallets-eco/blinker/",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "blinker-1.9.0-py3-none-any.whl",
+          "size": 8458,
+          "url": "https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl",
+          "uploaded": "2024-11-08T17:25:46.184412Z",
+          "sha256": "ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc",
+          "md5": "26605819b98a22f8bc46ee0eb2e0d4d2",
+          "blake2b_256": "10cbf2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "click",
+      "version": "8.5.0",
+      "license": "BSD-3-Clause",
+      "homepage": "https://github.com/pallets/click/",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "click-8.5.0-py3-none-any.whl",
+          "size": 125251,
+          "url": "https://files.pythonhosted.org/packages/58/50/6c0d534c5f134586a8e1ba4e330569e32f057e33372ae556463212fb4cd3/click-8.5.0-py3-none-any.whl",
+          "uploaded": "2026-08-26T13:33:12.928043Z",
+          "sha256": "255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360",
+          "md5": "2f0b6de9bc2aa6bd8ff4200bc7d14bbe",
+          "blake2b_256": "58506c0d534c5f134586a8e1ba4e330569e32f057e33372ae556463212fb4cd3",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "colorama",
+      "version": "0.4.6",
+      "license": null,
+      "homepage": "https://github.com/tartley/colorama",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "colorama-0.4.6-py2.py3-none-any.whl",
+          "size": 25335,
+          "url": "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl",
+          "uploaded": "2022-10-25T02:36:20.889702Z",
+          "sha256": "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6",
+          "md5": "3fc7a89530d68d7ea231ebe779c0db9c",
+          "blake2b_256": "d1d63965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "et-xmlfile",
+      "version": "2.0.0",
+      "license": "MIT",
+      "homepage": "https://foss.heptapod.net/openpyxl/et_xmlfile",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "et_xmlfile-2.0.0-py3-none-any.whl",
+          "size": 18059,
+          "url": "https://files.pythonhosted.org/packages/c1/8b/5fe2cc11fee489817272089c4203e679c63b570a5aaeb18d852ae3cbba6a/et_xmlfile-2.0.0-py3-none-any.whl",
+          "uploaded": "2024-10-25T17:25:39.051783Z",
+          "sha256": "7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa",
+          "md5": "2a0e42a250b2d8a56497969eb14a979d",
+          "blake2b_256": "c18b5fe2cc11fee489817272089c4203e679c63b570a5aaeb18d852ae3cbba6a",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "Flask",
+      "version": "3.1.3",
+      "license": "BSD-3-Clause",
+      "homepage": "https://github.com/pallets/flask/",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "flask-3.1.3-py3-none-any.whl",
+          "size": 103424,
+          "url": "https://files.pythonhosted.org/packages/7f/9c/34f6962f9b9e9c71f6e5ed806e0d0ff03c9d1b0b2340088a0cf4bce09b18/flask-3.1.3-py3-none-any.whl",
+          "uploaded": "2026-02-19T05:00:56.027585Z",
+          "sha256": "f4bcbefc124291925f1a26446da31a5178f9483862233b23c0c96a20701f670c",
+          "md5": "3da2e5b81647a4453e6d007668532627",
+          "blake2b_256": "7f9c34f6962f9b9e9c71f6e5ed806e0d0ff03c9d1b0b2340088a0cf4bce09b18",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "Flask-Bcrypt",
+      "version": "1.0.1",
+      "license": "BSD",
+      "homepage": "https://github.com/maxcountryman/flask-bcrypt",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "Flask_Bcrypt-1.0.1-py3-none-any.whl",
+          "size": 6050,
+          "url": "https://files.pythonhosted.org/packages/8b/72/af9a3a3dbcf7463223c089984b8dd4f1547593819e24d57d9dc5873e04fe/Flask_Bcrypt-1.0.1-py3-none-any.whl",
+          "uploaded": "2022-04-05T03:59:51.589428Z",
+          "sha256": "062fd991dc9118d05ac0583675507b9fe4670e44416c97e0e6819d03d01f808a",
+          "md5": "f62c8df17c974f7e0651c578601adef7",
+          "blake2b_256": "8b72af9a3a3dbcf7463223c089984b8dd4f1547593819e24d57d9dc5873e04fe",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "Flask-Login",
+      "version": "0.6.3",
+      "license": "MIT",
+      "homepage": "https://github.com/maxcountryman/flask-login",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "Flask_Login-0.6.3-py3-none-any.whl",
+          "size": 17303,
+          "url": "https://files.pythonhosted.org/packages/59/f5/67e9cc5c2036f58115f9fe0f00d203cf6780c3ff8ae0e705e7a9d9e8ff9e/Flask_Login-0.6.3-py3-none-any.whl",
+          "uploaded": "2023-10-30T14:53:19.636262Z",
+          "sha256": "849b25b82a436bf830a054e74214074af59097171562ab10bfa999e6b78aae5d",
+          "md5": "7a765091d853ee6284648f3a61bc6902",
+          "blake2b_256": "59f567e9cc5c2036f58115f9fe0f00d203cf6780c3ff8ae0e705e7a9d9e8ff9e",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "Flask-Migrate",
+      "version": "4.1.0",
+      "license": "MIT",
+      "homepage": "https://github.com/miguelgrinberg/flask-migrate",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "Flask_Migrate-4.1.0-py3-none-any.whl",
+          "size": 21237,
+          "url": "https://files.pythonhosted.org/packages/d2/c4/3f329b23d769fe7628a5fc57ad36956f1fb7132cf8837be6da762b197327/Flask_Migrate-4.1.0-py3-none-any.whl",
+          "uploaded": "2025-01-10T18:51:09.527073Z",
+          "sha256": "24d8051af161782e0743af1b04a152d007bad9772b2bca67b7ec1e8ceeb3910d",
+          "md5": "fc7a28b08ac99f139f5e0959a7263558",
+          "blake2b_256": "d2c43f329b23d769fe7628a5fc57ad36956f1fb7132cf8837be6da762b197327",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "Flask-SQLAlchemy",
+      "version": "3.1.1",
+      "license": null,
+      "homepage": null,
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "flask_sqlalchemy-3.1.1-py3-none-any.whl",
+          "size": 25125,
+          "url": "https://files.pythonhosted.org/packages/1d/6a/89963a5c6ecf166e8be29e0d1bf6806051ee8fe6c82e232842e3aeac9204/flask_sqlalchemy-3.1.1-py3-none-any.whl",
+          "uploaded": "2023-09-11T21:42:34.514878Z",
+          "sha256": "4ba4be7f419dc72f4efd8802d69974803c37259dd42f3913b0dcf75c9447e0a0",
+          "md5": "e0575e969b5fd5861e4caedcfe43f61a",
+          "blake2b_256": "1d6a89963a5c6ecf166e8be29e0d1bf6806051ee8fe6c82e232842e3aeac9204",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "Flask-WTF",
+      "version": "1.3.0",
+      "license": "Copyright 2010 WTForms  Redistribution and use in source and",
+      "homepage": null,
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "flask_wtf-1.3.0-py3-none-any.whl",
+          "size": 13959,
+          "url": "https://files.pythonhosted.org/packages/14/d2/97adf2ec7af95522573e6dd5493ee84792d0fbfb2def010c4a581b8d6e5e/flask_wtf-1.3.0-py3-none-any.whl",
+          "uploaded": "2026-04-23T07:41:53.828605Z",
+          "sha256": "dc5e3a4ce97f75c47bf6c1c72ad2c3b7bdf579a2ed13aebcc5d3d81fe2571160",
+          "md5": "5da731b70f21519ef7aadb4ad1b0b9e2",
+          "blake2b_256": "14d297adf2ec7af95522573e6dd5493ee84792d0fbfb2def010c4a581b8d6e5e",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "itsdangerous",
+      "version": "2.2.0",
+      "license": null,
+      "homepage": "https://github.com/pallets/itsdangerous/",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "itsdangerous-2.2.0-py3-none-any.whl",
+          "size": 16234,
+          "url": "https://files.pythonhosted.org/packages/04/96/92447566d16df59b2a776c0fb82dbc4d9e07cd95062562af01e408583fc4/itsdangerous-2.2.0-py3-none-any.whl",
+          "uploaded": "2024-04-16T21:28:14.499616Z",
+          "sha256": "c6242fc49e35958c8b15141343aa660db5fc54d4f13a1db01a3f5891b98700ef",
+          "md5": "22e41bfb2008481e855f1693a9df4c54",
+          "blake2b_256": "049692447566d16df59b2a776c0fb82dbc4d9e07cd95062562af01e408583fc4",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "Jinja2",
+      "version": "3.1.6",
+      "license": null,
+      "homepage": "https://github.com/pallets/jinja/",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "jinja2-3.1.6-py3-none-any.whl",
+          "size": 134899,
+          "url": "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl",
+          "uploaded": "2025-03-05T20:05:00.369721Z",
+          "sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67",
+          "md5": "845b37cea56edd0f4dbd949244e9d798",
+          "blake2b_256": "62a13d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "Mako",
+      "version": "1.4.3",
+      "license": "MIT",
+      "homepage": "https://www.makotemplates.org/",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "mako-1.4.3-py3-none-any.whl",
+          "size": 80164,
+          "url": "https://files.pythonhosted.org/packages/6d/a0/053d6af3e8f871e0073b4a36732d9e65be77a72e5434c31b94f6af78a6bb/mako-1.4.3-py3-none-any.whl",
+          "uploaded": "2026-09-22T20:54:33.128860Z",
+          "sha256": "723296007c870bfd6b3f0c3230dba7198096e5269297ebf5e4eff9e7ffa39d4f",
+          "md5": "64b44e389cd17c32f3673a52e4bfbf45",
+          "blake2b_256": "6da0053d6af3e8f871e0073b4a36732d9e65be77a72e5434c31b94f6af78a6bb",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "MarkupSafe",
+      "version": "3.0.4",
+      "license": "BSD-3-Clause",
+      "homepage": "https://github.com/pallets/markupsafe/",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312"
+          ],
+          "file": "markupsafe-3.0.4-cp312-cp312-win_amd64.whl",
+          "size": 14303,
+          "url": "https://files.pythonhosted.org/packages/3f/bf/62495e180b7000aaf30000fff849e933f74264638057176cf46852500adc/markupsafe-3.0.4-cp312-cp312-win_amd64.whl",
+          "uploaded": "2026-10-02T23:05:06.538516Z",
+          "sha256": "11935df9bf455ed0c04eb87bcd720f02b1fe5e02128a9430f23aed6f93336fc7",
+          "md5": "f6cf47ff2ae6beb660637547287d1e86",
+          "blake2b_256": "3fbf62495e180b7000aaf30000fff849e933f74264638057176cf46852500adc",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        },
+        {
+          "platforms": [
+            "linux-x86_64-cp312"
+          ],
+          "file": "markupsafe-3.0.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+          "size": 22985,
+          "url": "https://files.pythonhosted.org/packages/4f/a7/aeedb5140afa41fc74c225e9184ab96723a6e873b6ee1c9fede7283456d8/markupsafe-3.0.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+          "uploaded": "2026-10-02T23:04:57.521810Z",
+          "sha256": "8e124f974786f831d6043728e38296969d3579db8896fe004682f5758e613581",
+          "md5": "de2f585cd14e6a554f53cc750b906c98",
+          "blake2b_256": "4fa7aeedb5140afa41fc74c225e9184ab96723a6e873b6ee1c9fede7283456d8",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "openpyxl",
+      "version": "3.1.5",
+      "license": "MIT",
+      "homepage": "https://openpyxl.readthedocs.io",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "openpyxl-3.1.5-py2.py3-none-any.whl",
+          "size": 250910,
+          "url": "https://files.pythonhosted.org/packages/c0/da/977ded879c29cbd04de313843e76868e6e13408a94ed6b987245dc7c8506/openpyxl-3.1.5-py2.py3-none-any.whl",
+          "uploaded": "2024-06-28T14:03:41.161372Z",
+          "sha256": "5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2",
+          "md5": "05a1b34e9893bab14dd70c7645c4ddcb",
+          "blake2b_256": "c0da977ded879c29cbd04de313843e76868e6e13408a94ed6b987245dc7c8506",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "pillow",
+      "version": "12.3.0",
+      "license": "MIT-CMU",
+      "homepage": "https://python-pillow.github.io",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312"
+          ],
+          "file": "pillow-12.3.0-cp312-cp312-win_amd64.whl",
+          "size": 7227137,
+          "url": "https://files.pythonhosted.org/packages/45/89/da2f7971a317f83d807fdd4065c0af40208e59e692cc43d315a71a0e96d1/pillow-12.3.0-cp312-cp312-win_amd64.whl",
+          "uploaded": "2026-07-01T11:54:22.025716Z",
+          "sha256": "a2b55dd6b2a4c4b7d87ffa56bdb33fdc5fdb9a462173861a7bc097f17d91cb09",
+          "md5": "ca45ffc3e54192266c378089a0be08d2",
+          "blake2b_256": "4589da2f7971a317f83d807fdd4065c0af40208e59e692cc43d315a71a0e96d1",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        },
+        {
+          "platforms": [
+            "linux-x86_64-cp312"
+          ],
+          "file": "pillow-12.3.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+          "size": 6940830,
+          "url": "https://files.pythonhosted.org/packages/84/21/a35af28dcc61f37ed850a2d64c65c701321dfbf25085e469d5559360cbbf/pillow-12.3.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+          "uploaded": "2026-07-01T11:54:13.732453Z",
+          "sha256": "78cb2c6865a35ab8ff8b75fd122f6033b92a62c82801110e48ddd6c936a45d91",
+          "md5": "1f2e5c23db62b38659316f77ab44aba4",
+          "blake2b_256": "8421a35af28dcc61f37ed850a2d64c65c701321dfbf25085e469d5559360cbbf",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "pygame",
+      "version": "2.6.1",
+      "license": "LGPL",
+      "homepage": "https://www.pygame.org",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312"
+          ],
+          "file": "pygame-2.6.1-cp312-cp312-win_amd64.whl",
+          "size": 10624591,
+          "url": "https://files.pythonhosted.org/packages/5f/90/7d766d54bb95939725e9a9361f9c06b0cfbe3fe100aa35400f0a461a278a/pygame-2.6.1-cp312-cp312-win_amd64.whl",
+          "uploaded": "2024-09-29T11:52:54.489304Z",
+          "sha256": "3a9e7396be0d9633831c3f8d5d82dd63ba373ad65599628294b7a4f8a5a01a65",
+          "md5": "8d383c83f0fc22bd9c511a3220dfd887",
+          "blake2b_256": "5f907d766d54bb95939725e9a9361f9c06b0cfbe3fe100aa35400f0a461a278a",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        },
+        {
+          "platforms": [
+            "linux-x86_64-cp312"
+          ],
+          "file": "pygame-2.6.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+          "size": 13952653,
+          "url": "https://files.pythonhosted.org/packages/b9/f2/d31e6ad42d657af07be2ffd779190353f759a07b51232b9e1d724f2cda46/pygame-2.6.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+          "uploaded": "2024-09-29T11:40:01.781040Z",
+          "sha256": "1206125f14cae22c44565c9d333607f1d9f59487b1f1432945dfc809aeaa3e88",
+          "md5": "6735dcfa9fa98418dea27e52b80bda9c",
+          "blake2b_256": "b9f2d31e6ad42d657af07be2ffd779190353f759a07b51232b9e1d724f2cda46",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "pymodbus",
+      "version": "3.16.1",
+      "license": "BSD-3-Clause",
+      "homepage": "https://github.com/pymodbus-dev/pymodbus/",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "pymodbus-3.16.1-py3-none-any.whl",
+          "size": 167870,
+          "url": "https://files.pythonhosted.org/packages/ee/b4/c6ccb9186b576abbbbffe865544184014fcc0563dfdff00749ca234ca0f8/pymodbus-3.16.1-py3-none-any.whl",
+          "uploaded": "2026-10-11T17:38:45.390538Z",
+          "sha256": "bb433f7417280bdea1190d95495aa6fb8e1fa8e0d720c436922b270bc378024c",
+          "md5": "6ca34e28ca45e9df000031cfd418c6b6",
+          "blake2b_256": "eeb4c6ccb9186b576abbbbffe865544184014fcc0563dfdff00749ca234ca0f8",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "pyModbusTCP",
+      "version": "0.3.1",
+      "license": "MIT",
+      "homepage": "https://github.com/sourceperl/pyModbusTCP",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "pymodbustcp-0.3.1-py3-none-any.whl",
+          "size": 24984,
+          "url": "https://files.pythonhosted.org/packages/02/c8/c71fdd48eadc4bbe62ac4fa69cb908b4c42ac8099bdef507b21392eb7241/pymodbustcp-0.3.1-py3-none-any.whl",
+          "uploaded": "2026-09-30T07:40:36.885668Z",
+          "sha256": "f7679bd3daf8e0642a204c68efa233e180a26f0be8460049e32b19a4aee05cb0",
+          "md5": "2170876a75924a0ea0945b20dadab325",
+          "blake2b_256": "02c8c71fdd48eadc4bbe62ac4fa69cb908b4c42ac8099bdef507b21392eb7241",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "pyserial",
+      "version": "3.5",
+      "license": "BSD",
+      "homepage": "https://github.com/pyserial/pyserial",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "pyserial-3.5-py2.py3-none-any.whl",
+          "size": 90585,
+          "url": "https://files.pythonhosted.org/packages/07/bc/587a445451b253b285629263eb51c2d8e9bcea4fc97826266d186f96f558/pyserial-3.5-py2.py3-none-any.whl",
+          "uploaded": "2020-11-23T03:59:13.410020Z",
+          "sha256": "c4451db6ba391ca6ca299fb3ec7bae67a5c55dde170964c7a14ceefec02f2cf0",
+          "md5": "b6b182ebaf20199e9788214cae349df4",
+          "blake2b_256": "07bc587a445451b253b285629263eb51c2d8e9bcea4fc97826266d186f96f558",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "pytablericons",
+      "version": "1.0.1",
+      "license": "MIT",
+      "homepage": "https://github.com/niklashenning/pytablericons",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "pytablericons-1.0.1-py3-none-any.whl",
+          "size": 2693212,
+          "url": "https://files.pythonhosted.org/packages/ed/bb/f60a5f984bafea9cf3e424a8da53214d4750cf77d908da68a54409dbd438/pytablericons-1.0.1-py3-none-any.whl",
+          "uploaded": "2024-08-22T21:56:32.880027Z",
+          "sha256": "0c9bac8a016daa912273f22911d5d7039bafbb2de0a78a7152944a3aaaaa7b29",
+          "md5": "84c645a596dd8e581b4b886733a5a563",
+          "blake2b_256": "edbbf60a5f984bafea9cf3e424a8da53214d4750cf77d908da68a54409dbd438",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "python-dotenv",
+      "version": "1.2.4",
+      "license": "BSD-3-Clause",
+      "homepage": "https://github.com/theskumar/python-dotenv",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "python_dotenv-1.2.4-py3-none-any.whl",
+          "size": 23266,
+          "url": "https://files.pythonhosted.org/packages/60/d1/38f3a3405989a89ac18390803e70c6ad7c7760da4f9b83cbeca0c44a0c72/python_dotenv-1.2.4-py3-none-any.whl",
+          "uploaded": "2026-10-01T05:36:08.633003Z",
+          "sha256": "42269a8a5b3fd54ffa6f3d84b18abed50064717576b4ecf03dc4a55d8aa04fdc",
+          "md5": "fc1378d45185a1b19e9f05a9b20cc5fd",
+          "blake2b_256": "60d138f3a3405989a89ac18390803e70c6ad7c7760da4f9b83cbeca0c44a0c72",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "python-snap7",
+      "version": "3.2.1",
+      "license": "MIT",
+      "homepage": "https://github.com/gijzelaerr/python-snap7",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "python_snap7-3.2.1-py3-none-any.whl",
+          "size": 156107,
+          "url": "https://files.pythonhosted.org/packages/e9/19/dd8ae9e240eddbadeee9e3b68115b28766e3ac25c755ae2af7c6cc87a566/python_snap7-3.2.1-py3-none-any.whl",
+          "uploaded": "2026-10-04T07:18:32.612541Z",
+          "sha256": "05d65110169c3ef2edea2aaeb23be598527c46877d5546ee0a7e61a7e37ab198",
+          "md5": "d0a8ebf54184456539e101807c1bb0e3",
+          "blake2b_256": "e919dd8ae9e240eddbadeee9e3b68115b28766e3ac25c755ae2af7c6cc87a566",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "pytz",
+      "version": "2026.5",
+      "license": "MIT",
+      "homepage": "http://pythonhosted.org/pytz",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "pytz-2026.5-py2.py3-none-any.whl",
+          "size": 506342,
+          "url": "https://files.pythonhosted.org/packages/4f/ef/c66110d46fb800dda0bf33164182dfadabe26a90e4476844d502a23dca8e/pytz-2026.5-py2.py3-none-any.whl",
+          "uploaded": "2026-10-04T02:37:56.814199Z",
+          "sha256": "e658af3757f9e26a9d25dd2aff38335acd92bc9104f890a894b2c1ba28311b03",
+          "md5": "5d68e4ca4f46cc73ad6c1ab22a9e3583",
+          "blake2b_256": "4fefc66110d46fb800dda0bf33164182dfadabe26a90e4476844d502a23dca8e",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "PyYAML",
+      "version": "6.0.3",
+      "license": "MIT",
+      "homepage": "https://pyyaml.org/",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312"
+          ],
+          "file": "pyyaml-6.0.3-cp312-cp312-win_amd64.whl",
+          "size": 154003,
+          "url": "https://files.pythonhosted.org/packages/86/bf/899e81e4cce32febab4fb42bb97dcdf66bc135272882d1987881a4b519e9/pyyaml-6.0.3-cp312-cp312-win_amd64.whl",
+          "uploaded": "2025-09-25T21:32:21.167929Z",
+          "sha256": "5fcd34e47f6e0b794d17de1b4ff496c00986e1c83f7ab2fb8fcfe9616ff7477b",
+          "md5": "1eca904867a416af5a26e612c5fb565b",
+          "blake2b_256": "86bf899e81e4cce32febab4fb42bb97dcdf66bc135272882d1987881a4b519e9",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        },
+        {
+          "platforms": [
+            "linux-x86_64-cp312"
+          ],
+          "file": "pyyaml-6.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+          "size": 807870,
+          "url": "https://files.pythonhosted.org/packages/8b/9d/b3589d3877982d4f2329302ef98a8026e7f4443c765c46cfecc8858c6b4b/pyyaml-6.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+          "uploaded": "2025-09-25T21:32:16.431392Z",
+          "sha256": "ba1cc08a7ccde2d2ec775841541641e4548226580ab850948cbfda66a1befcdc",
+          "md5": "b3baaa03751fc90073221c5ec847048e",
+          "blake2b_256": "8b9db3589d3877982d4f2329302ef98a8026e7f4443c765c46cfecc8858c6b4b",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "SQLAlchemy",
+      "version": "2.1.4",
+      "license": "MIT",
+      "homepage": "https://www.sqlalchemy.org",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312"
+          ],
+          "file": "sqlalchemy-2.1.4-cp312-cp312-win_amd64.whl",
+          "size": 2429357,
+          "url": "https://files.pythonhosted.org/packages/27/b9/a5934263bb1d712f743289ca224ab3b87e3570ac157802291e37ab85d365/sqlalchemy-2.1.4-cp312-cp312-win_amd64.whl",
+          "uploaded": "2026-10-07T18:25:02.565258Z",
+          "sha256": "dffa69d2f3ba1933c1c1882dbef8fb3231b33eb19263e8b8c5cea24995071f06",
+          "md5": "2c1b1b992b6df322b3ba87ea216c4542",
+          "blake2b_256": "27b9a5934263bb1d712f743289ca224ab3b87e3570ac157802291e37ab85d365",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        },
+        {
+          "platforms": [
+            "linux-x86_64-cp312"
+          ],
+          "file": "sqlalchemy-2.1.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+          "size": 4720857,
+          "url": "https://files.pythonhosted.org/packages/08/25/ed2262f964687b06f10c2c98b2dc9c9ed211f7cc11702879969a9ac217e4/sqlalchemy-2.1.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+          "uploaded": "2026-10-07T18:24:46.842102Z",
+          "sha256": "3e5045fb6aadbb0f978ab9b9d8822f7b7a97d2281814e7d13d791155664eace3",
+          "md5": "fb85ad1918bab4947a4d9c2ea07bf18a",
+          "blake2b_256": "0825ed2262f964687b06f10c2c98b2dc9c9ed211f7cc11702879969a9ac217e4",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "typing-extensions",
+      "version": "4.16.0",
+      "license": "PSF-2.0",
+      "homepage": null,
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "typing_extensions-4.16.0-py3-none-any.whl",
+          "size": 45571,
+          "url": "https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl",
+          "uploaded": "2026-07-02T08:40:04.659120Z",
+          "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+          "md5": "aaa249e7f620bbcecbcbf2b7b11fbd12",
+          "blake2b_256": "49d3b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "tzdata",
+      "version": "2026.5",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/python/tzdata",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "tzdata-2026.5-py2.py3-none-any.whl",
+          "size": 347996,
+          "url": "https://files.pythonhosted.org/packages/94/21/1e5995a1c920cce14e4bffae20c665ec10e7ed03ab25e006cd741092b718/tzdata-2026.5-py2.py3-none-any.whl",
+          "uploaded": "2026-10-03T09:23:12.535688Z",
+          "sha256": "b683bd1b6659ddcd810ff02ad09ba821d4bf1065072805063eb35c49617905ac",
+          "md5": "81bb8d8df7440eab17d70cbd902b8c51",
+          "blake2b_256": "94211e5995a1c920cce14e4bffae20c665ec10e7ed03ab25e006cd741092b718",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "waitress",
+      "version": "3.0.2",
+      "license": "ZPL 2.1",
+      "homepage": "https://github.com/Pylons/waitress",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "waitress-3.0.2-py3-none-any.whl",
+          "size": 56232,
+          "url": "https://files.pythonhosted.org/packages/8d/57/a27182528c90ef38d82b636a11f606b0cbb0e17588ed205435f8affe3368/waitress-3.0.2-py3-none-any.whl",
+          "uploaded": "2024-11-16T20:02:33.858165Z",
+          "sha256": "c56d67fd6e87c2ee598b76abdd4e96cfad1f24cacdea5078d382b1f9d7b5ed2e",
+          "md5": "5fc22c8e278c68809bfcc9b85824c680",
+          "blake2b_256": "8d57a27182528c90ef38d82b636a11f606b0cbb0e17588ed205435f8affe3368",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "Werkzeug",
+      "version": "3.1.9",
+      "license": "BSD-3-Clause",
+      "homepage": "https://github.com/pallets/werkzeug/",
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "werkzeug-3.1.9-py3-none-any.whl",
+          "size": 228700,
+          "url": "https://files.pythonhosted.org/packages/a1/38/df03f564f43cec2684823f3cccae1a652ee7face1cbaa76fb223096e64d7/werkzeug-3.1.9-py3-none-any.whl",
+          "uploaded": "2026-09-27T18:33:39.685530Z",
+          "sha256": "6392e50c78460ba618e5b21f08a71f59c99ce99cdc6cf6e3dd7e6ccca8754fab",
+          "md5": "0d87233e2a19a043a680d6db7e46f4e7",
+          "blake2b_256": "a138df03f564f43cec2684823f3cccae1a652ee7face1cbaa76fb223096e64d7",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    },
+    {
+      "name": "WTForms",
+      "version": "3.2.2",
+      "license": "Copyright 2008 WTForms  Redistribution and use in source and",
+      "homepage": null,
+      "source": "PyPI (pypi.org)",
+      "files": [
+        {
+          "platforms": [
+            "windows-x64-cp312",
+            "linux-x86_64-cp312"
+          ],
+          "file": "wtforms-3.2.2-py3-none-any.whl",
+          "size": 158656,
+          "url": "https://files.pythonhosted.org/packages/18/76/bb225c8300f3a0ba28e01df51419c6c9574a297c43d71b29048e03b65deb/wtforms-3.2.2-py3-none-any.whl",
+          "uploaded": "2026-05-03T05:53:46.072744Z",
+          "sha256": "72b90d5d921bd3119252069cf0301e9c13915f9e52792652bc91c5dda4b79e56",
+          "md5": "6d2bc0bdcfd43eb749e2a8d73f4c858b",
+          "blake2b_256": "1876bb225c8300f3a0ba28e01df51419c6c9574a297c43d71b29048e03b65deb",
+          "verified": "downloaded file SHA-256 = published SHA-256"
+        }
+      ]
+    }
+  ],
+  "browser_libraries": [
+    {
+      "name": "bootstrap",
+      "version": "5.3.3",
+      "license": "MIT",
+      "source": "npm registry (registry.npmjs.org)",
+      "tarball": "https://registry.npmjs.org/bootstrap/-/bootstrap-5.3.3.tgz",
+      "integrity": "sha512-8HLCdWgyoMguSO9o+aH+iuZ+aht+mzW0u3HIMzVu7Srrpv7EBBxTnrFlSCskwdY1+EOFQSm7uMJhNQHkdPcmjg==",
+      "shasum_sha1": "de35e1a765c897ac940021900fcbb831602bac38",
+      "tarball_sha256": "38cee936dbd80138de6775683149f22e9226fc2d654392337a921f53000c789e",
+      "verified": "downloaded tarball matches the published integrity and shasum",
+      "bundled_files": [
+        {
+          "file": "app/static/vendor/bootstrap/bootstrap.bundle.min.js",
+          "sha256": "0833b2e9c3a26c258476c46266e6877fc75218625162e0460be9a3a098a61c6c",
+          "identical_to": "bootstrap@5.3.3 npm tarball: package/dist/js/bootstrap.bundle.min.js",
+          "developer_sri": "sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz",
+          "developer_sri_source": "https://github.com/twbs/bootstrap/blob/v5.3.3/hugo.yml (params.cdn – also shown in the 5.3.3 docs)",
+          "developer_sri_verified": "SHA-384 of the bundled file = published SRI"
+        },
+        {
+          "file": "app/static/vendor/bootstrap/bootstrap.min.css",
+          "sha256": "3c8f27e6009ccfd710a905e6dcf12d0ee3c6f2ac7da05b0572d3e0d12e736fc8",
+          "identical_to": "bootstrap@5.3.3 npm tarball: package/dist/css/bootstrap.min.css",
+          "developer_sri": "sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH",
+          "developer_sri_source": "https://github.com/twbs/bootstrap/blob/v5.3.3/hugo.yml (params.cdn – also shown in the 5.3.3 docs)",
+          "developer_sri_verified": "SHA-384 of the bundled file = published SRI"
+        },
+        {
+          "file": "app/static/vendor/bootstrap/bootstrap.rtl.min.css",
+          "sha256": "879944ecd9bc4a4788a411c763137df6ca4fdd5b8614a97935982ca1c8a5ef39",
+          "identical_to": "bootstrap@5.3.3 npm tarball: package/dist/css/bootstrap.rtl.min.css",
+          "developer_sri": "sha384-dpuaG1suU0eT09tx5plTaGMLBsfDLzUCCUXOY2j/LSvXYuG6Bqs43ALlhIqAJVRb",
+          "developer_sri_source": "https://github.com/twbs/bootstrap/blob/v5.3.3/hugo.yml (params.cdn – also shown in the 5.3.3 docs)",
+          "developer_sri_verified": "SHA-384 of the bundled file = published SRI"
+        },
+        {
+          "file": "app/static/vendor/bootstrap/LICENSE",
+          "sha256": "8c14611ae41ac6fd543c13349f22188eb12c69b3e59105c5eca3925a8e4eca3e",
+          "identical_to": "bootstrap@5.3.3 npm tarball: package/LICENSE"
+        }
+      ]
+    },
+    {
+      "name": "bootstrap-icons",
+      "version": "1.11.3",
+      "license": "MIT",
+      "source": "npm registry (registry.npmjs.org)",
+      "tarball": "https://registry.npmjs.org/bootstrap-icons/-/bootstrap-icons-1.11.3.tgz",
+      "integrity": "sha512-+3lpHrCw/it2/7lBL15VR0HEumaBss0+f/Lb6ZvHISn1mlK83jjFpooTLsMWbIjJMDjDjOExMsTxnXSIT4k4ww==",
+      "shasum_sha1": "03f9cb754ec005c52f9ee616e2e84a82cab3084b",
+      "tarball_sha256": "c68c68dc483cc06c897873d2452e23d33f21865d205edc51349332313bdfdae5",
+      "verified": "downloaded tarball matches the published integrity and shasum",
+      "bundled_files": [
+        {
+          "file": "app/static/vendor/bootstrap-icons/bootstrap-icons.min.css",
+          "sha256": "f643d6fe7e679f9de3e16311600c5ef5cd6b098f7a3a8828fcc29255d2b33e62",
+          "identical_to": "bootstrap-icons@1.11.3 npm tarball: package/font/bootstrap-icons.min.css"
+        },
+        {
+          "file": "app/static/vendor/bootstrap-icons/fonts/bootstrap-icons.woff",
+          "sha256": "bb1de989b83970f6f4e54de1cd974c5cba55b73582da5e1b225a6d0edf029483",
+          "identical_to": "bootstrap-icons@1.11.3 npm tarball: package/font/fonts/bootstrap-icons.woff"
+        },
+        {
+          "file": "app/static/vendor/bootstrap-icons/fonts/bootstrap-icons.woff2",
+          "sha256": "476adf42b40325098fcfa8b36ab3e769186bb4f6ce6a249753e2e1a9c22bf99e",
+          "identical_to": "bootstrap-icons@1.11.3 npm tarball: package/font/fonts/bootstrap-icons.woff2"
+        },
+        {
+          "file": "app/static/vendor/bootstrap-icons/LICENSE",
+          "sha256": "0fb3e11bd57e896c5a512afd64864d28a37de45d19835016c87ca1ad19ead969",
+          "identical_to": "bootstrap-icons@1.11.3 npm tarball: package/LICENSE"
+        }
+      ]
+    },
+    {
+      "name": "chart.js",
+      "version": "4.4.7",
+      "license": "MIT",
+      "source": "npm registry (registry.npmjs.org)",
+      "tarball": "https://registry.npmjs.org/chart.js/-/chart.js-4.4.7.tgz",
+      "integrity": "sha512-pwkcKfdzTMAU/+jNosKhNL2bHtJc/sSmYgVbuGTEDhzkrhmyihmP7vUc/5ZK9WopidMDHNe3Wm7jOd/WhuHWuw==",
+      "shasum_sha1": "7a01ee0b4dac3c03f2ab0589af888db296d896fa",
+      "tarball_sha256": "af01b7afdbb70017c079b0dc78ef883f860d28fa2644ed78906a39090d07134f",
+      "verified": "downloaded tarball matches the published integrity and shasum",
+      "bundled_files": [
+        {
+          "file": "app/static/vendor/chartjs/chart.umd.min.js",
+          "sha256": "2812cb8825fdc57469eb2f7bb055e9429244e599920511ee477e828499b632cb",
+          "identical_to": "chart.js@4.4.7 npm tarball: package/dist/chart.umd.js"
+        },
+        {
+          "file": "app/static/vendor/chartjs/LICENSE-chartjs.md",
+          "sha256": "41a84aa2caba645f966a18d9c2056b73e6d3a81d80bc0046bc0011a2634d4cce",
+          "identical_to": "chart.js@4.4.7 npm tarball: package/LICENSE.md"
+        }
+      ]
+    },
+    {
+      "name": "chartjs-adapter-date-fns",
+      "version": "3.0.0",
+      "license": "MIT",
+      "source": "npm registry (registry.npmjs.org)",
+      "tarball": "https://registry.npmjs.org/chartjs-adapter-date-fns/-/chartjs-adapter-date-fns-3.0.0.tgz",
+      "integrity": "sha512-Rs3iEB3Q5pJ973J93OBTpnP7qoGwvq3nUnoMdtxO+9aoJof7UFcRbWcIDteXuYd1fgAvct/32T9qaLyLuZVwCg==",
+      "shasum_sha1": "c25f63c7f317c1f96f9a7c44bd45eeedb8a478e5",
+      "tarball_sha256": "53e583bed13f12d3fd59885debfff58f677031f95720632a046e925304dba498",
+      "verified": "downloaded tarball matches the published integrity and shasum",
+      "bundled_files": [
+        {
+          "file": "app/static/vendor/chartjs/chartjs-adapter-date-fns.bundle.min.js",
+          "sha256": "ea7ab30d26c38dcf1f2d26bb43e73a94537b58f1906f55e1a546dd09321b5615",
+          "identical_to": "chartjs-adapter-date-fns@3.0.0 npm tarball: package/dist/chartjs-adapter-date-fns.bundle.min.js"
+        },
+        {
+          "file": "app/static/vendor/chartjs/LICENSE-adapter.md",
+          "sha256": "b4b8355c2cd2b18354980a0c6422181d7bd6e895d94ae88b3570e97c60eea03d",
+          "identical_to": "chartjs-adapter-date-fns@3.0.0 npm tarball: package/LICENSE.md"
+        }
+      ]
+    },
+    {
+      "name": "sweetalert2",
+      "version": "11.26.25",
+      "license": "MIT",
+      "source": "npm registry (registry.npmjs.org)",
+      "tarball": "https://registry.npmjs.org/sweetalert2/-/sweetalert2-11.26.25.tgz",
+      "integrity": "sha512-+hunCOJdJ6FLj04T9YSLvvZXRjsvIkTeTKP2e4VF8CaBias961BTnWiSFAy7F/CM5eq3QK2Rraoc5Gzftslvkg==",
+      "shasum_sha1": "ba24ffb79c67648ac51f834620baa15866a56e35",
+      "tarball_sha256": "f876505083ae4e450ac97de20ff1c937292dc7d9a8a040367e08b5f2f09818f6",
+      "verified": "downloaded tarball matches the published integrity and shasum",
+      "bundled_files": [
+        {
+          "file": "app/static/vendor/sweetalert2/sweetalert2.min.js",
+          "sha256": "520341374aa1ee4387d6564e46c0fb0485addc98431ee246cd1be6368fedb1b0",
+          "identical_to": "sweetalert2@11.26.25 npm tarball: package/dist/sweetalert2.min.js"
+        },
+        {
+          "file": "app/static/vendor/sweetalert2/sweetalert2.min.css",
+          "sha256": "a1173e56fd474be04ddbefa81bd75cc465627ef2f5db261792e7d25fb7871743",
+          "identical_to": "sweetalert2@11.26.25 npm tarball: package/dist/sweetalert2.min.css"
+        },
+        {
+          "file": "app/static/vendor/sweetalert2/LICENSE",
+          "sha256": "879aa33feba35b3428c6485fc17cddd8c820d7a8780281aa945e60582a28c4b4",
+          "identical_to": "sweetalert2@11.26.25 npm tarball: package/LICENSE"
+        }
+      ]
+    }
+  ],
+  "development_tools": {
+    "note": "Only for running the tests (requirements-dev.txt is not pinned: these are the versions the test suite was run with).",
+    "packages": [
+      {
+        "name": "coverage",
+        "version": "7.16.2",
+        "license": "Apache-2.0",
+        "homepage": "https://github.com/coveragepy/coveragepy",
+        "source": "PyPI (pypi.org)",
+        "files": [
+          {
+            "platforms": [
+              "windows-x64-cp312"
+            ],
+            "file": "coverage-7.16.2-cp312-cp312-win_amd64.whl",
+            "size": 226569,
+            "url": "https://files.pythonhosted.org/packages/db/de/e3ad6d864c0833624b4f1f9b53f9e58e116c945e5e965c3f1e172c5e84cd/coverage-7.16.2-cp312-cp312-win_amd64.whl",
+            "uploaded": "2026-09-27T12:26:36.604076Z",
+            "sha256": "e6c52d3307824ff93b39efd99e4185d557db40bd841452abfb32e5d9151ca162",
+            "md5": "7383725b62e11d3c9dda74f6b659b831",
+            "blake2b_256": "dbdee3ad6d864c0833624b4f1f9b53f9e58e116c945e5e965c3f1e172c5e84cd",
+            "verified": "downloaded file SHA-256 = published SHA-256"
+          },
+          {
+            "platforms": [
+              "linux-x86_64-cp312"
+            ],
+            "file": "coverage-7.16.2-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl",
+            "size": 258571,
+            "url": "https://files.pythonhosted.org/packages/d1/36/6c45f15be4eca4ac1062c6a55a323286494c99726a7e58951fe85967ac08/coverage-7.16.2-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl",
+            "uploaded": "2026-09-27T12:26:21.199156Z",
+            "sha256": "5375ebd99038021b35e99dc88255022912c06565d316212f4a576e4b08d30f5d",
+            "md5": "32de89fadd1d5cd896a16df48953b1f0",
+            "blake2b_256": "d1366c45f15be4eca4ac1062c6a55a323286494c99726a7e58951fe85967ac08",
+            "verified": "downloaded file SHA-256 = published SHA-256"
+          }
+        ]
+      },
+      {
+        "name": "iniconfig",
+        "version": "2.3.1",
+        "license": "MIT",
+        "homepage": "https://github.com/pytest-dev/iniconfig",
+        "source": "PyPI (pypi.org)",
+        "files": [
+          {
+            "platforms": [
+              "windows-x64-cp312",
+              "linux-x86_64-cp312"
+            ],
+            "file": "iniconfig-2.3.1-py3-none-any.whl",
+            "size": 7552,
+            "url": "https://files.pythonhosted.org/packages/56/43/4ca9e49d27a1fcf6bece6f6aec0ea46bb9112489b93d4b688fb415457bdb/iniconfig-2.3.1-py3-none-any.whl",
+            "uploaded": "2026-10-06T22:48:36.959685Z",
+            "sha256": "9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7",
+            "md5": "5167efaac40122c06cd4afffbe7edfa7",
+            "blake2b_256": "56434ca9e49d27a1fcf6bece6f6aec0ea46bb9112489b93d4b688fb415457bdb",
+            "verified": "downloaded file SHA-256 = published SHA-256"
+          }
+        ]
+      },
+      {
+        "name": "packaging",
+        "version": "26.3",
+        "license": "Apache-2.0 OR BSD-2-Clause",
+        "homepage": "https://github.com/pypa/packaging",
+        "source": "PyPI (pypi.org)",
+        "files": [
+          {
+            "platforms": [
+              "windows-x64-cp312",
+              "linux-x86_64-cp312"
+            ],
+            "file": "packaging-26.3-py3-none-any.whl",
+            "size": 129956,
+            "url": "https://files.pythonhosted.org/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl",
+            "uploaded": "2026-08-04T18:15:27.159957Z",
+            "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c",
+            "md5": "e5b3bd8ce52e8a8fe1ab400079171a1e",
+            "blake2b_256": "6334ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527",
+            "verified": "downloaded file SHA-256 = published SHA-256"
+          }
+        ]
+      },
+      {
+        "name": "pluggy",
+        "version": "1.6.0",
+        "license": "MIT",
+        "homepage": null,
+        "source": "PyPI (pypi.org)",
+        "files": [
+          {
+            "platforms": [
+              "windows-x64-cp312",
+              "linux-x86_64-cp312"
+            ],
+            "file": "pluggy-1.6.0-py3-none-any.whl",
+            "size": 20538,
+            "url": "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl",
+            "uploaded": "2025-05-15T12:30:06.134003Z",
+            "sha256": "e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746",
+            "md5": "e107bd9fd0c26746617d74bac26fa0c5",
+            "blake2b_256": "54204d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf",
+            "verified": "downloaded file SHA-256 = published SHA-256"
+          }
+        ]
+      },
+      {
+        "name": "Pygments",
+        "version": "2.21.0",
+        "license": "BSD-2-Clause",
+        "homepage": "https://pygments.org",
+        "source": "PyPI (pypi.org)",
+        "files": [
+          {
+            "platforms": [
+              "windows-x64-cp312",
+              "linux-x86_64-cp312"
+            ],
+            "file": "pygments-2.21.0-py3-none-any.whl",
+            "size": 1250147,
+            "url": "https://files.pythonhosted.org/packages/71/46/17f022dd3e953bf20a04a028a21ec746d942f8d2af30fa0f124fa0e6a684/pygments-2.21.0-py3-none-any.whl",
+            "uploaded": "2026-08-17T08:02:44.912148Z",
+            "sha256": "2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9",
+            "md5": "eaaa46b6eef9ba4d6abd73d4f45be371",
+            "blake2b_256": "714617f022dd3e953bf20a04a028a21ec746d942f8d2af30fa0f124fa0e6a684",
+            "verified": "downloaded file SHA-256 = published SHA-256"
+          }
+        ]
+      },
+      {
+        "name": "pytest",
+        "version": "9.1.1",
+        "license": "MIT",
+        "homepage": "https://docs.pytest.org/en/latest/",
+        "source": "PyPI (pypi.org)",
+        "files": [
+          {
+            "platforms": [
+              "windows-x64-cp312",
+              "linux-x86_64-cp312"
+            ],
+            "file": "pytest-9.1.1-py3-none-any.whl",
+            "size": 386536,
+            "url": "https://files.pythonhosted.org/packages/24/25/1de2678b631f5a49215c6c96fff41ba892b0a34df68d6d80292b1b48aa7f/pytest-9.1.1-py3-none-any.whl",
+            "uploaded": "2026-06-19T10:58:31.347074Z",
+            "sha256": "37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c",
+            "md5": "fd1dd7f62af8bb92733c0d20bcff497e",
+            "blake2b_256": "24251de2678b631f5a49215c6c96fff41ba892b0a34df68d6d80292b1b48aa7f",
+            "verified": "downloaded file SHA-256 = published SHA-256"
+          }
+        ]
+      },
+      {
+        "name": "pytest-cov",
+        "version": "7.1.0",
+        "license": "MIT",
+        "homepage": null,
+        "source": "PyPI (pypi.org)",
+        "files": [
+          {
+            "platforms": [
+              "windows-x64-cp312",
+              "linux-x86_64-cp312"
+            ],
+            "file": "pytest_cov-7.1.0-py3-none-any.whl",
+            "size": 22876,
+            "url": "https://files.pythonhosted.org/packages/9d/7a/d968e294073affff457b041c2be9868a40c1c71f4a35fcc1e45e5493067b/pytest_cov-7.1.0-py3-none-any.whl",
+            "uploaded": "2026-03-21T20:11:14.438324Z",
+            "sha256": "a0461110b7865f9a271aa1b51e516c9a95de9d696734a2f71e3e78f46e1d4678",
+            "md5": "d3e73a5eb2b648f41c80ed1233f96fa7",
+            "blake2b_256": "9d7ad968e294073affff457b041c2be9868a40c1c71f4a35fcc1e45e5493067b",
+            "verified": "downloaded file SHA-256 = published SHA-256"
+          }
+        ]
+      }
+    ]
+  },
+  "build_and_ci": [
+    {
+      "name": "Docker base image python:3.12-slim",
+      "used_in": "Dockerfile (FROM python:3.12-slim)",
+      "index_digest": "sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704",
+      "linux_amd64_digest": "sha256:e8a38829209aea82774882e5157e1f7c3e8c8393ff53a697b3580896e57f345c",
+      "source": "https://hub.docker.com/_/python (tag 3.12-slim, last updated 2026-10-22T23:07:06Z)",
+      "note": "The Dockerfile uses the tag, which moves with every Python/Debian update – this digest is a snapshot."
+    },
+    {
+      "name": "GitHub Action actions/setup-python",
+      "version": "v5",
+      "used_in": ".github/workflows/tests.yml",
+      "commit_sha1": "a26af69be951a213d495a4c3e4e4022e16d87065",
+      "source": "https://api.github.com/repos/actions/setup-python/git/ref/tags/v5",
+      "note": "Tags can move; pin by commit for a fixed version."
+    },
+    {
+      "name": "GitHub Action actions/checkout",
+      "version": "v4",
+      "used_in": ".github/workflows/tests.yml",
+      "commit_sha1": null,
+      "note": "Not retrieved (GitHub API refused the request from this environment). Look it up at https://github.com/actions/checkout/releases."
+    }
+  ]
+}
