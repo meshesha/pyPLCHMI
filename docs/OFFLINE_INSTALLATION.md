@@ -247,6 +247,52 @@ pyplchmi-transfer/
 └── SHA256SUMS.txt
 ```
 
+### 2.6 Optional: pin the published hashes (recommended for OT sites)
+
+pip can refuse any wheel whose SHA-256 is not the value **published by PyPI**. For that it
+needs a requirements file with a `--hash` for every file. Create it on the staging computer,
+in the transfer folder, with this script (Python standard library only). It reads the SHA-256
+that PyPI publishes for each downloaded wheel (`https://pypi.org/pypi/<name>/<version>/json`),
+stops if a downloaded file differs, and writes `requirements-hashes.txt`:
+
+```python
+# make_hashes.py - run: python make_hashes.py wheelhouse requirements-hashes.txt
+import hashlib, json, os, re, sys, urllib.request
+folder, out = sys.argv[1], sys.argv[2]
+pins = {}
+for fn in sorted(os.listdir(folder)):
+    if not fn.endswith(".whl"):
+        continue
+    name, version = fn.split("-")[:2]
+    name = re.sub(r"[-_.]+", "-", name).lower()
+    url = f"https://pypi.org/pypi/{name}/{version}/json"
+    files = {u["filename"]: u for u in json.load(urllib.request.urlopen(url))["urls"]}
+    published = files[fn]["digests"]["sha256"]
+    local = hashlib.sha256(open(os.path.join(folder, fn), "rb").read()).hexdigest()
+    if local != published:
+        sys.exit(f"{fn}: SHA-256 differs from the published value - download it again")
+    pins.setdefault((name, version), []).append(published)
+with open(out, "w") as fh:
+    for (name, version), hashes in pins.items():
+        fh.write(f"{name}=={version}" + "".join(f" \\\n    --hash=sha256:{h}" for h in hashes) + "\n")
+print(len(pins), "libraries,", sum(map(len, pins.values())), "files - all match the published SHA-256")
+```
+
+```bash
+python make_hashes.py wheelhouse requirements-hashes.txt
+```
+
+A wheelhouse with several platforms gives several `--hash` values for a library; pip accepts
+the file that matches any of them. On the target, install with this file instead of
+`requirements.txt` and add `--require-hashes` (sections 4.3 and 5.3):
+
+```bash
+python -m pip install --no-index --find-links <wheelhouse> --require-hashes -r requirements-hashes.txt
+```
+
+pip then installs nothing but these files and stops with *THESE PACKAGES DO NOT MATCH THE
+HASHES* if a file was changed or damaged.
+
 ---
 
 ## 3. Transfer to the offline network
