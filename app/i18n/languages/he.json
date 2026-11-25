@@ -1334,6 +1334,7 @@
   "PLC '{0}' added.": "הבקר '{0}' נוסף.",
   "PLC '{0}' and its data points were deleted.": "הבקר '{0}' והתגים שלו נמחקו.",
   "PLC '{0}' is back online": "הבקר '{0}' חזר לפעולה",
+  "PLC '{0}' is busy (the previous read is still running)": "הבקר '{0}' עסוק (הקריאה הקודמת עדיין פועלת)",
   "PLC '{0}' is disabled": "הבקר '{0}' מושבת",
   "PLC '{0}' is offline": "הבקר '{0}' מנותק",
   "PLC '{0}' updated.": "הבקר '{0}' עודכן.",

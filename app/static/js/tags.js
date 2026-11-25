@@ -1,9 +1,12 @@
 /**
  * Tag table: live "Value" column.
  *
- * Polls GET /api/tags/values?ids=<tags on this page> every few seconds and
- * writes the formatted value (or the read error) into each row.  Polling
- * pauses while the browser tab is hidden.
+ * Polls GET /api/tags/values?ids=<tags on this page> and writes the
+ * formatted value (or the read error) into each row.  The next request is
+ * planned only when the previous one has finished (never two at once), so a
+ * slow PLC cannot pile up requests on the server; a request that takes
+ * longer than ``TIMEOUT_MS`` is cancelled.  Polling pauses while the browser
+ * tab is hidden and resumes at once when it is shown again.
  */
 (function () {
   "use strict";
@@ -16,6 +19,9 @@
   if (!ids.length) return;
   const url = table.dataset.valuesUrl + "?ids=" + ids.join(",");
   const PERIOD_MS = 3000;
+  const TIMEOUT_MS = 20000;
+  let timer = null;
+  let inFlight = false;
 
   /**
    * Show one reading in its cell.
@@ -45,11 +51,15 @@
     td.append(span);
   }
 
-  /** Fetch the values once and update the table. */
+  /** Fetch the values once, update the table, then plan the next request. */
   async function poll() {
-    if (document.hidden) return;
+    clearTimeout(timer);
+    if (document.hidden || inFlight) return;   // resumed by visibilitychange / the running request
+    inFlight = true;
+    const ctrl = new AbortController();
+    const watchdog = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
     try {
-      const resp = await fetch(url, { credentials: "same-origin" });
+      const resp = await fetch(url, { credentials: "same-origin", signal: ctrl.signal });
       if (!resp.ok) throw new Error("HTTP " + resp.status);
       const data = await resp.json();
       ids.forEach((id) => show(cells[id], data.values[id]));
@@ -58,9 +68,13 @@
         cells[id].innerHTML = '<span class="text-secondary small"></span>';
         cells[id].firstChild.textContent = T("no data");
       });
+    } finally {
+      clearTimeout(watchdog);
+      inFlight = false;
+      if (!document.hidden) timer = setTimeout(poll, PERIOD_MS);
     }
   }
 
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
   poll();
-  setInterval(poll, PERIOD_MS);
 })();

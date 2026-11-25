@@ -224,3 +224,84 @@ class TestRealSnap7Server:
         mgr = PLCConnectionManager(simulation=False, reconnect_delay=0)
         res = mgr.read_one(fake_plc(ip="127.0.0.1", port=_free_port()), parse_address("MW0"))
         assert not res.ok
+
+
+class TestSlowAndBadAddresses:
+    """A slow PLC must not tie up web-server threads; refused tags are not asked for on every read."""
+
+    @pytest.fixture()
+    def manager(self):
+        """A simulation-mode manager with a short busy wait.
+
+        Returns:
+            :class:`PLCConnectionManager`.
+        """
+        from app.plc.driver import SimulatedConnection
+
+        SimulatedConnection.reset()
+        return PLCConnectionManager(simulation=True, reconnect_delay=0, read_wait=0.2, bad_address_retry=30)
+
+    def test_busy_plc_returns_last_values_instead_of_waiting(self, manager, monkeypatch):
+        """While another read holds the PLC, a read returns the cached values (stale) after ``read_wait``."""
+        import threading
+        import time
+
+        from app.plc.driver import SimulatedConnection
+
+        plc = fake_plc()
+        tags = addrs("DB1.DBW0", "DB1.DBW2")
+        manager.write(plc, tags["DB1.DBW0"], 7)
+        first = manager.read(plc, tags)
+        assert first["DB1.DBW0"].value == 7 and not first["DB1.DBW0"].stale
+
+        real = SimulatedConnection.read
+        release = threading.Event()
+
+        def slow(self, *args):
+            release.wait(5)
+            return real(self, *args)
+
+        monkeypatch.setattr(SimulatedConnection, "read", slow)
+        worker = threading.Thread(target=manager.read, args=(plc, tags))
+        worker.start()
+        time.sleep(0.05)  # the worker now holds the PLC
+        t0 = time.monotonic()
+        busy = manager.read(plc, {**tags, **addrs("DB1.DBW8")})
+        assert time.monotonic() - t0 < 1.0
+        assert busy["DB1.DBW0"].stale and busy["DB1.DBW0"].value == first["DB1.DBW0"].value
+        assert not busy["DB1.DBW8"].ok and "busy" in busy["DB1.DBW8"].error
+        assert manager.status(plc)["connected"] is True  # busy is not "down"
+        release.set()
+        worker.join(5)
+
+    def test_refused_tag_is_not_requested_again_until_retry(self, manager, monkeypatch):
+        """After an address error a tag is skipped (same error) until ``bad_address_retry`` has passed."""
+        from app.plc.driver import SimulatedConnection
+
+        plc = fake_plc()
+        good, bad = parse_address("DB1.DBW0"), parse_address("DB9.DBW0")
+        real = SimulatedConnection.read
+        calls = []
+
+        def refuse_db9(self, area, db_number, start, size):
+            calls.append(db_number)
+            if db_number == 9:
+                raise RuntimeError("CLI : Address out of range")
+            return real(self, area, db_number, start, size)
+
+        monkeypatch.setattr(SimulatedConnection, "read", refuse_db9)
+        first = manager.read(plc, {"g": good, "b": bad})
+        assert first["g"].ok and not first["b"].ok
+        assert calls.count(9) == 2  # block read + single retry
+
+        calls.clear()
+        second = manager.read(plc, {"g": good, "b": bad})
+        assert second["g"].ok and second["b"].error == first["b"].error
+        assert 9 not in calls  # the refused tag was not requested again
+
+        import app.plc.driver as driver_module
+
+        later = driver_module.time.monotonic() + 31
+        monkeypatch.setattr(driver_module.time, "monotonic", lambda: later)
+        manager.read(plc, {"g": good, "b": bad})
+        assert 9 in calls  # retried once the time is over

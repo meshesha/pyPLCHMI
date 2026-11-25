@@ -473,6 +473,11 @@ class _Entry:
             interruption, ``None`` while communication works.
         cache: Last good raw value per tag (``(key, repr(address)) -> value``),
             returned as *stale* values during the grace period.
+        bad: Tags the PLC refused (address error) while the connection worked:
+            ``(key, repr(address)) -> (error, monotonic time of the next try)``.
+            They are not requested again until that time, so a table with
+            many bad addresses (e.g. optimized DBs) does not cost one PLC
+            request per tag on every refresh.
     """
 
     lock: threading.Lock = field(default_factory=threading.Lock)
@@ -484,6 +489,7 @@ class _Entry:
     last_success: float = 0.0
     down_since: float | None = None
     cache: dict = field(default_factory=dict)
+    bad: dict = field(default_factory=dict)
 
 
 class _CommFailure(Exception):
@@ -530,7 +536,8 @@ class PLCConnectionManager:
     """Pool of persistent PLC connections shared by all requests."""
 
     def __init__(self, simulation: bool = False, reconnect_delay: float = 5.0,
-                 max_span: int = 200, max_gap: int = 32, bacnet_local: dict | None = None):
+                 max_span: int = 200, max_gap: int = 32, bacnet_local: dict | None = None,
+                 read_wait: float = 2.0, bad_address_retry: float = 30.0):
         """Create a manager.
 
         Args:
@@ -542,8 +549,17 @@ class PLCConnectionManager:
             max_span: See :func:`plan_reads`.
             max_gap: See :func:`plan_reads`.
             bacnet_local: Local BACnet stack settings ``{"ip", "port", "device_id"}``.
+            read_wait: Longest time (seconds) a read waits while another read of
+                the same PLC is running.  Then it returns the last good values
+                (``stale``) instead of queueing: without this limit a slow PLC
+                lets page refreshes pile up until every web-server thread waits
+                and the server stops answering (even its health check).
+            bad_address_retry: Seconds before a tag refused by the PLC (address
+                error) is requested again.
         """
         self.simulation = simulation
+        self.read_wait = max(0.0, float(read_wait))
+        self.bad_address_retry = max(0.0, float(bad_address_retry))
         self.bacnet_local = bacnet_local or {}
         self.reconnect_delay = reconnect_delay
         self.max_span = max_span
@@ -567,6 +583,8 @@ class PLCConnectionManager:
             reconnect_delay=cfg.get("PLC_RECONNECT_DELAY", 5.0),
             max_span=cfg.get("PLC_MAX_READ_SPAN", 200),
             max_gap=cfg.get("PLC_MAX_READ_GAP", 32),
+            read_wait=cfg.get("PLC_READ_WAIT", 2.0),
+            bad_address_retry=cfg.get("PLC_BAD_ADDRESS_RETRY", 30.0),
             bacnet_local={"ip": cfg.get("BACNET_LOCAL_IP"), "port": cfg.get("BACNET_LOCAL_PORT", 47808),
                           "device_id": cfg.get("BACNET_DEVICE_ID", 3056)},
         )
@@ -675,6 +693,7 @@ class PLCConnectionManager:
                 entry.conn.close()
             entry.conn, entry.signature = None, None
             entry.cache.clear()
+            entry.bad.clear()
             entry.failures = 0
         if entry.conn is not None and entry.conn.connected:
             return
@@ -775,12 +794,21 @@ class PLCConnectionManager:
                 raise _CommFailure(f"Connection lost: {exc}", lost=True) from exc
 
         results: dict = {}
-        for block in plan_reads(addresses, self.max_span, self.max_gap):
+        now = time.monotonic()
+        todo = {}
+        for key, addr in addresses.items():
+            known = entry.bad.get(self._cache_key(key, addr))
+            if known is not None and now < known[1]:
+                results[key] = ReadResult(error=known[0])  # refused recently: do not ask again yet
+            else:
+                todo[key] = addr
+        for block in plan_reads(todo, self.max_span, self.max_gap):
             try:
                 data = self._read_block(entry, block)
                 for key, addr in block.members:
                     offset = 0 if addr.is_timer_or_counter else addr.start - block.start
                     results[key] = ReadResult(value=decode(data, offset, addr.data_type, addr.bit))
+                    entry.bad.pop(self._cache_key(key, addr), None)
             except Exception as exc:  # noqa: BLE001
                 if not entry.conn.connected:
                     self._drop(entry, exc)
@@ -788,7 +816,13 @@ class PLCConnectionManager:
                 # Address-level error: retry members one by one so a single
                 # bad tag does not hide its neighbours.
                 for key, addr in block.members:
-                    results[key] = self._read_single(entry, addr)
+                    res = self._read_single(entry, addr)
+                    results[key] = res
+                    ck = self._cache_key(key, addr)
+                    if res.ok:
+                        entry.bad.pop(ck, None)
+                    elif entry.conn is not None and entry.conn.connected:
+                        entry.bad[ck] = (res.error, time.monotonic() + self.bad_address_retry)
         return results
 
     def _fallback(self, entry: _Entry, plc, addresses: dict, message: str) -> dict:
@@ -837,7 +871,9 @@ class PLCConnectionManager:
         A connection that breaks during the request is re-opened and the read
         repeated once.  If the PLC still cannot be read, tags return their
         last good value (``stale=True``) until the PLC's ``offline_delay`` has
-        passed, then the error.
+        passed, then the error.  When another read of the same PLC is still
+        running after :attr:`read_wait` seconds, the call does not queue up
+        but returns the last good values (see :meth:`_busy`).
 
         Args:
             plc: The PLC model.
@@ -851,7 +887,9 @@ class PLCConnectionManager:
         if not addresses:
             return {}
         entry = self._entry(plc.id)
-        with entry.lock:
+        if not entry.lock.acquire(timeout=self.read_wait):
+            return self._busy(entry, plc, addresses)
+        try:
             try:
                 try:
                     results = self._read_locked(entry, plc, addresses)
@@ -867,6 +905,34 @@ class PLCConnectionManager:
             for key, res in results.items():
                 if res.ok and key in addresses:
                     entry.cache[self._cache_key(key, addresses[key])] = res.value
+        finally:
+            entry.lock.release()
+        return results
+
+    def _busy(self, entry: _Entry, plc, addresses: dict) -> dict:
+        """Results while another read of the same PLC is still running.
+
+        The communication state is not changed (the PLC is not *down*, only
+        slow): tags with a known last good value return it as ``stale``, the
+        others an error.  Called without the lock; it only looks values up.
+
+        Args:
+            entry: The PLC's book-keeping entry.
+            plc: The PLC model.
+            addresses: ``key -> address``.
+
+        Returns:
+            ``key -> ReadResult``.
+        """
+        log.debug("PLC %s: busy for more than %.1f s, returning the last values", plc.name, self.read_wait)
+        message = gettext("PLC '{0}' is busy (the previous read is still running)", plc.name)
+        results = {}
+        for key, addr in addresses.items():
+            ck = self._cache_key(key, addr)
+            if ck in entry.cache:
+                results[key] = ReadResult(value=entry.cache[ck], stale=True)
+            else:
+                results[key] = ReadResult(error=message)
         return results
 
     def probe(self, plc) -> bool:

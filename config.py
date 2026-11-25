@@ -73,6 +73,11 @@ class Config:
     PLC_MAX_READ_SPAN = int(os.environ.get("PLC_MAX_READ_SPAN", "200"))
     #: Maximum unused gap (bytes) between two tags that are still merged.
     PLC_MAX_READ_GAP = int(os.environ.get("PLC_MAX_READ_GAP", "32"))
+    #: Longest wait (seconds) for a read of a PLC that is still busy with another read;
+    #: then the last good values are returned instead of queueing web-server threads.
+    PLC_READ_WAIT = float(os.environ.get("PLC_READ_WAIT", "2"))
+    #: Seconds before a tag refused by the PLC (address error) is requested again.
+    PLC_BAD_ADDRESS_RETRY = float(os.environ.get("PLC_BAD_ADDRESS_RETRY", "30"))
 
     # --- Image assets (graphic dashboards) ---------------------------------
     #: Folder for uploaded images (default: ``instance/uploads``).

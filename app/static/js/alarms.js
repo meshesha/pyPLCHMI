@@ -520,11 +520,26 @@
     renderBanner();
   }
 
-  /** Poll the active events once. */
+  let pollTimer = null;
+  let polling = false;
+  let pollAgain = false;
+
+  /**
+   * Poll the active events once, then plan the next poll.
+   *
+   * Never two requests at once: a call while a request is running (e.g. right
+   * after an acknowledgement) only asks for one more poll when it finishes,
+   * so a slow server cannot pile up requests.
+   */
   async function poll() {
     if (stopped) return;
+    if (polling) { pollAgain = true; return; }
+    clearTimeout(pollTimer);
+    polling = true;
+    const ctrl = new AbortController();
+    const watchdog = setTimeout(() => ctrl.abort(), 20000);
     try {
-      const resp = await fetch(cfg.dataset.activeUrl, { credentials: "same-origin" });
+      const resp = await fetch(cfg.dataset.activeUrl, { credentials: "same-origin", signal: ctrl.signal });
       if (resp.status === 401) { stopped = true; return; }
       if (!resp.ok) throw new Error("HTTP " + resp.status);
       const data = await resp.json();
@@ -534,6 +549,13 @@
       maybePopup();
     } catch (err) {
       console.warn("alarm poll:", err);
+    } finally {
+      clearTimeout(watchdog);
+      polling = false;
+      if (!stopped) {
+        pollTimer = setTimeout(poll, pollAgain ? 0 : POLL_MS);
+        pollAgain = false;
+      }
     }
   }
 
@@ -548,5 +570,4 @@
 
   window.HMIAlarms = { showEvent: showEvent, poll: poll, localizeTimes: localizeTimes };
   poll();
-  setInterval(poll, POLL_MS);
 })();

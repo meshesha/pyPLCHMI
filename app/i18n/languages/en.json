@@ -1334,6 +1334,7 @@
   "PLC '{0}' added.": "PLC '{0}' added.",
   "PLC '{0}' and its data points were deleted.": "PLC '{0}' and its data points were deleted.",
   "PLC '{0}' is back online": "PLC '{0}' is back online",
+  "PLC '{0}' is busy (the previous read is still running)": "PLC '{0}' is busy (the previous read is still running)",
   "PLC '{0}' is disabled": "PLC '{0}' is disabled",
   "PLC '{0}' is offline": "PLC '{0}' is offline",
   "PLC '{0}' updated.": "PLC '{0}' updated.",

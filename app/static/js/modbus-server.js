@@ -193,7 +193,12 @@
   };
   const fmtTime = (epoch) => (epoch ? new Date(epoch * 1000).toLocaleTimeString() : "—");
 
+  let pollBusy = false;
+
+  /** Refresh the status once (skipped while the previous request is still running). */
   async function poll() {
+    if (pollBusy) return;
+    pollBusy = true;
     try {
       const resp = await fetch(root.dataset.statusUrl, { credentials: "same-origin", headers: { Accept: "application/json" } });
       if (!resp.ok) return;
@@ -229,7 +234,7 @@
       if (rows.length) $("mbs-clients").replaceChildren(...rows);
       points = data.points || {};
       showPoints();
-    } catch (e) { /* server busy or offline: next poll */ }
+    } catch (e) { /* server busy or offline: next poll */ } finally { pollBusy = false; }
   }
 
   /* ---------- add / remove ---------- */
