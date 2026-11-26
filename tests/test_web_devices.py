@@ -619,3 +619,24 @@ def test_plc_form_post_fields(client, login_as, db):
     assert (plc.http_method, plc.http_content_type, plc.http_body, plc.http_headers) == \
         ("POST", "application/json", '{"read": 1}', "X-Token: abc")
     assert 'id="post-fields"' in client.get(f"/admin/plcs/{plc.id}/edit").get_data(as_text=True)
+
+
+def test_slow_http_device_is_polled_in_the_background(db, raw_server):
+    """A device that needs 0.8 s per answer: reads return at once from the last document."""
+    state = {"n": 0}
+
+    def handler(conn, request):
+        time.sleep(0.8)
+        state["n"] += 1
+        conn.sendall(json.dumps({"v": state["n"]}).encode())
+    server = raw_server(handler)
+    plc = make_device(db, server.url(), poll_interval=0.1, timeout=3.0)
+    manager = get_manager()
+    addr = {1: parse_web_address("v", "INT")}
+    first = manager.read(plc, addr)[1].value       # the first read waits for the first answer
+    assert first >= 1
+    started = time.monotonic()
+    for _ in range(5):
+        assert manager.read(plc, addr)[1].ok
+    assert time.monotonic() - started < 0.5          # no read waited for the device
+    assert wait_for(lambda: manager.read(plc, addr)[1].value > first, timeout=5)  # still updated

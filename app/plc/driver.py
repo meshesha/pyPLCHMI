@@ -909,6 +909,18 @@ class PLCConnectionManager:
             entry.lock.release()
         return results
 
+    def last_values(self, plc, addresses: dict) -> dict:
+        """The last good values without contacting the PLC (for a read that is still running).
+
+        Args:
+            plc: The PLC model.
+            addresses: ``key -> address``.
+
+        Returns:
+            ``key -> ReadResult``: cached values as ``stale``, otherwise an error.
+        """
+        return self._busy(self._entry(plc.id), plc, addresses)
+
     def _busy(self, entry: _Entry, plc, addresses: dict) -> dict:
         """Results while another read of the same PLC is still running.
 

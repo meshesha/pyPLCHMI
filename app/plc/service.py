@@ -4,20 +4,118 @@ These functions translate between database models (dashboards, data points)
 and the low-level :class:`~app.plc.driver.PLCConnectionManager`.
 """
 
+import contextvars
+import logging
+import threading
+from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timezone
+
+from flask import current_app, has_request_context
 
 from app.plc.datatypes import json_safe
 from app.plc.driver import PLCError, get_manager
 from app.i18n.catalog import gettext
 
+log = logging.getLogger(__name__)
 
-def read_datapoints(datapoints) -> tuple[dict, dict]:
+#: Threads that read the PLCs of one call in parallel (one per PLC; shared by all requests).
+READ_WORKERS = 16
+_pool: ThreadPoolExecutor | None = None
+_pool_lock = threading.RLock()  # re-entrant: read_plcs() holds it while _read_pool() runs
+#: Reads still running per PLC id (a slow device is never read twice at the same time).
+_running: dict = {}
+#: Marker for the default ``max_wait`` of :func:`read_datapoints`.
+_DEFAULT = object()
+
+
+def _read_pool() -> ThreadPoolExecutor:
+    """The shared thread pool for PLC reads (created on first use)."""
+    global _pool  # noqa: PLW0603 - one pool per process
+    with _pool_lock:
+        if _pool is None:
+            _pool = ThreadPoolExecutor(max_workers=READ_WORKERS, thread_name_prefix="plc-read")
+        return _pool
+
+
+def _default_wait():
+    """Default time limit: ``PLC_PAGE_READ_WAIT`` for web requests, no limit for background workers."""
+    if not has_request_context():
+        return None
+    return float(current_app.config.get("PLC_PAGE_READ_WAIT", 1.5))
+
+
+def read_plcs(groups: dict, max_wait=_DEFAULT) -> dict:
+    """Read several PLCs in parallel, each in its own thread.
+
+    A slow PLC or device does not delay the others: the call returns after
+    ``max_wait`` seconds at the latest, with the last good values (``stale``)
+    of the PLCs that have not answered yet.  Their reads keep running in the
+    background and refresh the values for the next call; while a PLC's read
+    is still running no second read of it is started.
+
+    Args:
+        groups: ``plc_id -> (plc, {key: address})``.
+        max_wait: Time limit in seconds (``None`` = wait for every PLC).
+            Default: ``PLC_PAGE_READ_WAIT`` (1.5 s) during a web request,
+            no limit in background workers (alarms, history, automations).
+
+    Returns:
+        ``plc_id -> {key: ReadResult}``.
+    """
+    manager = get_manager()
+    if max_wait is _DEFAULT:
+        max_wait = _default_wait()
+    if not groups:
+        return {}
+    futures = {}
+    waiting = {}
+    for plc_id, (plc, addresses) in groups.items():
+        with _pool_lock:
+            running = _running.get(plc_id)
+            if running is not None and not running.done():
+                waiting[plc_id] = running       # wait for the read in progress, do not start another
+                continue
+            # Load the PLC's settings here: the worker must not refresh the row through the
+            # (thread-bound) database session.
+            plc.connection_signature  # noqa: B018
+            # Copy the context: the worker keeps the request's language for error messages.
+            future = _read_pool().submit(contextvars.copy_context().run, manager.read, plc, addresses)
+            _running[plc_id] = future
+        futures[plc_id] = future
+    wait(list(futures.values()) + list(waiting.values()), timeout=max_wait)
+    out = {}
+    for plc_id, (plc, addresses) in groups.items():
+        future = futures.get(plc_id)
+        if future is not None and future.done():
+            try:
+                out[plc_id] = future.result()
+                continue
+            except Exception as exc:  # noqa: BLE001 - a broken read must not break the page
+                log.exception("Reading PLC %s failed", plc.name)
+                out[plc_id] = {key: _error_result(str(exc)) for key in addresses}
+                continue
+        out[plc_id] = manager.last_values(plc, addresses)   # still reading (or another read was running)
+    return out
+
+
+def _error_result(message: str):
+    """A failed :class:`~app.plc.driver.ReadResult` with this message."""
+    from app.plc.driver import ReadResult  # noqa: PLC0415
+
+    return ReadResult(error=message)
+
+
+def read_datapoints(datapoints, max_wait=_DEFAULT) -> tuple[dict, dict]:
     """Read the current value of many data points, grouped per PLC.
 
-    Each PLC is contacted once; its tags are batched by the manager.
+    Each PLC is contacted once; its tags are batched by the manager.  The
+    PLCs are read in parallel (:func:`read_plcs`), so a slow device only
+    delays its own tags.
 
     Args:
         datapoints: Iterable of :class:`~app.models.dashboard.DataPoint`.
+        max_wait: See :func:`read_plcs` (default: 1.5 s in web requests,
+            no limit in background workers).
 
     Returns:
         A tuple ``(values, plcs)`` where ``values`` maps data point id to a
@@ -38,8 +136,10 @@ def read_datapoints(datapoints) -> tuple[dict, dict]:
             continue
         by_plc.setdefault(dp.plc_id, (dp.plc, []))[1].append(dp)
 
+    read = read_plcs({plc_id: (plc, {dp.id: dp.s7_address for dp in points})
+                      for plc_id, (plc, points) in by_plc.items()}, max_wait=max_wait)
     for plc_id, (plc, points) in by_plc.items():
-        results = manager.read(plc, {dp.id: dp.s7_address for dp in points})
+        results = read[plc_id]
         for dp in points:
             res = results[dp.id]
             if res.ok:

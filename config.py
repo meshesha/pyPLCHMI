@@ -78,6 +78,9 @@ class Config:
     PLC_READ_WAIT = float(os.environ.get("PLC_READ_WAIT", "2"))
     #: Seconds before a tag refused by the PLC (address error) is requested again.
     PLC_BAD_ADDRESS_RETRY = float(os.environ.get("PLC_BAD_ADDRESS_RETRY", "30"))
+    #: A page waits at most this long (seconds) for its PLCs (they are read in parallel);
+    #: PLCs that have not answered yet show their last values and update on the next refresh.
+    PLC_PAGE_READ_WAIT = float(os.environ.get("PLC_PAGE_READ_WAIT", "1.5"))
 
     # --- Image assets (graphic dashboards) ---------------------------------
     #: Folder for uploaded images (default: ``instance/uploads``).

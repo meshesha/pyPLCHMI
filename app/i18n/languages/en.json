@@ -1134,6 +1134,7 @@
   "no answer": "no answer",
   "No answer from {0} within {1} s.": "No answer from {0} within {1} s.",
   "No answer from {0}: {1}": "No answer from {0}: {1}",
+  "No answer within {0} s.": "No answer within {0} s.",
   "No automations match the search.": "No automations match the search.",
   "No automations yet.": "No automations yet.",
   "No built-in animations found (app/library/animations is missing).": "No built-in animations found (app/library/animations is missing).",

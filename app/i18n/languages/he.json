@@ -1134,6 +1134,7 @@
   "no answer": "אין תשובה",
   "No answer from {0} within {1} s.": "אין תשובה מ-{0} תוך {1} שניות.",
   "No answer from {0}: {1}": "אין תשובה מ-{0}: {1}",
+  "No answer within {0} s.": "אין תשובה תוך {0} שניות.",
   "No automations match the search.": "אין אוטומציות שמתאימות לחיפוש.",
   "No automations yet.": "אין עדיין אוטומציות.",
   "No built-in animations found (app/library/animations is missing).": "לא נמצאו אנימציות מובנות (התיקייה app/library/animations חסרה).",

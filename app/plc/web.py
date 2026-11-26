@@ -360,7 +360,15 @@ def read_values(doc, fmt: str, addresses: dict, merged: dict | None = None) -> d
 # Connection
 # ---------------------------------------------------------------------------
 class WebConnection:
-    """Connection object of an HTTP or WebSocket device (used by the connection manager)."""
+    """Connection object of an HTTP or WebSocket device (used by the connection manager).
+
+    Both kinds receive their data in a background thread, so a read never
+    waits for the network: HTTP devices are requested every poll interval by
+    :meth:`_poll_http` (the next request starts when the previous one has
+    finished), WebSocket messages are received by :meth:`_run`.  A slow device
+    (e.g. 5 s per answer) therefore only makes its own values older; it does
+    not delay pages or other PLCs.
+    """
 
     def __init__(self, settings: WebSettings, name: str = ""):
         """Prepare a connection (no network activity yet).
@@ -378,6 +386,7 @@ class WebConnection:
         self._doc = None
         self._merged: dict = {}
         self._fetched = 0.0          # monotonic time of the last HTTP request
+        self._first = threading.Event()  # set after the first HTTP answer (or failure)
         self._summary = ""
         self._messages = 0
         self._client: WebSocketClient | None = None
@@ -407,6 +416,32 @@ class WebConnection:
         doc = parse_document(response.text(), s.data_format)
         with self._lock:
             self._doc, self._summary = doc, response.summary()
+
+    def _poll_http(self) -> None:
+        """Background thread of an HTTP device: request the document every poll interval.
+
+        A failed request is kept in ``_error`` (the next read reports the
+        connection as lost, so the manager shows the device offline and uses
+        its communication timeout); the thread then stops, and the manager
+        reconnects with its usual back-off.
+        """
+        s = self.settings
+        try:
+            while not self._stop.is_set():
+                started = time.monotonic()
+                try:
+                    self._fetch()
+                    self._error = None
+                except (WebError, WebDataError) as exc:
+                    if not self._stop.is_set():
+                        log.warning("Web device %s: %s", self.name, exc)
+                        self._error = str(exc) or exc.__class__.__name__
+                    return
+                finally:
+                    self._first.set()
+                self._stop.wait(max(0.0, s.poll_interval - (time.monotonic() - started)))
+        finally:
+            self._first.set()
 
     # -- WebSocket -------------------------------------------------------------
     def _accept(self, message) -> None:
@@ -452,7 +487,7 @@ class WebConnection:
 
     # -- connection interface --------------------------------------------------
     def connect(self) -> None:
-        """HTTP: request the document once.  WebSocket: open the connection.
+        """HTTP: start the polling thread and wait for its first answer.  WebSocket: open the connection.
 
         Raises:
             PLCError: If the device cannot be reached or sends unusable data.
@@ -462,7 +497,19 @@ class WebConnection:
         self._error = None
         try:
             if not self.websocket:
-                self._fetch()
+                self._stop.clear()
+                self._first.clear()
+                self._thread = threading.Thread(target=self._poll_http, name=f"http-{self.name}", daemon=True)
+                self._thread.start()
+                # The request itself is limited by the device timeout; the margin covers parsing.
+                self._first.wait(self.settings.timeout + 2.0)
+                if self._error is not None:
+                    error = self._error
+                    self.close()
+                    raise PLCError(error)
+                if self._doc is None:
+                    self.close()
+                    raise PLCError(gettext("No answer within {0} s.", self.settings.timeout))
             else:
                 client = WebSocketClient(self.target, timeout=self.settings.timeout,
                                          verify_tls=self.settings.verify_tls, headers=self.settings.headers)
@@ -520,7 +567,7 @@ class WebConnection:
         return [] if doc is None else flatten(doc, self.settings.data_format)
 
     def read_tags(self, addresses: dict, max_gap: int = 0) -> dict:
-        """Read tags from the latest document (HTTP: a new request once the poll interval has passed).
+        """Read tags from the latest document received by the background thread (no network access).
 
         Args:
             addresses: ``key -> WebAddress``.
@@ -535,12 +582,9 @@ class WebConnection:
         from app.plc.driver import ReadResult  # noqa: PLC0415
 
         if not self.websocket:
-            if time.monotonic() - self._fetched >= self.settings.poll_interval:
-                try:
-                    self._fetch()
-                except (WebError, WebDataError) as exc:
-                    self._alive = False
-                    raise ConnectionLostError(str(exc)) from exc
+            if self._error is not None:
+                self._alive = False
+                raise ConnectionLostError(self._error)
         elif not self._alive:
             raise ConnectionLostError(self._error or gettext("The WebSocket connection is closed."))
         with self._lock:
