@@ -79,7 +79,7 @@ Asset (uploaded image; file in UPLOAD_FOLDER)  ◀── referenced by id from l
 | `datatypes.py` | Registry of S7 types (size, range, writability); `decode`/`encode` delegate to `snap7.util`. |
 | `addressing.py` | `parse_address("DB1.DBD4:REAL")` → `S7Address`; `S7Address.format()`; mapping to `snap7.type.Area`. |
 | `driver.py` | `Snap7Connection` (real), `SimulatedConnection` (in-memory), `PLCConnectionManager` (pooling, locking, reconnect back-off, batching). |
-| `service.py` | `read_dashboard`, `read_datapoints`, `write_datapoint` – bridge between models and the manager. |
+| `service.py` | `read_dashboard`, `read_datapoints`, `write_datapoint` – bridge between models and the manager. PLCs are read in parallel, and all callers share the reads of a PLC: a read covers every tag asked for in the last `PLC_INTEREST_TTL` s, and a screen whose tags were read less than `PLC_SHARE_AGE` s ago gets them without a new request. Background workers and write read-backs read *fresh* (only results of a read that began after the call). |
 | `web_client.py` | Socket-level `http_get` (HTTP/1.x **and** header-less HTTP/0.9, HTTPS, Basic auth) and `WebSocketClient` (RFC 6455). |
 | `web_data.py` | JSON / XML documents: `parse_document`, `flatten` (all key paths), `resolve`, `convert`, `suggest_type`. |
 | `web.py` | `WebAddress` (key path), `WebSettings`, `WebConnection` (tag-based driver), `probe` (wizard test). |

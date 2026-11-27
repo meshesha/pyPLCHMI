@@ -45,9 +45,105 @@ def _default_wait():
     return float(current_app.config.get("PLC_PAGE_READ_WAIT", 1.5))
 
 
-def _forget(plc_id, future) -> None:
-    """Drop a finished read from :data:`_running` (unless a newer read replaced it)."""
+# ---------------------------------------------------------------------------
+# Shared reads: every caller (screens, alarms, history, automations, Modbus
+# server) uses the same reads of a PLC instead of polling it on its own.
+# ---------------------------------------------------------------------------
+def _state(manager) -> dict:
+    """The shared-read book-keeping of one connection manager (one per application).
+
+    * ``interest``: tags asked for recently per PLC,
+      ``plc_id -> {key: (address, last asked (monotonic))}``.  A read of a PLC
+      covers all of them, so the next caller usually finds its values ready.
+    * ``results``: latest results per PLC,
+      ``plc_id -> (connection signature, {key: (ReadResult, address repr, read started)})``.
+    """
+    return manager.__dict__.setdefault("shared_reads", {"interest": {}, "results": {}})
+
+
+def _settings() -> tuple[float, float]:
+    """``(PLC_SHARE_AGE, PLC_INTEREST_TTL)`` of the current application."""
+    cfg = current_app.config
+    return float(cfg.get("PLC_SHARE_AGE", 0.5)), float(cfg.get("PLC_INTEREST_TTL", 10.0))
+
+
+def _note_interest(state: dict, plc_id, addresses: dict, now: float, ttl: float) -> dict:
+    """Remember the tags a caller asked for and return every tag of the PLC still in use (lock held).
+
+    Args:
+        plc_id: PLC id.
+        addresses: ``key -> address`` of this caller.
+        now: Monotonic time.
+        ttl: Seconds a tag stays in the shared read after it was last asked for.
+
+    Returns:
+        ``key -> address`` to read: this caller's tags plus those other
+        callers asked for in the last ``ttl`` seconds.
+    """
+    known = state["interest"].setdefault(plc_id, {})
+    for key, addr in addresses.items():
+        known[key] = (addr, now)
+    for key in [k for k, (_a, t) in known.items() if now - t > ttl]:
+        del known[key]
+    return {key: addr for key, (addr, _t) in known.items()}
+
+
+def _from_shared(state: dict, plc, addresses: dict, not_before: float):
+    """This caller's results from a shared read that started at ``not_before`` or later (lock held).
+
+    Returns:
+        ``key -> ReadResult``, or ``None`` if any tag has no such result.
+    """
+    signature, results = state["results"].get(plc.id, (None, None))
+    if not results or signature != plc.connection_signature:
+        return None
+    out = {}
+    for key, addr in addresses.items():
+        entry = results.get(key)
+        if entry is None or entry[2] < not_before or entry[1] != repr(addr):
+            return None
+        out[key] = entry[0]
+    return out
+
+
+def _store(plc_id, future) -> None:
+    """Keep the results of a finished read for the other callers (lock held)."""
+    if future.cancelled() or future.exception() is not None:
+        return
+    state = future.state
+    signature, results = state["results"].get(plc_id, (None, {}))
+    if signature != future.signature:
+        results = {}
+    state["results"][plc_id] = (future.signature, results)
+    wanted = state["interest"].get(plc_id, {})
+    for key, res in future.result().items():
+        if res.stale or not res.ok or key not in future.addresses:   # only new good values are shared
+            continue
+        results[key] = (res, repr(future.addresses[key]), future.started)
+    for key in [k for k in results if k not in wanted]:
+        del results[key]
+
+
+def forget_values(plc_id) -> None:
+    """Drop the shared results of a PLC (after a write: the next read must ask the PLC).
+
+    Args:
+        plc_id: PLC id.
+    """
     with _pool_lock:
+        _state(get_manager())["results"].pop(plc_id, None)
+
+
+def _covers(future, addresses: dict) -> bool:
+    """``True`` if a running read includes every tag of ``addresses`` (same address)."""
+    return all(key in future.addresses and repr(future.addresses[key]) == repr(addr)
+               for key, addr in addresses.items())
+
+
+def _forget(plc_id, future) -> None:
+    """Store a finished read's results and drop it from :data:`_running`."""
+    with _pool_lock:
+        _store(plc_id, future)
         if _running.get(plc_id) is future:
             del _running[plc_id]
 
@@ -56,9 +152,11 @@ def _submit(manager, plc_id, plc, addresses):
     """Start a read of one PLC in the pool and register it in :data:`_running` (lock held)."""
     # Load the PLC's settings here: the worker must not refresh the row through the
     # (thread-bound) database session.
-    plc.connection_signature  # noqa: B018
+    signature = plc.connection_signature
     # Copy the context: the worker keeps the request's language for error messages.
     future = _read_pool().submit(contextvars.copy_context().run, manager.read, plc, addresses)
+    future.addresses, future.started = dict(addresses), time.monotonic()
+    future.state, future.signature = _state(manager), signature
     _running[plc_id] = future
     future.add_done_callback(lambda f, pid=plc_id: _forget(pid, f))
     return future
@@ -78,12 +176,20 @@ def read_plcs(groups: dict, max_wait=_DEFAULT, fresh=None, errors: list | None =
     background and refresh the values for the next call; while a PLC's read
     is still running no second read of it is started.
 
-    A *fresh* read never answers from the cache because another read of the
-    same PLC happens to be running (that read may be for other tags, or may
-    have started before a write): it waits for that read to end and then
-    reads the PLC itself.  Background workers always read fresh (a history
-    sample must not be skipped because a screen was refreshing), and so does
-    the read-back after a write.
+    Reads are shared by all callers.  A read of a PLC includes every tag of
+    that PLC that any caller asked for in the last ``PLC_INTEREST_TTL``
+    seconds, and its results are kept: a caller whose tags were all read
+    less than ``PLC_SHARE_AGE`` seconds ago gets them without contacting the
+    PLC, and a caller that finds a read with its tags already running waits
+    for that read instead of starting another one.  So five wall displays,
+    the alarm scanner and the history logger on the same PLC cause about one
+    read per refresh instead of one each.
+
+    A *fresh* read only takes results of a read that started after the call:
+    it never answers from the cache or from a read that may have started
+    before a write.  Background workers always read fresh (a history sample
+    must not be skipped because a screen was refreshing), and so does the
+    read-back after a write.
 
     Args:
         groups: ``plc_id -> (plc, {key: address})``.
@@ -104,16 +210,29 @@ def read_plcs(groups: dict, max_wait=_DEFAULT, fresh=None, errors: list | None =
         fresh = max_wait is None
     if not groups:
         return {}
-    deadline = None if max_wait is None else time.monotonic() + max_wait
-    futures = {}
-    waiting = {}   # plc_id -> a read of someone else that is still running
+    share_age, ttl = _settings()
+    state = _state(manager)
+    started = time.monotonic()
+    not_before = started if fresh else started - share_age
+    deadline = None if max_wait is None else started + max_wait
+    out = {}
+    futures = {}   # plc_id -> a read whose results this call uses
+    waiting = {}   # plc_id -> a read of someone else that is still running (without our tags or too old)
     for plc_id, (plc, addresses) in groups.items():
         with _pool_lock:
+            wanted = _note_interest(state, plc_id, addresses, started, ttl)
+            ready = _from_shared(state, plc, addresses, not_before) if share_age > 0 or fresh else None
+            if ready is not None:
+                out[plc_id] = ready
+                continue
             running = _running.get(plc_id)
             if running is not None and not running.done():
-                waiting[plc_id] = running       # do not start a second read of the same PLC now
+                if running.started >= not_before and _covers(running, addresses):
+                    futures[plc_id] = running   # that read is recent enough and has our tags
+                else:
+                    waiting[plc_id] = running   # do not start a second read of the same PLC now
                 continue
-            futures[plc_id] = _submit(manager, plc_id, plc, addresses)
+            futures[plc_id] = _submit(manager, plc_id, plc, wanted if share_age > 0 else addresses)
     if fresh and waiting:
         # Wait for the reads in progress, then read each of these PLCs ourselves.
         pending = dict(waiting)
@@ -125,16 +244,25 @@ def read_plcs(groups: dict, max_wait=_DEFAULT, fresh=None, errors: list | None =
             for plc_id, running in list(pending.items()):
                 if running in done:
                     del pending[plc_id]
+                    del waiting[plc_id]
                     plc, addresses = groups[plc_id]
                     with _pool_lock:
-                        futures[plc_id] = _submit(manager, plc_id, plc, addresses)
+                        current = _running.get(plc_id)
+                        if (current is not None and not current.done() and current.started >= not_before
+                                and _covers(current, addresses)):
+                            futures[plc_id] = current     # another caller already started a new read
+                        else:
+                            wanted = _note_interest(state, plc_id, addresses, time.monotonic(), ttl)
+                            futures[plc_id] = _submit(manager, plc_id, plc, wanted if share_age > 0 else addresses)
     wait(list(futures.values()) + list(waiting.values()), timeout=_remaining(deadline))
-    out = {}
     for plc_id, (plc, addresses) in groups.items():
+        if plc_id in out:
+            continue
         future = futures.get(plc_id)
         if future is not None and future.done():
             try:
-                out[plc_id] = future.result()
+                result = future.result()
+                out[plc_id] = {key: result[key] for key in addresses}
                 continue
             except Exception as exc:  # noqa: BLE001 - a broken read must not break the page
                 log.exception("Reading PLC %s failed", plc.name)
@@ -325,6 +453,7 @@ def write_datapoint(datapoint, value) -> dict:
     raw = datapoint.to_raw(value)
     manager = get_manager()
     manager.write(datapoint.plc, datapoint.s7_address, raw)
+    forget_values(datapoint.plc_id)   # screens must not show the value from before the write
     # Fresh: a screen refresh that was already running must not answer with the value before the write.
     values, _ = read_datapoints([datapoint], fresh=True)
     return values[datapoint.id]

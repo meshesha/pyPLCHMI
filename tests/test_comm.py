@@ -411,8 +411,9 @@ def test_stale_values_do_not_flip_tag_alarms(app, db, comm, clock):
     assert high.is_active and stats["cleared"] == 0 and stats["unreadable"] == 0
 
 
-def test_values_api_reports_stale_and_state(client, login_as, db, dashboards, plc, clock):
+def test_values_api_reports_stale_and_state(app, client, login_as, db, dashboards, plc, clock):
     """The screen API marks stale values and reports ``state: unstable``."""
+    app.config["PLC_SHARE_AGE"] = 0   # every poll asks the PLC (no shared read from the poll before)
     login_as("admin")
     url = f"/api/dashboards/{dashboards['private'].id}/values"
     client.get(url)
