@@ -62,7 +62,7 @@ class StopRun(Exception):
 
 # ============================================================================ values
 def read_values(points) -> dict:
-    """Read tags, one PLC at a time (a failing PLC only affects its own tags).
+    """Read tags (all PLCs in parallel; a failing PLC only affects its own tags).
 
     Args:
         points: Iterable of :class:`~app.models.dashboard.DataPoint`.
@@ -70,19 +70,9 @@ def read_values(points) -> dict:
     Returns:
         ``datapoint id -> value dict`` (see :func:`~app.plc.service.read_datapoints`).
     """
-    from app.plc.service import read_datapoints  # noqa: PLC0415
+    from app.plc.service import read_values as read_isolated  # noqa: PLC0415
 
-    by_plc: dict = {}
-    for dp in points:
-        if not dp.is_local:
-            by_plc.setdefault(dp.plc_id, []).append(dp)
-    values: dict = {}
-    for group in by_plc.values():
-        try:
-            values.update(read_datapoints(group)[0])
-        except Exception:  # noqa: BLE001 - isolate one PLC's failure
-            log.exception("automations: reading PLC %s failed", group[0].plc.name if group[0].plc else "?")
-    return values
+    return read_isolated(points, what="automations")
 
 
 def _truthy(text: str, dp=None) -> bool | None:

@@ -37,6 +37,8 @@ log = logging.getLogger(__name__)
 RETENTION_SETTING = "history_retention_days"
 #: Seconds between two clean-ups of old samples.
 PURGE_EVERY = 3600
+#: Samples deleted per transaction by :func:`purge_old_samples`.
+PURGE_BATCH = 5000
 #: Shortest and longest sample interval (seconds).
 MIN_INTERVAL, MAX_INTERVAL = 1, 86400
 
@@ -92,7 +94,7 @@ def logged_tags() -> list[DataPoint]:
 
 
 def _read(points: list[DataPoint], errors: list) -> dict:
-    """Read tags one PLC at a time.
+    """Read the tags (all PLCs in parallel, see :func:`~app.plc.service.read_values`).
 
     Args:
         points: Tags to read.
@@ -101,20 +103,26 @@ def _read(points: list[DataPoint], errors: list) -> dict:
     Returns:
         ``tag id -> value dict`` (see :func:`app.plc.service.read_datapoints`).
     """
-    from app.plc.service import read_datapoints  # noqa: PLC0415
+    from app.plc.service import read_values  # noqa: PLC0415
 
-    by_plc: dict = {}
-    for dp in points:
-        by_plc.setdefault(dp.plc_id, []).append(dp)
-    values: dict = {}
-    for group in by_plc.values():
-        try:
-            values.update(read_datapoints(group)[0])
-        except Exception as exc:  # noqa: BLE001 - isolate one PLC's failure
-            name = group[0].plc.name if group[0].plc else "?"
-            log.exception("history: reading PLC %s failed", name)
-            errors.append(f"{name}: {exc}")
-    return values
+    return read_values(points, errors, "history")
+
+
+def _logged_schedule() -> list[tuple[int, int]]:
+    """``(tag id, interval)`` of every logged tag (local dummy tags excluded).
+
+    Only two columns are loaded: the logger checks this list every second,
+    the full tags are loaded only for the ones that are due.
+
+    Returns:
+        The pairs.
+    """
+    from app.models import PLC  # noqa: PLC0415
+
+    rows = (db.session.query(DataPoint.id, DataPoint.log_interval, DataPoint.dummy_scope, PLC.protocol)
+            .outerjoin(PLC, DataPoint.plc_id == PLC.id).filter(DataPoint.log_enabled.is_(True)).all())
+    return [(tag_id, interval) for tag_id, interval, scope, protocol in rows
+            if not (protocol == "dummy" and scope == "local")]
 
 
 def sample_due_tags(now: float | None = None, force: bool = False) -> dict:
@@ -131,19 +139,21 @@ def sample_due_tags(now: float | None = None, force: bool = False) -> dict:
     """
     now = time.time() if now is None else now
     stats = {"due": 0, "saved": 0, "skipped": 0, "errors": []}
-    tags = logged_tags()
-    due: list[DataPoint] = []
+    schedule = _logged_schedule()
+    due_ids: list[int] = []
     with _lock:
-        active = {dp.id for dp in tags}
+        active = {tag_id for tag_id, _interval in schedule}
         for tag_id in list(_due):
             if tag_id not in active:
                 del _due[tag_id]
-        for dp in tags:
-            interval = min(MAX_INTERVAL, max(MIN_INTERVAL, int(dp.log_interval or 60)))
-            known = _due.get(dp.id)
+        for tag_id, log_interval in schedule:
+            interval = min(MAX_INTERVAL, max(MIN_INTERVAL, int(log_interval or 60)))
+            known = _due.get(tag_id)
             if force or known is None or known[0] != interval or now >= known[1] - 0.001:
-                due.append(dp)
-                _due[dp.id] = (interval, _next_boundary(now, interval))
+                due_ids.append(tag_id)
+                _due[tag_id] = (interval, _next_boundary(now, interval))
+    due: list[DataPoint] = (DataPoint.query.filter(DataPoint.id.in_(due_ids)).order_by(DataPoint.id).all()
+                            if due_ids else [])
     stats["due"] = len(due)
     if due:
         ts = datetime.fromtimestamp(math.floor(now), tz=timezone.utc)
@@ -162,11 +172,16 @@ def sample_due_tags(now: float | None = None, force: bool = False) -> dict:
     return stats
 
 
-def purge_old_samples(days: int | None = None) -> int:
+def purge_old_samples(days: int | None = None, batch: int | None = None) -> int:
     """Delete samples older than the retention period.
+
+    The rows are deleted in batches with a commit after each one, so a big
+    clean-up never holds the database lock for long (on SQLite every other
+    writer – alarms, the logger itself, operators – would wait for it).
 
     Args:
         days: Days to keep (default :func:`retention_days`); ``0`` keeps everything.
+        batch: Rows per batch (default :data:`PURGE_BATCH`).
 
     Returns:
         Number of deleted samples.
@@ -174,9 +189,16 @@ def purge_old_samples(days: int | None = None) -> int:
     days = retention_days() if days is None else days
     if days <= 0:
         return 0
+    batch = batch or PURGE_BATCH
     limit = datetime.now(timezone.utc) - timedelta(days=days)
-    deleted = TagSample.query.filter(TagSample.ts < limit).delete(synchronize_session=False)
-    db.session.commit()
+    deleted = 0
+    while True:
+        ids = db.session.query(TagSample.id).filter(TagSample.ts < limit).limit(batch).scalar_subquery()
+        count = TagSample.query.filter(TagSample.id.in_(ids)).delete(synchronize_session=False)
+        db.session.commit()
+        deleted += count
+        if count < batch:
+            break
     _status.update(last_purge=datetime.now(timezone.utc), purged=deleted)
     if deleted:
         log.info("history: deleted %d samples older than %d days", deleted, days)

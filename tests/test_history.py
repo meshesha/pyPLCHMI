@@ -120,11 +120,11 @@ def test_sampling_skips_bad_values_and_isolates_plcs(db, dummy, plc, monkeypatch
 
     real = service.read_datapoints
 
-    def fake(points):
+    def fake(points, **kwargs):
         """Fail for the real PLC."""
-        if points[0].plc_id == plc.id:
+        if any(p.plc_id == plc.id for p in points):
             raise RuntimeError("cable cut")
-        return real(points)
+        return real(points, **kwargs)
 
     monkeypatch.setattr(service, "read_datapoints", fake)
     stats = hl.sample_due_tags(T0)
@@ -412,3 +412,32 @@ def test_chart_form_palette_not_shadowed(client, login_as):
         html = client.get("/history/charts/new").get_data(as_text=True)
         palette = json.loads(re.search(r'id="chart-palette">(.*?)</script>', html).group(1))
         assert isinstance(palette, list) and palette[0].startswith("#"), template
+
+
+def test_purge_deletes_in_batches(db, dummy):
+    """A big clean-up is split into small transactions (the database lock is never held for long)."""
+    tag = dummy_tag(db, dummy, "Old", slot=7)
+    old = datetime.now(timezone.utc) - timedelta(days=40)
+    db.session.add_all([TagSample.from_value(tag.id, old + timedelta(seconds=i), i) for i in range(23)])
+    db.session.add(TagSample.from_value(tag.id, datetime.now(timezone.utc), 99))
+    db.session.commit()
+    assert hl.purge_old_samples(30, batch=5) == 23
+    assert TagSample.query.filter_by(datapoint_id=tag.id).count() == 1
+
+
+def test_sqlite_uses_wal_and_a_busy_timeout(tmp_path, monkeypatch):
+    """File databases use WAL and wait for the lock instead of failing at once."""
+    import config as cfg
+    from app import create_app
+    from app.extensions import db as _db
+
+    class FileConfig(cfg.TestingConfig):
+        SQLALCHEMY_DATABASE_URI = "sqlite:///" + str(tmp_path / "wal.sqlite")
+
+    monkeypatch.setitem(cfg.config, "wal-test", FileConfig)
+    app = create_app("wal-test")
+    with app.app_context():
+        assert _db.session.execute(_db.text("PRAGMA journal_mode")).scalar() == "wal"
+        assert _db.session.execute(_db.text("PRAGMA busy_timeout")).scalar() == 15000
+        _db.session.remove()
+        _db.engine.dispose()

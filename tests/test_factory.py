@@ -76,3 +76,20 @@ def test_cli_demo(app):
     runner.invoke(args=["demo"])
     dash = Dashboard.query.filter_by(slug="demo-overview").one()
     assert len(dash.datapoints) >= 5
+
+
+def test_background_workers_start_without_a_web_request(app, monkeypatch):
+    """Production servers start the background workers at load time, not on the first request."""
+    from app import start_background_workers
+    from app.alarms.engine import AlarmScanner
+    from app.automations.engine import AutomationEngine
+    from app.history.logger import HistoryLogger
+    from app.modbus_server.server import ModbusPublisher
+
+    assert start_background_workers(app) == []        # testing config: every worker switched off
+    calls = []
+    for worker in (AlarmScanner, HistoryLogger, AutomationEngine, ModbusPublisher):
+        monkeypatch.setattr(worker, "start", classmethod(lambda cls, _app: calls.append(cls.__name__) or True))
+    app.config.update(ALARM_SCANNER=True, HISTORY_LOGGER=True, AUTOMATIONS=True, MODBUS_SERVER=False)
+    assert start_background_workers(app) == ["alarm scanner", "history logger", "automation engine"]
+    assert calls == ["AlarmScanner", "HistoryLogger", "AutomationEngine"]

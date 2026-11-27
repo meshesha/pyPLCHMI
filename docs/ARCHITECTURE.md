@@ -32,8 +32,11 @@ Browser ──HTML──▶ blueprint view (auth/main/admin/dashboards)
 3. Registers the blueprints: `main` (/), `auth` (/auth), `admin` (/admin),
    `dashboards` (/screens), `tags` (/tags), `alarms` (/alarms), `api` (/api),
    `assets` (/assets), `i18n` (/language, /i18n/<code>.js, /admin/languages), `history` (/history),
-   and `before_request` hooks that start the alarm scanner thread (`ALARM_SCANNER`) and the
-   history logger thread (`HISTORY_LOGGER`) on the first request (and again if one has stopped).
+   and `before_request` hooks that start the background threads (alarm scanner, history logger,
+   automation engine, Modbus publisher) on the first request and again if one has stopped.
+   Production servers load `wsgi.py`, which starts them right away with
+   `start_background_workers(app)`, so alarms and trends run after a restart even before a
+   browser connects (`flask` CLI commands start no threads).
 4. Registers error pages, template globals (`Perm`, `plc_simulation`, `_`, `current_language`,
    `available_languages`, `default_language`) and CLI commands.
 5. Stores one `PLCConnectionManager` in `app.extensions["plc_manager"]`.

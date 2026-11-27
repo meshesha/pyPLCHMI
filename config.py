@@ -64,6 +64,12 @@ class Config:
 
     BCRYPT_LOG_ROUNDS = 12
 
+    # --- SQLite ----------------------------------------------------------------
+    #: Use SQLite's WAL journal (readers do not wait for writers). Switch off for a database on a network share.
+    SQLITE_WAL = _env_bool("SQLITE_WAL", True)
+    #: Seconds a writer waits for the database lock before "database is locked".
+    SQLITE_BUSY_TIMEOUT = float(os.environ.get("SQLITE_BUSY_TIMEOUT", "15"))
+
     # --- PLC communication -------------------------------------------------
     #: When True, no real PLC is contacted; an in-memory simulator is used.
     PLC_SIMULATION = _env_bool("PLC_SIMULATION", False)

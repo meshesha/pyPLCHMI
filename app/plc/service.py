@@ -7,7 +7,8 @@ and the low-level :class:`~app.plc.driver.PLCConnectionManager`.
 import contextvars
 import logging
 import threading
-from concurrent.futures import ThreadPoolExecutor, wait
+import time
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from datetime import datetime, timezone
 
 from flask import current_app, has_request_context
@@ -44,7 +45,31 @@ def _default_wait():
     return float(current_app.config.get("PLC_PAGE_READ_WAIT", 1.5))
 
 
-def read_plcs(groups: dict, max_wait=_DEFAULT) -> dict:
+def _forget(plc_id, future) -> None:
+    """Drop a finished read from :data:`_running` (unless a newer read replaced it)."""
+    with _pool_lock:
+        if _running.get(plc_id) is future:
+            del _running[plc_id]
+
+
+def _submit(manager, plc_id, plc, addresses):
+    """Start a read of one PLC in the pool and register it in :data:`_running` (lock held)."""
+    # Load the PLC's settings here: the worker must not refresh the row through the
+    # (thread-bound) database session.
+    plc.connection_signature  # noqa: B018
+    # Copy the context: the worker keeps the request's language for error messages.
+    future = _read_pool().submit(contextvars.copy_context().run, manager.read, plc, addresses)
+    _running[plc_id] = future
+    future.add_done_callback(lambda f, pid=plc_id: _forget(pid, f))
+    return future
+
+
+def _remaining(deadline):
+    """Seconds left until ``deadline`` (``None`` = no limit), never negative."""
+    return None if deadline is None else max(0.0, deadline - time.monotonic())
+
+
+def read_plcs(groups: dict, max_wait=_DEFAULT, fresh=None, errors: list | None = None) -> dict:
     """Read several PLCs in parallel, each in its own thread.
 
     A slow PLC or device does not delay the others: the call returns after
@@ -53,11 +78,21 @@ def read_plcs(groups: dict, max_wait=_DEFAULT) -> dict:
     background and refresh the values for the next call; while a PLC's read
     is still running no second read of it is started.
 
+    A *fresh* read never answers from the cache because another read of the
+    same PLC happens to be running (that read may be for other tags, or may
+    have started before a write): it waits for that read to end and then
+    reads the PLC itself.  Background workers always read fresh (a history
+    sample must not be skipped because a screen was refreshing), and so does
+    the read-back after a write.
+
     Args:
         groups: ``plc_id -> (plc, {key: address})``.
         max_wait: Time limit in seconds (``None`` = wait for every PLC).
             Default: ``PLC_PAGE_READ_WAIT`` (1.5 s) during a web request,
             no limit in background workers (alarms, history, automations).
+        fresh: Read fresh values (see above).  Default: ``True`` when there
+            is no time limit (background workers), else ``False``.
+        errors: Receives ``"PLC: message"`` for every PLC whose read raised.
 
     Returns:
         ``plc_id -> {key: ReadResult}``.
@@ -65,24 +100,35 @@ def read_plcs(groups: dict, max_wait=_DEFAULT) -> dict:
     manager = get_manager()
     if max_wait is _DEFAULT:
         max_wait = _default_wait()
+    if fresh is None:
+        fresh = max_wait is None
     if not groups:
         return {}
+    deadline = None if max_wait is None else time.monotonic() + max_wait
     futures = {}
-    waiting = {}
+    waiting = {}   # plc_id -> a read of someone else that is still running
     for plc_id, (plc, addresses) in groups.items():
         with _pool_lock:
             running = _running.get(plc_id)
             if running is not None and not running.done():
-                waiting[plc_id] = running       # wait for the read in progress, do not start another
+                waiting[plc_id] = running       # do not start a second read of the same PLC now
                 continue
-            # Load the PLC's settings here: the worker must not refresh the row through the
-            # (thread-bound) database session.
-            plc.connection_signature  # noqa: B018
-            # Copy the context: the worker keeps the request's language for error messages.
-            future = _read_pool().submit(contextvars.copy_context().run, manager.read, plc, addresses)
-            _running[plc_id] = future
-        futures[plc_id] = future
-    wait(list(futures.values()) + list(waiting.values()), timeout=max_wait)
+            futures[plc_id] = _submit(manager, plc_id, plc, addresses)
+    if fresh and waiting:
+        # Wait for the reads in progress, then read each of these PLCs ourselves.
+        pending = dict(waiting)
+        while pending:
+            remaining = _remaining(deadline)
+            if remaining == 0:
+                break
+            done, _ = wait(list(pending.values()), timeout=remaining, return_when=FIRST_COMPLETED)
+            for plc_id, running in list(pending.items()):
+                if running in done:
+                    del pending[plc_id]
+                    plc, addresses = groups[plc_id]
+                    with _pool_lock:
+                        futures[plc_id] = _submit(manager, plc_id, plc, addresses)
+    wait(list(futures.values()) + list(waiting.values()), timeout=_remaining(deadline))
     out = {}
     for plc_id, (plc, addresses) in groups.items():
         future = futures.get(plc_id)
@@ -92,6 +138,8 @@ def read_plcs(groups: dict, max_wait=_DEFAULT) -> dict:
                 continue
             except Exception as exc:  # noqa: BLE001 - a broken read must not break the page
                 log.exception("Reading PLC %s failed", plc.name)
+                if errors is not None:
+                    errors.append(f"{plc.name}: {exc}")
                 out[plc_id] = {key: _error_result(str(exc)) for key in addresses}
                 continue
         out[plc_id] = manager.last_values(plc, addresses)   # still reading (or another read was running)
@@ -105,7 +153,7 @@ def _error_result(message: str):
     return ReadResult(error=message)
 
 
-def read_datapoints(datapoints, max_wait=_DEFAULT) -> tuple[dict, dict]:
+def read_datapoints(datapoints, max_wait=_DEFAULT, fresh=None, errors: list | None = None) -> tuple[dict, dict]:
     """Read the current value of many data points, grouped per PLC.
 
     Each PLC is contacted once; its tags are batched by the manager.  The
@@ -116,6 +164,9 @@ def read_datapoints(datapoints, max_wait=_DEFAULT) -> tuple[dict, dict]:
         datapoints: Iterable of :class:`~app.models.dashboard.DataPoint`.
         max_wait: See :func:`read_plcs` (default: 1.5 s in web requests,
             no limit in background workers).
+        fresh: See :func:`read_plcs` (default: fresh without a time limit).
+        errors: Receives ``"PLC: message"`` for every PLC whose read failed
+            unexpectedly (its tags get ``quality`` ``bad``).
 
     Returns:
         A tuple ``(values, plcs)`` where ``values`` maps data point id to a
@@ -137,7 +188,7 @@ def read_datapoints(datapoints, max_wait=_DEFAULT) -> tuple[dict, dict]:
         by_plc.setdefault(dp.plc_id, (dp.plc, []))[1].append(dp)
 
     read = read_plcs({plc_id: (plc, {dp.id: dp.s7_address for dp in points})
-                      for plc_id, (plc, points) in by_plc.items()}, max_wait=max_wait)
+                      for plc_id, (plc, points) in by_plc.items()}, max_wait=max_wait, fresh=fresh, errors=errors)
     for plc_id, (plc, points) in by_plc.items():
         results = read[plc_id]
         for dp in points:
@@ -157,6 +208,45 @@ def read_datapoints(datapoints, max_wait=_DEFAULT) -> tuple[dict, dict]:
                                  "stale": False}
         plcs[plc_id] = plc_status(plc, manager)
     return values, plcs
+
+
+def read_values(points, errors: list | None = None, what: str = "read") -> dict:
+    """Read the tags of many PLCs for a background worker (alarms, history, automations).
+
+    All PLCs are read in parallel with fresh values (:func:`read_datapoints`),
+    so one slow or offline PLC no longer delays the tags of the others.  A
+    PLC whose read fails only makes its own tags unreadable.  If something
+    unexpected breaks the combined call, the PLCs are read again one at a
+    time so the healthy ones still get their values.
+
+    Args:
+        points: Iterable of :class:`~app.models.dashboard.DataPoint`.
+        errors: Receives ``"PLC: message"`` texts of failed PLCs.
+        what: Name of the caller for the log (``"alarm scan"``, ``"history"``...).
+
+    Returns:
+        ``datapoint id -> value dict`` (see :func:`read_datapoints`).
+    """
+    points = [dp for dp in points if not dp.is_local]
+    if not points:
+        return {}
+    errors = [] if errors is None else errors
+    try:
+        return read_datapoints(points, fresh=True, errors=errors)[0]
+    except Exception:  # noqa: BLE001 - fall back to one PLC at a time below
+        log.exception("%s: reading the PLCs together failed, reading them one by one", what)
+    by_plc: dict = {}
+    for dp in points:
+        by_plc.setdefault(dp.plc_id, []).append(dp)
+    values: dict = {}
+    for group in by_plc.values():
+        try:
+            values.update(read_datapoints(group, fresh=True)[0])
+        except Exception as exc:  # noqa: BLE001 - isolate one PLC's failure
+            name = group[0].plc.name if group[0].plc else "?"
+            log.exception("%s: reading PLC %s failed", what, name)
+            errors.append(f"{name}: {exc}")
+    return values
 
 
 def local_value(dp) -> dict:
@@ -235,5 +325,6 @@ def write_datapoint(datapoint, value) -> dict:
     raw = datapoint.to_raw(value)
     manager = get_manager()
     manager.write(datapoint.plc, datapoint.s7_address, raw)
-    values, _ = read_datapoints([datapoint])
+    # Fresh: a screen refresh that was already running must not answer with the value before the write.
+    values, _ = read_datapoints([datapoint], fresh=True)
     return values[datapoint.id]
