@@ -108,6 +108,23 @@ def _read(points: list[DataPoint], errors: list) -> dict:
     return read_values(points, errors, "history")
 
 
+def _logged_schedule() -> list[tuple[int, int]]:
+    """``(tag id, interval)`` of every logged tag (local dummy tags excluded).
+
+    Only two columns are loaded: the logger checks this list every second,
+    the full tags are loaded only for the ones that are due.
+
+    Returns:
+        The pairs.
+    """
+    from app.models import PLC  # noqa: PLC0415
+
+    rows = (db.session.query(DataPoint.id, DataPoint.log_interval, DataPoint.dummy_scope, PLC.protocol)
+            .outerjoin(PLC, DataPoint.plc_id == PLC.id).filter(DataPoint.log_enabled.is_(True)).all())
+    return [(tag_id, interval) for tag_id, interval, scope, protocol in rows
+            if not (protocol == "dummy" and scope == "local")]
+
+
 def sample_due_tags(now: float | None = None, force: bool = False) -> dict:
     """Save one sample for every logged tag that is due.
 
@@ -122,19 +139,21 @@ def sample_due_tags(now: float | None = None, force: bool = False) -> dict:
     """
     now = time.time() if now is None else now
     stats = {"due": 0, "saved": 0, "skipped": 0, "errors": []}
-    tags = logged_tags()
-    due: list[DataPoint] = []
+    schedule = _logged_schedule()
+    due_ids: list[int] = []
     with _lock:
-        active = {dp.id for dp in tags}
+        active = {tag_id for tag_id, _interval in schedule}
         for tag_id in list(_due):
             if tag_id not in active:
                 del _due[tag_id]
-        for dp in tags:
-            interval = min(MAX_INTERVAL, max(MIN_INTERVAL, int(dp.log_interval or 60)))
-            known = _due.get(dp.id)
+        for tag_id, log_interval in schedule:
+            interval = min(MAX_INTERVAL, max(MIN_INTERVAL, int(log_interval or 60)))
+            known = _due.get(tag_id)
             if force or known is None or known[0] != interval or now >= known[1] - 0.001:
-                due.append(dp)
-                _due[dp.id] = (interval, _next_boundary(now, interval))
+                due_ids.append(tag_id)
+                _due[tag_id] = (interval, _next_boundary(now, interval))
+    due: list[DataPoint] = (DataPoint.query.filter(DataPoint.id.in_(due_ids)).order_by(DataPoint.id).all()
+                            if due_ids else [])
     stats["due"] = len(due)
     if due:
         ts = datetime.fromtimestamp(math.floor(now), tz=timezone.utc)

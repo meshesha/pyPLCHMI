@@ -9,6 +9,7 @@ import secrets
 
 from flask import abort, jsonify, request, url_for
 from flask_login import current_user
+from sqlalchemy.orm import selectinload
 from werkzeug.datastructures import MultiDict
 
 from app.api import bp
@@ -218,11 +219,12 @@ def datapoint_details(point_id: int):
                   for f in (plc.files if plc else [])] if current_user.is_authenticated else [],
     }
     if current_user.can(Perm.VIEW_HISTORY):
-        query = TagSample.query.filter_by(datapoint_id=dp.id)
-        first = query.order_by(TagSample.ts.asc()).first()
-        last = query.order_by(TagSample.ts.desc()).first()
-        info["history"] = {"enabled": dp.is_logged, "interval": dp.log_interval, "count": query.count(),
-                           "first": iso(first.ts) if first else None, "last": iso(last.ts) if last else None}
+        # One indexed query (datapoint_id, ts) instead of three.
+        count, first, last = (db.session.query(db.func.count(TagSample.id), db.func.min(TagSample.ts),
+                                               db.func.max(TagSample.ts))
+                              .filter(TagSample.datapoint_id == dp.id).one())
+        info["history"] = {"enabled": dp.is_logged, "interval": dp.log_interval, "count": count,
+                           "first": iso(first) if first else None, "last": iso(last) if last else None}
     return jsonify(info)
 
 
@@ -631,7 +633,9 @@ def overview():
     """
     if not current_user.is_authenticated:
         return _json_error(gettext('authentication required'), 401)
-    screens = [s for s in Dashboard.query.order_by(Dashboard.name) if current_user.can_view_dashboard(s)]
+    # The tags of all screens (with their PLCs) in one extra query, not one per screen.
+    screens = [s for s in Dashboard.query.options(selectinload(Dashboard.datapoints)).order_by(Dashboard.name)
+               if current_user.can_view_dashboard(s)]
     shown = {s.id: [dp for dp in s.datapoints if not dp.is_local][:OVERVIEW_VALUES] for s in screens}
     unique = {dp.id: dp for points in shown.values() for dp in points}
     values, plcs = read_datapoints(unique.values())

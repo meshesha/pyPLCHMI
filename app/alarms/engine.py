@@ -30,6 +30,7 @@ import threading
 import time
 
 from flask import current_app
+from sqlalchemy.orm import selectinload
 
 from app.audit.recorder import paused as audit_paused
 from app.extensions import db
@@ -39,10 +40,12 @@ from app.models.dashboard import DataPoint
 log = logging.getLogger(__name__)
 
 _scan_lock = threading.Lock()
+#: Default of :func:`_apply`'s ``event``: look the open event up.
+_UNKNOWN = object()
 _last_scan = {"t": 0.0}
 
 
-def _apply(alarm: Alarm, active: bool, value_text: str, stats: dict) -> None:
+def _apply(alarm: Alarm, active: bool, value_text: str, stats: dict, event=_UNKNOWN) -> None:
     """Open or close the alarm's event according to its current condition.
 
     Args:
@@ -50,8 +53,11 @@ def _apply(alarm: Alarm, active: bool, value_text: str, stats: dict) -> None:
         active: Whether the condition is true now.
         value_text: Value shown in the event (tag value or communication error).
         stats: Counters to update.
+        event: The alarm's open event (``None`` = none), when the caller has
+            loaded it already; by default it is looked up.
     """
-    event = alarm.open_event
+    if event is _UNKNOWN:
+        event = alarm.open_event
     if active:
         if event is None and not alarm.suppressed:
             db.session.add(AlarmEvent(
@@ -84,6 +90,22 @@ def _read_values(points: dict, stats: dict) -> dict:
     return read_values(points.values(), stats["errors"], "alarm scan")
 
 
+def _open_events(alarm_ids: list) -> dict:
+    """The open (not cleared) event of each alarm, in one query.
+
+    Args:
+        alarm_ids: Alarm ids.
+
+    Returns:
+        ``alarm id -> AlarmEvent`` (the newest open one, like :attr:`Alarm.open_event`).
+    """
+    if not alarm_ids:
+        return {}
+    events = (AlarmEvent.query.filter(AlarmEvent.cleared_at.is_(None), AlarmEvent.alarm_id.in_(alarm_ids))
+              .order_by(AlarmEvent.id).all())
+    return {e.alarm_id: e for e in events}   # ascending ids: the newest one wins
+
+
 def scan_alarms() -> dict:
     """Evaluate all enabled alarms once and update their events.
 
@@ -98,7 +120,10 @@ def scan_alarms() -> dict:
     started = time.monotonic()
     with _scan_lock, audit_paused():
         manager = get_manager()
-        alarms = Alarm.query.filter_by(enabled=True).all()
+        # One query each for the alarms, their tags and PLCs, and their open events (not one per alarm).
+        alarms = (Alarm.query.filter_by(enabled=True)
+                  .options(selectinload(Alarm.datapoint), selectinload(Alarm.plc)).all())
+        open_events = _open_events([a.id for a in alarms])
         # Local dummy tags have no server-side value: their alarms are never evaluated.
         tag_alarms = [a for a in alarms if not a.is_comm and a.datapoint is not None and not a.datapoint.is_local]
         comm_alarms = [a for a in alarms if a.is_comm and a.plc is not None]
@@ -128,7 +153,7 @@ def scan_alarms() -> dict:
                 stats["unreadable"] += 1
                 continue
             try:
-                _apply(alarm, alarm.evaluate(reading["value"]), reading["display"], stats)
+                _apply(alarm, alarm.evaluate(reading["value"]), reading["display"], stats, open_events.get(alarm.id))
             except Exception as exc:  # noqa: BLE001
                 log.exception("alarm scan: alarm %s failed", alarm.name)
                 stats["errors"].append(f"{alarm.name}: {exc}")
@@ -136,7 +161,8 @@ def scan_alarms() -> dict:
             stats["checked"] += 1
             try:
                 status = manager.status(alarm.plc)
-                _apply(alarm, status["state"] == "offline", status["error"] or "no answer", stats)
+                _apply(alarm, status["state"] == "offline", status["error"] or "no answer", stats,
+                       open_events.get(alarm.id))
             except Exception as exc:  # noqa: BLE001
                 log.exception("alarm scan: alarm %s failed", alarm.name)
                 stats["errors"].append(f"{alarm.name}: {exc}")
