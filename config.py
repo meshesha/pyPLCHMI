@@ -87,6 +87,11 @@ class Config:
     #: A page waits at most this long (seconds) for its PLCs (they are read in parallel);
     #: PLCs that have not answered yet show their last values and update on the next refresh.
     PLC_PAGE_READ_WAIT = float(os.environ.get("PLC_PAGE_READ_WAIT", "1.5"))
+    #: Screens, alarms, history and automations share the reads of a PLC: a screen refresh whose tags
+    #: were read less than this many seconds ago gets those values without asking the PLC (0 = off).
+    PLC_SHARE_AGE = float(os.environ.get("PLC_SHARE_AGE", "0.5"))
+    #: A read of a PLC includes every tag of that PLC asked for in the last this many seconds.
+    PLC_INTEREST_TTL = float(os.environ.get("PLC_INTEREST_TTL", "10"))
 
     # --- Image assets (graphic dashboards) ---------------------------------
     #: Folder for uploaded images (default: ``instance/uploads``).
