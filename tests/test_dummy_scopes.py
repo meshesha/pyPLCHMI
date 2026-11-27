@@ -345,10 +345,10 @@ def test_failing_plc_does_not_block_other_alarms(db, dummy, plc, monkeypatch):
     db.session.commit()
     original = service.read_datapoints
 
-    def broken(points):
+    def broken(points, **kwargs):
         if any(p.plc_id == plc.id for p in points):
             raise RuntimeError("driver crashed")
-        return original(points)
+        return original(points, **kwargs)
 
     monkeypatch.setattr(service, "read_datapoints", broken)
     stats = engine.scan_alarms()

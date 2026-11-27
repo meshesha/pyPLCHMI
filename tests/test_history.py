@@ -120,11 +120,11 @@ def test_sampling_skips_bad_values_and_isolates_plcs(db, dummy, plc, monkeypatch
 
     real = service.read_datapoints
 
-    def fake(points):
+    def fake(points, **kwargs):
         """Fail for the real PLC."""
-        if points[0].plc_id == plc.id:
+        if any(p.plc_id == plc.id for p in points):
             raise RuntimeError("cable cut")
-        return real(points)
+        return real(points, **kwargs)
 
     monkeypatch.setattr(service, "read_datapoints", fake)
     stats = hl.sample_due_tags(T0)

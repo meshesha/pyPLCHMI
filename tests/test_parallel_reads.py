@@ -96,3 +96,84 @@ def _wait(condition, timeout=5.0) -> bool:
         time.sleep(0.05)
     return False
 
+
+
+# --- fresh reads: background workers and write read-backs never answer from the cache -----------------
+@pytest.fixture()
+def slowish_db9(monkeypatch):
+    """Simulated S7 reads of DB9 take 0.4 s; other DBs answer at once."""
+    real = SimulatedConnection.read
+
+    def read(self, area, db_number, start, size):
+        if db_number == 9:
+            time.sleep(0.4)
+        return real(self, area, db_number, start, size)
+
+    SimulatedConnection.reset()
+    monkeypatch.setattr(SimulatedConnection, "read", read)
+
+
+def test_history_sample_is_not_skipped_while_a_screen_reads_the_plc(app, db, slowish_db9):
+    """A screen refresh of the same PLC must not make the history logger skip its sample."""
+    from app.history import logger as hl
+    from app.models import TagSample
+
+    plc, screen_tag = _plc_with_tag(db, "Slow", "DB9.DBW0")
+    logged = DataPoint(plc=plc, label="logged", widget="value", unit="", scale=1.0, offset=0.0, writable=False,
+                       width=1, decimals=0, log_enabled=True, log_interval=10)
+    logged.set_address(parse_address("DB9.DBW2", "INT"))
+    db.session.add(logged)
+    db.session.commit()
+    hl.reset_schedule()
+    with app.test_request_context("/"):
+        read_datapoints([screen_tag], max_wait=0)     # a screen poll is now running (other tags)
+    assert _running(plc)
+    stats = hl.sample_due_tags(now=1_800_000_000)
+    assert stats["saved"] == 1 and stats["skipped"] == 0
+    assert TagSample.query.filter_by(datapoint_id=logged.id).count() == 1
+
+
+def test_write_read_back_is_not_the_value_before_the_write(app, db, slowish_db9, monkeypatch):
+    """A screen poll that starts right after a write must not answer the write's read-back."""
+    from app.plc.service import write_datapoint
+
+    plc, tag = _plc_with_tag(db, "Slow", "DB9.DBW0")
+    tag.writable = True
+    db.session.commit()
+    manager = get_manager()
+    with app.test_request_context("/"):
+        assert read_datapoints([tag], max_wait=None)[0][tag.id]["quality"] == "good"   # value cached
+        real_write = manager.write
+
+        def write_then_poll(plc_, address, raw):
+            real_write(plc_, address, raw)
+            read_plcs({plc.id: (plc, {tag.id: tag.s7_address})}, max_wait=0)   # another browser polls
+
+        monkeypatch.setattr(manager, "write", write_then_poll)
+        result = write_datapoint(tag, 42)
+    assert result["value"] == 42 and not result["stale"]
+
+
+def test_alarm_scan_reads_plcs_in_parallel(app, db, slowish_db9):
+    """The alarm scan no longer reads one PLC after the other."""
+    from app.alarms.engine import scan_alarms
+    from app.models import Alarm
+
+    _, a = _plc_with_tag(db, "A", "DB9.DBW0")
+    _, b = _plc_with_tag(db, "B", "DB9.DBW0")
+    _, c = _plc_with_tag(db, "C", "DB9.DBW0")
+    db.session.add_all([Alarm(name=f"al{dp.id}", datapoint=dp, operator="ge", setpoint="0") for dp in (a, b, c)])
+    db.session.commit()
+    started = time.monotonic()
+    stats = scan_alarms()
+    assert time.monotonic() - started < 1.0       # 3 × 0.4 s one after the other would be 1.2 s
+    assert stats["raised"] == 3 and stats["unreadable"] == 0
+
+
+def test_finished_reads_are_forgotten(app, db):
+    """Finished reads do not stay in the bookkeeping of running reads."""
+    from app.plc import service
+
+    plc, tag = _plc_with_tag(db, "P", "DB1.DBW0")
+    read_datapoints([tag])
+    assert _wait(lambda: plc.id not in service._running)

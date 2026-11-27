@@ -67,10 +67,10 @@ def _apply(alarm: Alarm, active: bool, value_text: str, stats: dict) -> None:
 
 
 def _read_values(points: dict, stats: dict) -> dict:
-    """Read the tags of the alarms, one PLC at a time.
+    """Read the tags of the alarms (all PLCs in parallel, see :func:`~app.plc.service.read_values`).
 
-    A PLC whose read fails with an unexpected error only makes *its* tags
-    unreadable; the alarms of every other PLC are still evaluated.
+    A PLC whose read fails only makes *its* tags unreadable; the alarms of
+    every other PLC are still evaluated.
 
     Args:
         points: ``datapoint id -> DataPoint``.
@@ -79,20 +79,9 @@ def _read_values(points: dict, stats: dict) -> dict:
     Returns:
         ``datapoint id -> value dict`` (see :func:`~app.plc.service.read_datapoints`).
     """
-    from app.plc.service import read_datapoints  # noqa: PLC0415
+    from app.plc.service import read_values  # noqa: PLC0415
 
-    by_plc: dict = {}
-    for dp in points.values():
-        by_plc.setdefault(dp.plc_id, []).append(dp)
-    values: dict = {}
-    for group in by_plc.values():
-        try:
-            values.update(read_datapoints(group)[0])
-        except Exception as exc:  # noqa: BLE001 - isolate one PLC's failure
-            name = group[0].plc.name if group[0].plc else "?"
-            log.exception("alarm scan: reading PLC %s failed", name)
-            stats["errors"].append(f"{name}: {exc}")
-    return values
+    return read_values(points.values(), stats["errors"], "alarm scan")
 
 
 def scan_alarms() -> dict:

@@ -92,7 +92,7 @@ def logged_tags() -> list[DataPoint]:
 
 
 def _read(points: list[DataPoint], errors: list) -> dict:
-    """Read tags one PLC at a time.
+    """Read the tags (all PLCs in parallel, see :func:`~app.plc.service.read_values`).
 
     Args:
         points: Tags to read.
@@ -101,20 +101,9 @@ def _read(points: list[DataPoint], errors: list) -> dict:
     Returns:
         ``tag id -> value dict`` (see :func:`app.plc.service.read_datapoints`).
     """
-    from app.plc.service import read_datapoints  # noqa: PLC0415
+    from app.plc.service import read_values  # noqa: PLC0415
 
-    by_plc: dict = {}
-    for dp in points:
-        by_plc.setdefault(dp.plc_id, []).append(dp)
-    values: dict = {}
-    for group in by_plc.values():
-        try:
-            values.update(read_datapoints(group)[0])
-        except Exception as exc:  # noqa: BLE001 - isolate one PLC's failure
-            name = group[0].plc.name if group[0].plc else "?"
-            log.exception("history: reading PLC %s failed", name)
-            errors.append(f"{name}: {exc}")
-    return values
+    return read_values(points, errors, "history")
 
 
 def sample_due_tags(now: float | None = None, force: bool = False) -> dict:

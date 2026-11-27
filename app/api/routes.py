@@ -146,7 +146,7 @@ def datapoint_write(point_id: int):
         return _json_error(gettext("missing 'value'"), 400)
     before = None
     try:
-        before = read_datapoints([dp])[0].get(dp.id, {}).get("value")
+        before = read_datapoints([dp], fresh=True)[0].get(dp.id, {}).get("value")
     except Exception:  # noqa: BLE001 - the value before is only for the audit log
         pass
     try:
