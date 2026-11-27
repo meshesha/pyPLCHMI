@@ -10,11 +10,19 @@ Use a single worker *process* (threads are fine): every process keeps its own
 PLC connections, and S7 CPUs accept only a limited number of connections.
 """
 
-from app import create_app
+import os
+
+from app import create_app, start_background_workers
 from app.extensions import db
 from app.models import PLC, Dashboard, DataPoint, Permission, Role, User
 
 app = create_app()
+
+# Production servers: start alarms, history, automations and the Modbus publisher right away
+# (not only on the first web request).  ``flask`` CLI commands such as ``flask db upgrade`` also
+# load this file; they get no background threads (``flask run`` starts them on the first request).
+if os.environ.get("FLASK_RUN_FROM_CLI") != "true":
+    start_background_workers(app)
 
 
 @app.shell_context_processor
