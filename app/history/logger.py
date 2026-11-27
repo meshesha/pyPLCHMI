@@ -37,6 +37,8 @@ log = logging.getLogger(__name__)
 RETENTION_SETTING = "history_retention_days"
 #: Seconds between two clean-ups of old samples.
 PURGE_EVERY = 3600
+#: Samples deleted per transaction by :func:`purge_old_samples`.
+PURGE_BATCH = 5000
 #: Shortest and longest sample interval (seconds).
 MIN_INTERVAL, MAX_INTERVAL = 1, 86400
 
@@ -151,11 +153,16 @@ def sample_due_tags(now: float | None = None, force: bool = False) -> dict:
     return stats
 
 
-def purge_old_samples(days: int | None = None) -> int:
+def purge_old_samples(days: int | None = None, batch: int | None = None) -> int:
     """Delete samples older than the retention period.
+
+    The rows are deleted in batches with a commit after each one, so a big
+    clean-up never holds the database lock for long (on SQLite every other
+    writer – alarms, the logger itself, operators – would wait for it).
 
     Args:
         days: Days to keep (default :func:`retention_days`); ``0`` keeps everything.
+        batch: Rows per batch (default :data:`PURGE_BATCH`).
 
     Returns:
         Number of deleted samples.
@@ -163,9 +170,16 @@ def purge_old_samples(days: int | None = None) -> int:
     days = retention_days() if days is None else days
     if days <= 0:
         return 0
+    batch = batch or PURGE_BATCH
     limit = datetime.now(timezone.utc) - timedelta(days=days)
-    deleted = TagSample.query.filter(TagSample.ts < limit).delete(synchronize_session=False)
-    db.session.commit()
+    deleted = 0
+    while True:
+        ids = db.session.query(TagSample.id).filter(TagSample.ts < limit).limit(batch).scalar_subquery()
+        count = TagSample.query.filter(TagSample.id.in_(ids)).delete(synchronize_session=False)
+        db.session.commit()
+        deleted += count
+        if count < batch:
+            break
     _status.update(last_purge=datetime.now(timezone.utc), purged=deleted)
     if deleted:
         log.info("history: deleted %d samples older than %d days", deleted, days)

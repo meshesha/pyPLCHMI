@@ -58,6 +58,41 @@ def create_app(config_name: str | None = None) -> Flask:
     return app
 
 
+def _init_sqlite(app: Flask) -> None:
+    """Tune SQLite for several threads writing at once (no-op for other databases).
+
+    The alarm scanner, history logger, automation engine and web requests
+    all write.  With the default rollback journal a writer blocks every
+    reader and busy threads soon fail with *database is locked*.  WAL mode
+    lets readers continue while one thread writes, and ``busy_timeout``
+    makes a writer wait for the lock instead of failing.  ``SQLITE_WAL=0``
+    keeps the rollback journal (needed when the database file is on a
+    network share, where WAL does not work).
+
+    Args:
+        app: The application being created.
+    """
+    from sqlalchemy import event  # noqa: PLC0415
+
+    with app.app_context():
+        engine = db.engine
+    if engine.dialect.name != "sqlite":
+        return
+    wal = app.config.get("SQLITE_WAL", True)
+    timeout_ms = int(float(app.config.get("SQLITE_BUSY_TIMEOUT", 15)) * 1000)
+
+    @event.listens_for(engine, "connect")
+    def _sqlite_pragmas(dbapi_connection, _record):
+        """Set the pragmas on every new SQLite connection."""
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute(f"PRAGMA busy_timeout = {timeout_ms}")
+            if wal and engine.url.database not in (None, "", ":memory:"):
+                cursor.execute("PRAGMA journal_mode = WAL")
+        finally:
+            cursor.close()
+
+
 def _init_extensions(app: Flask) -> None:
     """Bind the extension singletons from :mod:`app.extensions` to ``app``.
 
@@ -65,6 +100,7 @@ def _init_extensions(app: Flask) -> None:
         app: The application being created.
     """
     db.init_app(app)
+    _init_sqlite(app)
     migrate.init_app(app, db, render_as_batch=True)  # batch mode = SQLite friendly ALTERs
     bcrypt.init_app(app)
     csrf.init_app(app)
